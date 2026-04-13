@@ -3,13 +3,79 @@ const Config = (function () {
     let _config = null;
     let _elements = {};
     let _listeners = [];
+    let _useLocalFile = false;
+    let _fs = null;
+    let _dataPath = '';
+
+    // 检测是否在 PakePlus 环境中
+    function initFileSystem() {
+        // 检测是否在 PakePlus 或 Electron 环境中
+        if (typeof window !== 'undefined' && window.pake) {
+            _useLocalFile = true;
+            _dataPath = './user-data/';
+            console.log('Running in PakePlus, using local file storage');
+            return true;
+        }
+
+        // 检测 Node.js 环境（Electron）
+        if (typeof process !== 'undefined' && process.versions && process.versions.electron) {
+            try {
+                _fs = require('fs');
+                const path = require('path');
+                const appDataPath = process.env.APPDATA || process.env.HOME;
+                _dataPath = path.join(appDataPath, 'stand-up-alarm');
+                if (!_fs.existsSync(_dataPath)) {
+                    _fs.mkdirSync(_dataPath, { recursive: true });
+                }
+                _useLocalFile = true;
+                console.log('Running in Electron, using local file storage at:', _dataPath);
+                return true;
+            } catch (e) {
+                console.warn('File system not available');
+            }
+        }
+
+        return false;
+    }
+
+    // 从本地文件加载
+    function loadFromFile() {
+        if (!_useLocalFile || !_fs) return null;
+        try {
+            const filePath = _dataPath + 'config.json';
+            if (_fs.existsSync(filePath)) {
+                const data = JSON.parse(_fs.readFileSync(filePath, 'utf8'));
+                console.log('Config loaded from file:', data);
+                return data;
+            }
+        } catch (e) {
+            console.warn('Load from file failed:', e);
+        }
+        return null;
+    }
+
+    // 保存到本地文件
+    function saveToFile(data) {
+        if (!_useLocalFile || !_fs) return false;
+        try {
+            if (!_fs.existsSync(_dataPath)) {
+                _fs.mkdirSync(_dataPath, { recursive: true });
+            }
+            _fs.writeFileSync(_dataPath + 'config.json', JSON.stringify(data, null, 2), 'utf8');
+            console.log('Config saved to file');
+            return true;
+        } catch (e) {
+            console.warn('Save to file failed:', e);
+            return false;
+        }
+    }
 
     function setElements(elements) {
         _elements = elements;
+        initFileSystem();
     }
 
     function load() {
-        const saved = localStorage.getItem('healthAlarmConfig');
         const defaults = {
             startTime: '08:00',
             endTime: '18:00',
@@ -20,12 +86,25 @@ const Config = (function () {
             notificationEnabled: true
         };
 
-        if (saved) {
-            try {
-                _config = { ...defaults, ...JSON.parse(saved) };
-            } catch (e) {
-                _config = { ...defaults };
+        let saved = null;
+
+        // 优先从本地文件读取
+        if (_useLocalFile) {
+            saved = loadFromFile();
+        }
+
+        // 回退到 localStorage
+        if (!saved) {
+            const localStorageData = localStorage.getItem('healthAlarmConfig');
+            if (localStorageData) {
+                try {
+                    saved = JSON.parse(localStorageData);
+                } catch (e) { }
             }
+        }
+
+        if (saved) {
+            _config = { ...defaults, ...saved };
         } else {
             _config = { ...defaults };
         }
@@ -56,10 +135,14 @@ const Config = (function () {
         if (_elements.soundToggle) _config.soundEnabled = _elements.soundToggle.checked;
         if (_elements.notificationToggle) _config.notificationEnabled = _elements.notificationToggle.checked;
 
+        // 同时保存到 localStorage 和本地文件
         localStorage.setItem('healthAlarmConfig', JSON.stringify(_config));
-        console.log('Config saved:', _config);
 
-        // 通知监听器
+        if (_useLocalFile) {
+            saveToFile(_config);
+        }
+
+        console.log('Config saved');
         _listeners.forEach(fn => fn({ ..._config }));
 
         return { ..._config };

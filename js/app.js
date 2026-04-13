@@ -451,6 +451,107 @@
         }
     });
 
+
+    /*
+    // 数据管理相关元素
+    const exportDataBtn = document.getElementById('exportDataBtn');
+    const importFileInput = document.getElementById('importFileInput');
+    const autoBackupToggle = document.getElementById('autoBackupToggle');
+    const dataSizeInfo = document.getElementById('dataSizeInfo');
+
+    // 更新数据大小显示
+    function updateDataSizeInfo() {
+        if (dataSizeInfo) {
+            const size = StorageModule.getDataSize();
+            dataSizeInfo.textContent = `数据大小: ${size} KB`;
+        }
+    }
+
+    // 导出数据
+    exportDataBtn.addEventListener('click', () => {
+        StorageModule.exportData();
+        showAutoCloseDialog({
+            title: '导出成功',
+            message: '备份文件已保存到下载目录',
+            autoClose: 2000,
+            confirmColor: '#22c55e'
+        });
+    });
+
+    // 导入数据
+    importFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const confirmed = await showConfirmDialog({
+            title: '确认导入',
+            message: '导入数据将覆盖当前所有设置和记录，确定要继续吗？',
+            confirmText: '确认导入',
+            cancelText: '取消',
+            confirmColor: '#f59e0b'
+        });
+
+        if (confirmed) {
+            try {
+                await StorageModule.importData(file);
+                // 重新加载配置和统计
+                Config.load();
+                fixValues();
+                UIModule.initStatsSubscription();
+                UIModule.updateStatsDisplay(StatsModule.load());
+                updateDataSizeInfo();
+
+                showAutoCloseDialog({
+                    title: '导入成功',
+                    message: '数据已恢复，请刷新页面查看',
+                    autoClose: 2000,
+                    confirmColor: '#22c55e'
+                });
+            } catch (err) {
+                showConfirmDialog({
+                    title: '导入失败',
+                    message: '文件格式错误或数据损坏',
+                    confirmText: '知道了',
+                    cancelText: '',
+                    confirmColor: '#ef4444'
+                });
+            }
+        }
+        importFileInput.value = '';
+    });
+
+    // 自动备份开关
+    let autoBackupEnabled = localStorage.getItem('autoBackupEnabled') !== 'false';
+    if (autoBackupEnabled) {
+        StorageModule.startAutoBackup();
+        autoBackupToggle.textContent = '⏰ 自动备份: 开启';
+        autoBackupToggle.classList.add('active');
+    } else {
+        StorageModule.setEnabled(false);
+        autoBackupToggle.textContent = '⏰ 自动备份: 关闭';
+        autoBackupToggle.classList.remove('active');
+    }
+
+    autoBackupToggle.addEventListener('click', () => {
+        autoBackupEnabled = !autoBackupEnabled;
+        localStorage.setItem('autoBackupEnabled', autoBackupEnabled);
+
+        if (autoBackupEnabled) {
+            StorageModule.startAutoBackup();
+            autoBackupToggle.textContent = '⏰ 自动备份: 开启';
+            autoBackupToggle.classList.add('active');
+        } else {
+            StorageModule.stopAutoBackup();
+            autoBackupToggle.textContent = '⏰ 自动备份: 关闭';
+            autoBackupToggle.classList.remove('active');
+        }
+    });
+
+    // 更新数据大小
+    updateDataSizeInfo();
+    setInterval(updateDataSizeInfo, 60000); // 每分钟更新一次
+*/
+
     elements.forceLockToggle.addEventListener('change', () => Config.save());
     elements.startBtn.addEventListener('click', startAlarm);
     elements.stopBtn.addEventListener('click', stopAlarm);

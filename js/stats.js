@@ -2,14 +2,61 @@
 const StatsModule = (function () {
     let _stats = null;
     let _listeners = [];
+    let _useLocalFile = false;
+    let _fs = null;
+    let _dataPath = '';
+
+    function initFileSystem() {
+        if (typeof window !== 'undefined' && window.pake) {
+            _useLocalFile = true;
+            _dataPath = './user-data/';
+            return true;
+        }
+        if (typeof process !== 'undefined' && process.versions && process.versions.electron) {
+            try {
+                _fs = require('fs');
+                const path = require('path');
+                const appDataPath = process.env.APPDATA || process.env.HOME;
+                _dataPath = path.join(appDataPath, 'stand-up-alarm');
+                if (!_fs.existsSync(_dataPath)) {
+                    _fs.mkdirSync(_dataPath, { recursive: true });
+                }
+                _useLocalFile = true;
+                return true;
+            } catch (e) { }
+        }
+        return false;
+    }
+
+    function loadFromFile() {
+        if (!_useLocalFile || !_fs) return null;
+        try {
+            const filePath = _dataPath + 'stats.json';
+            if (_fs.existsSync(filePath)) {
+                return JSON.parse(_fs.readFileSync(filePath, 'utf8'));
+            }
+        } catch (e) { }
+        return null;
+    }
+
+    function saveToFile(data) {
+        if (!_useLocalFile || !_fs) return false;
+        try {
+            _fs.writeFileSync(_dataPath + 'stats.json', JSON.stringify(data, null, 2), 'utf8');
+            return true;
+        } catch (e) { }
+        return false;
+    }
 
     function load() {
-        const saved = localStorage.getItem('healthAlarmStats');
+        initFileSystem();
+
+        const saved = _useLocalFile ? loadFromFile() : localStorage.getItem('healthAlarmStats');
         const today = getTodayStr();
 
         if (saved) {
             try {
-                _stats = JSON.parse(saved);
+                _stats = typeof saved === 'string' ? JSON.parse(saved) : saved;
             } catch (e) {
                 _stats = { todayCount: 0, lastActivityDate: null, continuousDays: 0, weeklyRecords: {} };
             }
@@ -36,6 +83,9 @@ const StatsModule = (function () {
 
     function save() {
         localStorage.setItem('healthAlarmStats', JSON.stringify(_stats));
+        if (_useLocalFile) {
+            saveToFile(_stats);
+        }
         _listeners.forEach(fn => fn({ ..._stats }));
     }
 

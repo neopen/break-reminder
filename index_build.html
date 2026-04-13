@@ -803,42 +803,43 @@
                 ⏰ 下次提醒时间: <span id="nextTimeText">--:--:--</span>
             </div>
         </div>
-    </div>
 
-    <!-- 锁屏弹框 - 无关闭按钮 -->
-    <div id="lockOverlay" class="lock-overlay hidden">
-        <div class="lock-card">
-            <div class="lock-icon">🧘</div>
-            <div class="lock-title">该活动啦！</div>
-            <div class="lock-message">站起来走走，伸个懒腰<br>活动一下筋骨</div>
+		<!-- 锁屏弹框 - 无关闭按钮 -->
+		<div id="lockOverlay" class="lock-overlay hidden">
+			<div class="lock-card">
+				<div class="lock-icon">🧘</div>
+				<div class="lock-title">该活动啦！</div>
+				<div class="lock-message">站起来走走，伸个懒腰<br>活动一下筋骨</div>
 
-            <div class="timer-ring" id="timerRing">
-                <div class="timer-circle-bg"></div>
-                <div class="timer-center">
-                    <span class="timer-number" id="countdownSeconds">0</span>
-                    <span class="timer-unit">秒</span>
-                    <div class="timer-label">倒计时</div>
-                </div>
-            </div>
+				<div class="timer-ring" id="timerRing">
+					<div class="timer-circle-bg"></div>
+					<div class="timer-center">
+						<span class="timer-number" id="countdownSeconds">0</span>
+						<span class="timer-unit">秒</span>
+						<div class="timer-label">倒计时</div>
+					</div>
+				</div>
 
-            <button id="unlockBtn" class="action-btn disabled">等待倒计时...</button>
+				<button id="unlockBtn" class="action-btn disabled">等待倒计时...</button>
 
-            <div class="reminder-suggestion">
-                <div class="suggestion-item">
-                    <span class="suggestion-icon">🚶</span>
-                    <span>走动一下</span>
-                </div>
-                <div class="suggestion-item">
-                    <span class="suggestion-icon">💧</span>
-                    <span>喝杯水</span>
-                </div>
-                <div class="suggestion-item">
-                    <span class="suggestion-icon">👀</span>
-                    <span>看远方</span>
-                </div>
-            </div>
-        </div>
-    </div>
+				<div class="reminder-suggestion">
+					<div class="suggestion-item">
+						<span class="suggestion-icon">🚶</span>
+						<span>走动一下</span>
+					</div>
+					<div class="suggestion-item">
+						<span class="suggestion-icon">💧</span>
+						<span>喝杯水</span>
+					</div>
+					<div class="suggestion-item">
+						<span class="suggestion-icon">👀</span>
+						<span>看远方</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	    
+	</div>
 
     <script>
         // ==================== 配置模块 ====================

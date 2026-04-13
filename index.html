@@ -62,8 +62,8 @@
                 <div class="settings-row">
                     <div class="settings-item">
                         <span>间隔</span>
-                        <input type="number" id="intervalMinutes" class="settings-input" value="40" min="10" max="300"
-                            step="10">
+                        <input type="number" id="intervalMinutes" class="settings-input" value="40" min="1" max="300"
+                            step="1">
                         <span>分钟</span>
                     </div>
                     <div class="settings-item">
@@ -160,12 +160,34 @@
         </div>
     </div>
 
+    <!-- 数据管理 -->
+    <!-- <div class="card" style="margin-top: 20px;">
+        <div class="card-title">💾 数据管理</div>
+        <div class="data-actions">
+            <button class="data-btn export-btn" id="exportDataBtn">
+                📥 导出备份
+            </button>
+            <label class="data-btn import-btn" id="importDataLabel">
+                📤 导入恢复
+                <input type="file" id="importFileInput" accept=".json" style="display: none;">
+            </label>
+            <button class="data-btn auto-backup-btn" id="autoBackupToggle">
+                ⏰ 自动备份: 开启
+            </button>
+        </div>
+        <div class="data-info">
+            <span id="dataSizeInfo">数据大小: 0 KB</span>
+            <span class="backup-hint">💡 自动备份每24小时执行一次，备份文件保存在下载目录</span>
+        </div>
+    </div> -->
+
     <script src="js/config.js"></script>
     <script src="js/audio.js"></script>
     <script src="js/notification.js"></script>
     <script src="js/stats.js"></script>
     <script src="js/reminder.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/storage.js"></script>
     <script src="js/app.js"></script>
 </body>
 
