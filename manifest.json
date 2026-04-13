@@ -1,21 +1,137 @@
 {
-    "name": "健康闹铃",
-    "short_name": "健康闹铃",
-    "description": "拒绝久坐，定时提醒活动",
-    "start_url": ".",
-    "display": "standalone",
-    "theme_color": "#667eea",
-    "background_color": "#667eea",
-    "icons": [
+  "name": "健康闹铃",
+  "short_name": "健康闹铃",
+  "description": "拒绝久坐，定时提醒活动。强制锁屏，让你必须起来走动。",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#667eea",
+  "background_color": "#667eea",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "categories": ["health", "fitness", "productivity", "lifestyle"],
+  "icons": [
+    {
+      "src": "icons/icon-32.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+	{
+      "src": "icons/icon-48.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
+	{
+      "src": "icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+	{
+      "src": "icons/icon-114.png",
+      "sizes": "114x114",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-256.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/screenshot-1.png",
+      "sizes": "600x800",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "主界面"
+    },
+    {
+      "src": "screenshots/screenshot-2.png",
+      "sizes": "600x800",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "锁屏提醒"
+    }
+  ],
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "启动闹铃",
+      "short_name": "启动",
+      "description": "快速启动健康闹铃",
+      "url": ".",
+      "icons": [
         {
-            "src": "icon-192.png",
-            "sizes": "192x192",
-            "type": "image/png"
-        },
-        {
-            "src": "icon-512.png",
-            "sizes": "512x512",
-            "type": "image/png"
+          "src": "icons/icon-96.png",
+          "sizes": "96x96"
         }
-    ]
+      ]
+    },
+    {
+      "name": "查看统计",
+      "short_name": "统计",
+      "description": "查看今日活动统计",
+      "url": "?view=stats",
+      "icons": [
+        {
+          "src": "icons/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "iarc_rating_id": "",
+  "features": [
+    "AudioContext",
+    "Notifications"
+  ]
 }

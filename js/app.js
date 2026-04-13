@@ -161,6 +161,20 @@
 
     // 设置音频模块的 locked getter
     AudioModule.setLockedGetter(() => ReminderModule.isCurrentlyLocked());
+	
+	// 注册 Service Worker
+	if ('serviceWorker' in navigator) {
+		navigator.serviceWorker.register('../sw.js')
+			.then(reg => {
+				console.log('Service Worker registered:', reg);
+				
+				// 注册后台同步（可选）
+				if ('sync' in reg) {
+					reg.sync.register('reminder-sync');
+				}
+			})
+			.catch(err => console.log('Service Worker registration failed:', err));
+	}
 
     // 校验和修正函数
     function validateAndShowErrors() {
