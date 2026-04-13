@@ -39,20 +39,20 @@
             confirmBtn.onclick = () => close(true);
         });
     }
-	
-	
-	// 自动关闭的提示弹框（3秒后自动关闭）
-	function showAutoCloseDialog(options) {
-		return new Promise((resolve) => {
-			const { title, message, autoClose = 3000, confirmColor = '#22c55e' } = options;
-			
-			const overlay = document.createElement('div');
-			overlay.className = 'custom-dialog-overlay auto-close-dialog';
-			
-			const dialog = document.createElement('div');
-			dialog.className = 'custom-dialog auto-close-dialog-inner';
-			
-			dialog.innerHTML = `
+
+
+    // 自动关闭的提示弹框（3秒后自动关闭）
+    function showAutoCloseDialog(options) {
+        return new Promise((resolve) => {
+            const { title, message, autoClose = 3000, confirmColor = '#22c55e' } = options;
+
+            const overlay = document.createElement('div');
+            overlay.className = 'custom-dialog-overlay auto-close-dialog';
+
+            const dialog = document.createElement('div');
+            dialog.className = 'custom-dialog auto-close-dialog-inner';
+
+            dialog.innerHTML = `
 				<div class="dialog-icon">✅</div>
 				<div class="dialog-title" style="color: ${confirmColor}">${title}</div>
 				<div class="dialog-message">${message}</div>
@@ -61,45 +61,45 @@
 					<div class="timer-text">${Math.ceil(autoClose / 1000)}秒后自动关闭</div>
 				</div>
 			`;
-			
-			overlay.appendChild(dialog);
-			document.body.appendChild(overlay);
-			
-			// 添加进度条动画
-			const timerBar = dialog.querySelector('.timer-bar');
-			if (timerBar) {
-				timerBar.style.animation = `shrink ${autoClose / 1000}s linear forwards`;
-			}
-			
-			// 自动关闭
-			const timeoutId = setTimeout(() => {
-				close();
-			}, autoClose);
-			
-			const close = () => {
-				clearTimeout(timeoutId);
-				overlay.style.animation = 'fadeOut 0.2s ease';
-				setTimeout(() => {
-					overlay.remove();
-					resolve(true);
-				}, 200);
-			};
-			
-			// 点击弹框可以提前关闭
-			dialog.addEventListener('click', (e) => {
-				e.stopPropagation();
-				close();
-			});
-			
-			// 点击遮罩不关闭
-			overlay.addEventListener('click', (e) => {
-				if (e.target === overlay) {
-					// 遮罩点击不关闭，只能等自动关闭或点弹框
-					return;
-				}
-			});
-		});
-	}
+
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+
+            // 添加进度条动画
+            const timerBar = dialog.querySelector('.timer-bar');
+            if (timerBar) {
+                timerBar.style.animation = `shrink ${autoClose / 1000}s linear forwards`;
+            }
+
+            // 自动关闭
+            const timeoutId = setTimeout(() => {
+                close();
+            }, autoClose);
+
+            const close = () => {
+                clearTimeout(timeoutId);
+                overlay.style.animation = 'fadeOut 0.2s ease';
+                setTimeout(() => {
+                    overlay.remove();
+                    resolve(true);
+                }, 200);
+            };
+
+            // 点击弹框可以提前关闭
+            dialog.addEventListener('click', (e) => {
+                e.stopPropagation();
+                close();
+            });
+
+            // 点击遮罩不关闭
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    // 遮罩点击不关闭，只能等自动关闭或点弹框
+                    return;
+                }
+            });
+        });
+    }
 
     // DOM 元素
     const elements = {
@@ -161,20 +161,20 @@
 
     // 设置音频模块的 locked getter
     AudioModule.setLockedGetter(() => ReminderModule.isCurrentlyLocked());
-	
-	// 注册 Service Worker
-	if ('serviceWorker' in navigator) {
-		navigator.serviceWorker.register('../sw.js')
-			.then(reg => {
-				console.log('Service Worker registered:', reg);
-				
-				// 注册后台同步（可选）
-				if ('sync' in reg) {
-					reg.sync.register('reminder-sync');
-				}
-			})
-			.catch(err => console.log('Service Worker registration failed:', err));
-	}
+
+    // 注册 Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('../sw.js')
+            .then(reg => {
+                console.log('Service Worker registered:', reg);
+
+                // 注册后台同步（可选）
+                if ('sync' in reg) {
+                    reg.sync.register('reminder-sync');
+                }
+            })
+            .catch(err => console.log('Service Worker registration failed:', err));
+    }
 
     // 校验和修正函数
     function validateAndShowErrors() {
@@ -297,19 +297,19 @@
         console.log('startAlarm - step 11: showing success dialog');
         /* await showConfirmDialog({
             title: '启动成功',
-            message: `健康闹铃已启动！\n下次提醒时间：${next.getHours().toString().padStart(2, '0')}:${next.getMinutes().toString().padStart(2, '0')}:${next.getSeconds().toString().padStart(2, '0')}`,
+            message: `闹铃已启动！\n下次提醒时间：${next.getHours().toString().padStart(2, '0')}:${next.getMinutes().toString().padStart(2, '0')}:${next.getSeconds().toString().padStart(2, '0')}`,
             confirmText: '好的',
             cancelText: '',
             confirmColor: '#22c55e'
         });*/
-		
-		// 使用自动关闭弹框
-		await showAutoCloseDialog({
-			title: '启动成功',
-			message: `健康闹铃已启动！\n下次提醒时间：${next.getHours().toString().padStart(2,'0')}:${next.getMinutes().toString().padStart(2,'0')}:${next.getSeconds().toString().padStart(2,'0')}`,
-			autoClose: 3000,
-			confirmColor: '#22c55e'
-		});
+
+        // 使用自动关闭弹框
+        await showAutoCloseDialog({
+            title: '启动成功',
+            message: `闹铃已启动！\n下次提醒时间：${next.getHours().toString().padStart(2, '0')}:${next.getMinutes().toString().padStart(2, '0')}:${next.getSeconds().toString().padStart(2, '0')}`,
+            autoClose: 3000,
+            confirmColor: '#22c55e'
+        });
 
         console.log('startAlarm completed successfully');
     }
@@ -325,7 +325,7 @@
         UIModule.updateUI(false);
         UIModule.updateNextReminderDisplay(null);
     }
-	
+
 
     // 解锁处理
     async function onUnlock() {
@@ -392,7 +392,7 @@
     }
 
     // 事件绑定
-    elements.intervalMinutes.addEventListener('input', () => {
+    elements.intervalMinutes.addEventListener('blur', () => {
         fixValues();
         if (ReminderModule.isReminderRunning()) {
             const now = new Date();
@@ -403,7 +403,7 @@
         }
     });
 
-    elements.lockMinutes.addEventListener('input', fixValues);
+    elements.lockMinutes.addEventListener('blur', fixValues);
 
     elements.startTime.addEventListener('change', () => {
         Config.save();

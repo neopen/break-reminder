@@ -5,13 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#667eea">
-	<link rel="manifest" href="manifest.json">
-	<meta name="theme-color" content="#667eea">
-	<meta name="apple-mobile-web-app-capable" content="yes">
-	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-	<meta name="apple-mobile-web-app-title" content="健康闹铃">
-	<link rel="apple-touch-icon" href="icons/icon-192.png">
-    <title>健康闹铃 - 拒绝久坐</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="防久坐">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <title>起来走走 - 拒绝久坐</title>
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/lock.css">
@@ -21,8 +21,8 @@
 
     <div class="app-container">
         <div class="status-bar">
-            <h1>⏰ 健康闹铃</h1>
-            <p>拒绝久坐 · 强制活动</p>
+            <h1>⏰ 起来走走</h1>
+            <p>定时提醒 · 拒绝久坐</p>
         </div>
 
         <div class="content">
@@ -111,11 +111,11 @@
                 </div>
                 <div id="lockError" class="error-hint hidden"></div>
                 <div class="warning-note">
-                    ⚠️ 强制锁屏开启后，弹框期间无法关闭，必须等待倒计时结束
+                    ⚠️ 强制锁屏开启后，提醒期间无法关闭，必须等待倒计时结束
                 </div>
             </div>
 
-            <button class="btn btn-primary" id="startBtn">▶ 启动健康闹铃</button>
+            <button class="btn btn-primary" id="startBtn">▶ 启动闹铃</button>
             <button class="btn btn-danger" id="stopBtn">⏹️ 停止闹铃</button>
 
             <div id="nextReminder" class="next-reminder hidden">
@@ -125,40 +125,40 @@
     </div>
 
     <!-- 锁屏弹框 - 全屏置顶，无关闭按钮 -->
-	<div id="lockOverlay" class="lock-overlay hidden">
-		<div class="lock-card">
-			<div class="lock-icon">🧘</div>
-			<div class="lock-title">该活动啦！</div>
-			<div class="lock-message">站起来走走，伸个懒腰<br>活动一下筋骨</div>
-			
-			<div class="timer-ring" id="timerRing">
-				<div class="timer-circle-bg"></div>
-				<div class="timer-center">
-					<span class="timer-number" id="countdownSeconds">0</span>
-					<span class="timer-unit">秒</span>
-					<div class="timer-label">倒计时</div>
-				</div>
-			</div>
-			
-			<!-- 只有这个按钮，没有关闭按钮 -->
-			<button id="unlockBtn" class="action-btn disabled">等待倒计时...</button>
-			
-			<div class="reminder-suggestion">
-				<div class="suggestion-item">
-					<span class="suggestion-icon">🚶</span>
-					<span>走动一下</span>
-				</div>
-				<div class="suggestion-item">
-					<span class="suggestion-icon">💧</span>
-					<span>喝杯水</span>
-				</div>
-				<div class="suggestion-item">
-					<span class="suggestion-icon">👀</span>
-					<span>看远方</span>
-				</div>
-			</div>
-		</div>
-	</div>
+    <div id="lockOverlay" class="lock-overlay hidden">
+        <div class="lock-card">
+            <div class="lock-icon">🧘</div>
+            <div class="lock-title">该活动啦！</div>
+            <div class="lock-message">站起来走走，伸个懒腰<br>活动一下筋骨</div>
+
+            <div class="timer-ring" id="timerRing">
+                <div class="timer-circle-bg"></div>
+                <div class="timer-center">
+                    <span class="timer-number" id="countdownSeconds">0</span>
+                    <span class="timer-unit">秒</span>
+                    <div class="timer-label">倒计时</div>
+                </div>
+            </div>
+
+            <!-- 只有这个按钮，没有关闭按钮 -->
+            <button id="unlockBtn" class="action-btn disabled">等待倒计时...</button>
+
+            <div class="reminder-suggestion">
+                <div class="suggestion-item">
+                    <span class="suggestion-icon">🚶</span>
+                    <span>走动一下</span>
+                </div>
+                <div class="suggestion-item">
+                    <span class="suggestion-icon">💧</span>
+                    <span>喝杯水</span>
+                </div>
+                <div class="suggestion-item">
+                    <span class="suggestion-icon">👀</span>
+                    <span>看远方</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="js/config.js"></script>
     <script src="js/audio.js"></script>

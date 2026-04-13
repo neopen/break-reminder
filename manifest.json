@@ -1,6 +1,6 @@
 {
-  "name": "健康闹铃",
-  "short_name": "健康闹铃",
+  "name": "别坐了",
+  "short_name": "别坐了",
   "description": "拒绝久坐，定时提醒活动。强制锁屏，让你必须起来走动。",
   "start_url": ".",
   "display": "standalone",
@@ -106,7 +106,7 @@
     {
       "name": "启动闹铃",
       "short_name": "启动",
-      "description": "快速启动健康闹铃",
+      "description": "快速启动防久坐闹铃",
       "url": ".",
       "icons": [
         {

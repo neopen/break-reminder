@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <title>定时提醒 - 拒绝久坐</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .app-container {
+            max-width: 500px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+        }
+
+        .status-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 24px 12px;
+            color: white;
+        }
+
+        .status-bar h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .status-bar p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 24px;
+        }
+
+        /* 统计卡片 */
+        .stats-card {
+            background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+            border-radius: 24px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 12px;
+        }
+
+        .stats-reset-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 14px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .stats-reset-btn:active {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0.95);
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+        }
+
+        .stat-item {
+            flex: 1;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 800;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .card {
+            background: #f8fafc;
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .card-title {
+            font-weight: 600;
+            font-size: 18px;
+            color: #1e293b;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .time-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .time-input {
+            flex: 1;
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 16px;
+            padding: 12px 16px;
+            font-size: 16px;
+            font-family: monospace;
+            font-weight: 500;
+        }
+
+        .time-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .settings-item {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f1f5f9;
+            padding: 8px 14px;
+            border-radius: 20px;
+            min-width: 140px;
+        }
+
+        .settings-item-full {
+            flex: 100%;
+        }
+
+        .settings-icon {
+            font-size: 16px;
+            opacity: 0.7;
+        }
+
+        .settings-item span:not(.settings-icon) {
+            font-size: 14px;
+            color: #475569;
+            white-space: nowrap;
+        }
+
+        .settings-input {
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 14px;
+            padding: 8px 8px;
+            font-size: 15px;
+            width: 70px;
+            text-align: center;
+        }
+
+        .settings-input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        .settings-input[type="number"]::-webkit-inner-spin-button,
+        .settings-input[type="number"]::-webkit-outer-spin-button {
+            opacity: 0.5;
+        }
+
+        .settings-item .toggle-switch {
+            margin-left: auto;
+        }
+
+        .test-notify-btn {
+            background: #e2e8f0;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #475569;
+            transition: all 0.2s;
+        }
+
+        .test-notify-btn:active {
+            background: #cbd5e1;
+            transform: scale(0.95);
+        }
+
+        .input-error {
+            border-color: #ef4444 !important;
+            background-color: #fef2f2 !important;
+        }
+
+        .error-hint {
+            font-size: 12px;
+            color: #ef4444;
+            margin-top: 8px;
+            margin-left: 12px;
+        }
+
+        .warning-note {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 26px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: 0.3s;
+            border-radius: 26px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: #667eea;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(22px);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 40px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            margin-top: 12px;
+        }
+
+        .status-badge {
+            background: #e2e8f0;
+            border-radius: 40px;
+            padding: 8px 16px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .next-reminder {
+            background: #ede9fe;
+            border-radius: 20px;
+            padding: 12px;
+            text-align: center;
+            font-size: 14px;
+            color: #5b21b6;
+            margin-top: 16px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* ========== 锁屏弹框 - 全屏置顶 ========== */
+        .lock-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            z-index: 999999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+            animation: fadeIn 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .lock-overlay.show {
+            display: flex !important;
+        }
+
+        body.lock-active {
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
+
+        .lock-card {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(20px);
+            border-radius: 56px;
+            padding: 48px 32px;
+            margin: 20px;
+            width: calc(100% - 40px);
+            max-width: 380px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 1000000;
+        }
+
+        .lock-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 1s ease infinite;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .lock-title {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .lock-message {
+            font-size: 18px;
+            margin-bottom: 40px;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .timer-ring {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            margin: 0 auto 32px;
+        }
+
+        .timer-circle-bg {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .timer-circle-progress {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: rotate(-90deg);
+        }
+
+        .timer-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            width: 100%;
+        }
+
+        .timer-number {
+            font-size: 56px;
+            font-weight: 800;
+            font-family: monospace;
+            background: linear-gradient(135deg, #fff 0%, #c4b5fd 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .timer-unit {
+            font-size: 18px;
+            margin-left: 4px;
+            opacity: 0.7;
+        }
+
+        .timer-label {
+            font-size: 12px;
+            opacity: 0.5;
+            margin-top: 6px;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            border: none;
+            padding: 18px 32px;
+            border-radius: 60px;
+            font-size: 20px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+        }
+
+        .action-btn:active {
+            transform: scale(0.97);
+        }
+
+        .action-btn.disabled {
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .action-btn.disabled:active {
+            transform: none;
+        }
+
+        .reminder-suggestion {
+            margin-top: 32px;
+            font-size: 14px;
+            opacity: 0.6;
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+        }
+
+        .suggestion-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .suggestion-icon {
+            font-size: 28px;
+        }
+
+        /* 自定义确认弹框 */
+        .custom-dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 10000000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .custom-dialog {
+            background: white;
+            border-radius: 32px;
+            width: 320px;
+            max-width: 85%;
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dialog-icon {
+            text-align: center;
+            padding: 32px 32px 16px 32px;
+            font-size: 56px;
+        }
+
+        .dialog-title {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 700;
+            color: #1e293b;
+            padding: 0 24px 12px 24px;
+        }
+
+        .dialog-message {
+            text-align: center;
+            font-size: 16px;
+            color: #64748b;
+            padding: 0 24px 24px 24px;
+            line-height: 1.5;
+        }
+
+        .dialog-buttons {
+            display: flex;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .dialog-btn {
+            flex: 1;
+            text-align: center;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            background: white;
+        }
+
+        .dialog-btn:active {
+            background: #f1f5f9;
+        }
+
+        .dialog-btn-cancel {
+            color: #64748b;
+            border-right: 1px solid #e2e8f0;
+        }
+
+        .dialog-btn-confirm {
+            color: #ef4444;
+            font-weight: 700;
+        }
+
+        /* 自动关闭弹框样式 */
+        .auto-close-dialog {
+            z-index: 10000000;
+        }
+
+        .auto-close-dialog-inner {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .auto-close-dialog-inner:active {
+            transform: scale(0.98);
+        }
+
+        .auto-close-timer {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .timer-bar {
+            display: block;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            border-radius: 3px;
+            margin-bottom: 8px;
+            transform-origin: left;
+        }
+
+        @keyframes shrink {
+            from {
+                transform: scaleX(1);
+            }
+
+            to {
+                transform: scaleX(0);
+            }
+        }
+
+        .timer-text {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        /* 确保所有弹框都在最顶层 */
+        .lock-overlay,
+        .custom-dialog-overlay {
+            z-index: 999999 !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app-container">
+        <div class="status-bar">
+            <h1>⏰ 起来走走</h1>
+            <p>定时提醒 · 拒绝久坐</p>
+        </div>
+
+        <div class="content">
+            <!-- 统计卡片 -->
+            <div class="stats-card">
+                <div class="stats-header">
+                    <span>📊 今日打卡</span>
+                    <button class="stats-reset-btn" id="resetStatsBtn">↻</button>
+                </div>
+                <div class="stats-row">
+                    <div class="stat-item">
+                        <span class="stat-value" id="todayCount">0</span>
+                        <span class="stat-label">今日活动</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="continuousDays">0</span>
+                        <span class="stat-label">连续打卡</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="weeklyRate">0%</span>
+                        <span class="stat-label">本周完成率</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">🕐 时间段设置</div>
+                <div class="time-row">
+                    <input type="time" id="startTime" class="time-input" value="08:00">
+                    <span>—</span>
+                    <input type="time" id="endTime" class="time-input" value="18:00">
+                </div>
+
+                <div class="card-title" style="margin-top: 16px;">🔁 提醒设置</div>
+                <div class="settings-row">
+                    <div class="settings-item">
+                        <span>间隔</span>
+                        <input type="number" id="intervalMinutes" class="settings-input" value="40" min="10" max="300"
+                            step="10">
+                        <span>分钟</span>
+                    </div>
+                    <div class="settings-item">
+                        <span class="settings-icon">🔊</span>
+                        <span>声音提示</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="soundToggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div id="intervalError" class="error-hint hidden"></div>
+
+                <div class="card-title" style="margin-top: 16px;">🔔 通知设置</div>
+                <div class="settings-row">
+                    <div class="settings-item settings-item-full">
+                        <span class="settings-icon">💬</span>
+                        <span>桌面通知</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="notificationToggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <!-- <button class="test-notify-btn" id="testNotifyBtn">测试</button> -->
+                    </div>
+                </div>
+
+                <div class="card-title" style="margin-top: 16px;">🔒 锁屏设置</div>
+                <div class="settings-row">
+                    <div class="settings-item">
+                        <span>锁屏</span>
+                        <input type="number" id="lockMinutes" class="settings-input" value="5" min="1" max="30"
+                            step="1">
+                        <span>分钟</span>
+                    </div>
+                    <div class="settings-item">
+                        <span class="settings-icon">🔒</span>
+                        <span>强制锁屏</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="forceLockToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div id="lockError" class="error-hint hidden"></div>
+                <div class="warning-note">
+                    ⚠️ 强制锁屏开启后，弹框期间无法关闭，必须等待倒计时结束
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="startBtn">▶ 启动闹铃</button>
+            <button class="btn btn-danger" id="stopBtn">⏹️ 停止闹铃</button>
+
+            <div id="nextReminder" class="next-reminder hidden">
+                ⏰ 下次提醒时间: <span id="nextTimeText">--:--:--</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 锁屏弹框 - 无关闭按钮 -->
+    <div id="lockOverlay" class="lock-overlay hidden">
+        <div class="lock-card">
+            <div class="lock-icon">🧘</div>
+            <div class="lock-title">该活动啦！</div>
+            <div class="lock-message">站起来走走，伸个懒腰<br>活动一下筋骨</div>
+
+            <div class="timer-ring" id="timerRing">
+                <div class="timer-circle-bg"></div>
+                <div class="timer-center">
+                    <span class="timer-number" id="countdownSeconds">0</span>
+                    <span class="timer-unit">秒</span>
+                    <div class="timer-label">倒计时</div>
+                </div>
+            </div>
+
+            <button id="unlockBtn" class="action-btn disabled">等待倒计时...</button>
+
+            <div class="reminder-suggestion">
+                <div class="suggestion-item">
+                    <span class="suggestion-icon">🚶</span>
+                    <span>走动一下</span>
+                </div>
+                <div class="suggestion-item">
+                    <span class="suggestion-icon">💧</span>
+                    <span>喝杯水</span>
+                </div>
+                <div class="suggestion-item">
+                    <span class="suggestion-icon">👀</span>
+                    <span>看远方</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 配置模块 ====================
+        const Config = (function () {
+            let _config = null;
+            let _elements = {};
+            let _listeners = [];
+
+            function setElements(elements) {
+                _elements = elements;
+            }
+
+            function load() {
+                const saved = localStorage.getItem('healthAlarmConfig');
+                const defaults = {
+                    startTime: '08:00',
+                    endTime: '18:00',
+                    intervalMinutes: 40,
+                    lockMinutes: 5,
+                    forceLock: false,
+                    soundEnabled: true,
+                    notificationEnabled: true
+                };
+
+                if (saved) {
+                    try {
+                        _config = { ...defaults, ...JSON.parse(saved) };
+                    } catch (e) {
+                        _config = { ...defaults };
+                    }
+                } else {
+                    _config = { ...defaults };
+                }
+
+                if (_elements.startTime) _elements.startTime.value = _config.startTime;
+                if (_elements.endTime) _elements.endTime.value = _config.endTime;
+                if (_elements.intervalMinutes) _elements.intervalMinutes.value = _config.intervalMinutes;
+                if (_elements.lockMinutes) _elements.lockMinutes.value = _config.lockMinutes;
+                if (_elements.forceLockToggle) _elements.forceLockToggle.checked = _config.forceLock;
+                if (_elements.soundToggle) _elements.soundToggle.checked = _config.soundEnabled;
+                if (_elements.notificationToggle) _elements.notificationToggle.checked = _config.notificationEnabled;
+
+                return { ..._config };
+            }
+
+            function save() {
+                if (!_config) _config = {};
+
+                if (_elements.startTime) _config.startTime = _elements.startTime.value;
+                if (_elements.endTime) _config.endTime = _elements.endTime.value;
+                if (_elements.intervalMinutes) _config.intervalMinutes = parseInt(_elements.intervalMinutes.value);
+                if (_elements.lockMinutes) _config.lockMinutes = parseInt(_elements.lockMinutes.value);
+                if (_elements.forceLockToggle) _config.forceLock = _elements.forceLockToggle.checked;
+                if (_elements.soundToggle) _config.soundEnabled = _elements.soundToggle.checked;
+                if (_elements.notificationToggle) _config.notificationEnabled = _elements.notificationToggle.checked;
+
+                localStorage.setItem('healthAlarmConfig', JSON.stringify(_config));
+                _listeners.forEach(fn => fn({ ..._config }));
+
+                return { ..._config };
+            }
+
+            function get(key) {
+                return _config ? _config[key] : null;
+            }
+
+            function set(key, value) {
+                if (_config) {
+                    _config[key] = value;
+                    save();
+                }
+            }
+
+            function subscribe(listener) {
+                _listeners.push(listener);
+                return () => { _listeners = _listeners.filter(l => l !== listener); };
+            }
+
+            function validateInterval(value) {
+                const num = parseInt(value);
+                return !isNaN(num) && num >= 10 && num <= 300;
+            }
+
+            function validateLockMinutes(value) {
+                const num = parseInt(value);
+                return !isNaN(num) && num >= 1 && num <= 30;
+            }
+
+            function fixIntervalValue(value) {
+                let num = parseInt(value);
+                if (isNaN(num)) return 40;
+                if (num < 10) return 10;
+                if (num > 300) return 300;
+                return Math.round(num / 10) * 10;
+            }
+
+            function fixLockValue(value) {
+                let num = parseInt(value);
+                if (isNaN(num)) return 5;
+                if (num < 1) return 1;
+                if (num > 30) return 30;
+                return num;
+            }
+
+            return {
+                setElements, load, save, get, set, subscribe,
+                validateInterval, validateLockMinutes, fixIntervalValue, fixLockValue
+            };
+        })();
+
+        // ==================== 音频模块 ====================
+        const AudioModule = (function () {
+            let audioContext = null;
+            let isEnabled = true;
+            let currentSoundInterval = null;
+            let isLockedGetter = null;
+
+            function init() {
+                if (audioContext) return audioContext;
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    return audioContext;
+                } catch (e) {
+                    console.warn('Web Audio API not supported');
+                    return null;
+                }
+            }
+
+            function setEnabled(enabled) { isEnabled = enabled; if (!enabled) stopContinuous(); }
+            function setLockedGetter(getter) { isLockedGetter = getter; }
+
+            function playBeep(frequency = 880, duration = 0.3, type = 'sine') {
+                if (!isEnabled) return;
+                try {
+                    const ctx = init();
+                    if (!ctx) return;
+                    if (ctx.state === 'suspended') ctx.resume();
+                    const now = ctx.currentTime;
+                    const oscillator = ctx.createOscillator();
+                    const gainNode = ctx.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(ctx.destination);
+                    oscillator.frequency.value = frequency;
+                    oscillator.type = type;
+                    gainNode.gain.setValueAtTime(0.3, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+                    oscillator.start();
+                    oscillator.stop(now + duration);
+                } catch (e) { console.warn('Cannot play sound:', e); }
+            }
+
+            function playAlert() {
+                if (!isEnabled) return;
+                playBeep(660, 0.2, 'sine');
+                setTimeout(() => playBeep(880, 0.2, 'sine'), 200);
+                setTimeout(() => playBeep(1046, 0.3, 'sine'), 400);
+            }
+
+            function stopContinuous() {
+                if (currentSoundInterval) { clearInterval(currentSoundInterval); currentSoundInterval = null; }
+            }
+
+            function startContinuous() {
+                if (!isEnabled) return;
+                playAlert();
+                stopContinuous();
+                currentSoundInterval = setInterval(() => {
+                    if (isLockedGetter && isLockedGetter() && isEnabled) playAlert();
+                }, 3000);
+            }
+
+            async function resume() {
+                const ctx = init();
+                if (ctx && ctx.state === 'suspended') await ctx.resume();
+            }
+
+            return { setEnabled, setLockedGetter, playAlert, startContinuous, stopContinuous, resume };
+        })();
+
+        // ==================== 通知模块 ====================
+        const NotificationModule = (function () {
+            let isEnabled = true;
+            let permissionGranted = false;
+
+            async function init() {
+                if (!('Notification' in window)) return false;
+                if (Notification.permission === 'granted') { permissionGranted = true; return true; }
+                if (Notification.permission !== 'denied') {
+                    const permission = await Notification.requestPermission();
+                    permissionGranted = permission === 'granted';
+                }
+                return permissionGranted;
+            }
+
+            function initWithoutWait() {
+                if (!('Notification' in window)) return false;
+                if (Notification.permission === 'granted') { permissionGranted = true; return true; }
+                if (Notification.permission !== 'denied') {
+                    Notification.requestPermission().then(p => { permissionGranted = p === 'granted'; });
+                }
+                return false;
+            }
+
+            function setEnabled(enabled) { isEnabled = enabled; }
+
+            async function send(title, options = {}) {
+                if (!isEnabled) return false;
+                if (!permissionGranted) {
+                    if (Notification.permission === 'default') await init();
+                    if (!permissionGranted) return false;
+                }
+                try {
+                    const notification = new Notification(title, { icon: '', ...options });
+                    setTimeout(() => notification.close(), 5000);
+                    return true;
+                } catch (e) { return false; }
+            }
+
+            function sendReminder() {
+                return send('🧘 该活动啦！', { body: '站起来走走，伸个懒腰，活动一下筋骨吧！', tag: 'health-reminder', requireInteraction: true });
+            }
+
+            function sendTest() {
+                return send('🔔 测试通知', { body: '如果你看到这条消息，说明桌面通知已开启！', tag: 'test-notification' });
+            }
+
+            return { init, initWithoutWait, setEnabled, send, sendReminder, sendTest };
+        })();
+
+        // ==================== 统计模块 ====================
+        const StatsModule = (function () {
+            let _stats = null;
+            let _listeners = [];
+
+            function load() {
+                const saved = localStorage.getItem('healthAlarmStats');
+                const today = getTodayStr();
+                if (saved) {
+                    try { _stats = JSON.parse(saved); } catch (e) { _stats = { todayCount: 0, lastActivityDate: null, continuousDays: 0, weeklyRecords: {} }; }
+                } else {
+                    _stats = { todayCount: 0, lastActivityDate: null, continuousDays: 0, weeklyRecords: {} };
+                }
+                if (_stats.lastActivityDate !== today) {
+                    if (_stats.lastActivityDate && isConsecutive(_stats.lastActivityDate, today)) _stats.continuousDays++;
+                    else if (_stats.lastActivityDate && _stats.lastActivityDate !== today) _stats.continuousDays = 1;
+                    else if (!_stats.lastActivityDate) _stats.continuousDays = 1;
+                    _stats.todayCount = 0;
+                    _stats.lastActivityDate = today;
+                    save();
+                }
+                return { ..._stats };
+            }
+
+            function save() {
+                localStorage.setItem('healthAlarmStats', JSON.stringify(_stats));
+                _listeners.forEach(fn => fn({ ..._stats }));
+            }
+
+            function getTodayStr() {
+                const now = new Date();
+                return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            }
+
+            function isConsecutive(lastDate, today) {
+                const last = new Date(lastDate);
+                const current = new Date(today);
+                const diff = (current - last) / (1000 * 60 * 60 * 24);
+                return diff === 1;
+            }
+
+            function getWeekStr(date) {
+                const d = new Date(date);
+                const year = d.getFullYear();
+                const week = Math.ceil(((d - new Date(year, 0, 1)) / 86400000 + 1) / 7);
+                return `${year}-W${week}`;
+            }
+
+            function recordActivity() {
+                const today = getTodayStr();
+                const week = getWeekStr(today);
+                if (_stats.lastActivityDate === today) _stats.todayCount++;
+                else {
+                    if (_stats.lastActivityDate && isConsecutive(_stats.lastActivityDate, today)) _stats.continuousDays++;
+                    else if (_stats.lastActivityDate && _stats.lastActivityDate !== today) _stats.continuousDays = 1;
+                    else if (!_stats.lastActivityDate) _stats.continuousDays = 1;
+                    _stats.todayCount = 1;
+                }
+                _stats.lastActivityDate = today;
+                if (!_stats.weeklyRecords[week]) _stats.weeklyRecords[week] = 0;
+                _stats.weeklyRecords[week]++;
+                save();
+                return { ..._stats };
+            }
+
+            function getWeeklyRate() {
+                const today = getTodayStr();
+                const week = getWeekStr(today);
+                const currentCount = _stats.weeklyRecords[week] || 0;
+                const now = new Date();
+                const dayOfWeek = now.getDay() || 7;
+                const daysPassed = dayOfWeek;
+                const targetPerDay = 3;
+                const totalTarget = daysPassed * targetPerDay;
+                if (totalTarget === 0) return 0;
+                return Math.min(100, Math.round((currentCount / totalTarget) * 100));
+            }
+
+            function resetToday() { _stats.todayCount = 0; save(); }
+            function subscribe(listener) { _listeners.push(listener); return () => { _listeners = _listeners.filter(l => l !== listener); }; }
+
+            return { load, recordActivity, getWeeklyRate, resetToday, subscribe, getTodayStr };
+        })();
+
+        // ==================== 提醒模块 ====================
+        const ReminderModule = (function () {
+            let isRunning = false;
+            let checkInterval = null;
+            let nextReminderTimestamp = null;
+            let currentLockEndTime = null;
+            let lockTimerInterval = null;
+            let isLocked = false;
+            let progressCircle = null;
+            let timerRing = null, countdownSpan = null, unlockBtn = null, lockOverlay = null;
+            let onReminderTrigger = null, onLockClose = null;
+
+            function setElements(elements) {
+                timerRing = elements.timerRing;
+                countdownSpan = elements.countdownSpan;
+                unlockBtn = elements.unlockBtn;
+                lockOverlay = elements.lockOverlay;
+            }
+
+            function setCallbacks(callbacks) { onReminderTrigger = callbacks.onReminderTrigger; onLockClose = callbacks.onLockClose; }
+            function isReminderRunning() { return isRunning; }
+            function isCurrentlyLocked() { return isLocked; }
+            function getNextReminderTime() { return nextReminderTimestamp; }
+            function setNextReminderTime(timestamp) { nextReminderTimestamp = timestamp; }
+
+            function getTodayTime(timeStr) {
+                if (!timeStr) return new Date();
+                const [hours, minutes] = timeStr.split(':').map(Number);
+                const now = new Date();
+                return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
+            }
+
+            function isWithinPeriod(now, config) {
+                if (!config || !config.startTime || !config.endTime) return true;
+                const start = getTodayTime(config.startTime);
+                const end = getTodayTime(config.endTime);
+                let endAdjusted = new Date(end);
+                if (endAdjusted <= start) endAdjusted.setDate(endAdjusted.getDate() + 1);
+                return now >= start && now <= endAdjusted;
+            }
+
+            function calculateNextReminder(now, config) {
+                if (!config) return new Date(now.getTime() + 30 * 60 * 1000);
+                const startTime = config.startTime || '08:00';
+                const endTime = config.endTime || '18:00';
+                const intervalMinutes = config.intervalMinutes || 40;
+                const start = getTodayTime(startTime);
+                const end = getTodayTime(endTime);
+                let endAdjusted = new Date(end);
+                if (endAdjusted <= start) endAdjusted.setDate(endAdjusted.getDate() + 1);
+                const intervalMs = intervalMinutes * 60 * 1000;
+                if (isWithinPeriod(now, config)) {
+                    let candidate = new Date(now.getTime() + intervalMs);
+                    if (candidate > endAdjusted) {
+                        let nextStart = new Date(start);
+                        nextStart.setDate(nextStart.getDate() + 1);
+                        return new Date(nextStart.getTime() + intervalMs);
+                    }
+                    return candidate;
+                }
+                if (now < start) return new Date(start.getTime() + intervalMs);
+                else {
+                    let tomorrowStart = new Date(start);
+                    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+                    return new Date(tomorrowStart.getTime() + intervalMs);
+                }
+            }
+
+            function updateProgressCircle(remainingSeconds, totalSeconds) {
+                if (!progressCircle && timerRing) {
+                    progressCircle = document.createElement('div');
+                    progressCircle.className = 'timer-circle-progress';
+                    const timerCenter = timerRing.querySelector('.timer-center');
+                    if (timerCenter) timerRing.insertBefore(progressCircle, timerCenter);
+                }
+                if (progressCircle) {
+                    const percent = (totalSeconds - remainingSeconds) / totalSeconds;
+                    const angle = percent * 360;
+                    progressCircle.style.background = `conic-gradient(from 0deg, #a78bfa 0deg, #a78bfa ${angle}deg, rgba(255, 255, 255, 0.1) ${angle}deg)`;
+                }
+            }
+
+            function closeLockScreen() {
+                if (lockTimerInterval) { clearInterval(lockTimerInterval); lockTimerInterval = null; }
+                document.body.classList.remove('lock-active');
+                if (lockOverlay) {
+                    lockOverlay.style.animation = 'fadeOut 0.3s ease';
+                    setTimeout(() => {
+                        lockOverlay.classList.add('hidden');
+                        lockOverlay.style.animation = '';
+                        isLocked = false;
+                        currentLockEndTime = null;
+                        if (onLockClose) onLockClose();
+                    }, 300);
+                }
+            }
+
+            function showLockScreen(minutes, forceLock, onComplete) {
+                if (isLocked) return;
+                isLocked = true;
+                const totalSeconds = minutes * 60;
+                const endTime = Date.now() + (totalSeconds * 1000);
+                currentLockEndTime = endTime;
+                document.body.classList.add('lock-active');
+                if (progressCircle) progressCircle.style.background = 'conic-gradient(from 0deg, #a78bfa 0deg, #a78bfa 0deg, rgba(255, 255, 255, 0.1) 0deg)';
+                if (lockOverlay) {
+                    lockOverlay.classList.remove('hidden');
+                    lockOverlay.style.animation = 'fadeIn 0.3s ease';
+                    const existingCloseBtn = lockOverlay.querySelector('.close-btn, .close-button, [data-close]');
+                    if (existingCloseBtn) existingCloseBtn.remove();
+                }
+                if (lockTimerInterval) clearInterval(lockTimerInterval);
+                const updateTimer = () => {
+                    const now = Date.now();
+                    const remaining = Math.max(0, Math.ceil((currentLockEndTime - now) / 1000));
+                    if (countdownSpan) countdownSpan.innerText = remaining;
+                    updateProgressCircle(remaining, totalSeconds);
+                    if (remaining <= 0) {
+                        clearInterval(lockTimerInterval);
+                        lockTimerInterval = null;
+                        closeLockScreen();
+                        if (onComplete) onComplete();
+                    } else if (unlockBtn) {
+                        unlockBtn.innerText = `⏳ 请活动 ${remaining} 秒`;
+                        if (forceLock) { unlockBtn.classList.add('disabled'); unlockBtn.disabled = true; }
+                        else { unlockBtn.classList.remove('disabled'); unlockBtn.disabled = false; }
+                    }
+                };
+                updateTimer();
+                lockTimerInterval = setInterval(updateTimer, 100);
+            }
+
+            function trigger(config, audioModule) {
+                if (!isRunning || isLocked) return;
+                const lockMins = Math.min(30, Math.max(1, config.lockMinutes || 5));
+                if (config.soundEnabled && audioModule) { audioModule.playAlert(); audioModule.startContinuous(); }
+                if (onReminderTrigger) onReminderTrigger();
+                showLockScreen(lockMins, config.forceLock || false, () => { if (audioModule) audioModule.stopContinuous(); });
+            }
+
+            function start() { isRunning = true; }
+            function stop(audioModule) {
+                isRunning = false;
+                if (checkInterval) { clearInterval(checkInterval); checkInterval = null; }
+                if (isLocked) { closeLockScreen(); if (audioModule) audioModule.stopContinuous(); }
+                nextReminderTimestamp = null;
+            }
+
+            function setMainInterval(fn, interval) {
+                if (checkInterval) clearInterval(checkInterval);
+                if (!isRunning) return;
+                checkInterval = setInterval(fn, interval);
+            }
+
+            function unlock(forceLock) {
+                if (!isLocked) return true;
+                const now = Date.now();
+                if (currentLockEndTime && now >= currentLockEndTime) { closeLockScreen(); return true; }
+                else if (!forceLock) return false;
+                return true;
+            }
+
+            function manualCloseLockScreen() { closeLockScreen(); }
+
+            return {
+                setElements, setCallbacks, isReminderRunning, isCurrentlyLocked,
+                getNextReminderTime, setNextReminderTime, calculateNextReminder,
+                trigger, start, stop, setMainInterval, unlock, closeLockScreen: manualCloseLockScreen
+            };
+        })();
+
+        // ==================== UI模块 ====================
+        const UIModule = (function () {
+            let elements = {};
+            let statsUnsubscribe = null;
+
+            function setElements(e) { elements = e; }
+
+            function updateUI(isRunning) {
+                if (isRunning) {
+                    if (elements.statusBadge) { elements.statusBadge.innerHTML = '🟢 闹铃运行中 · 将在时间段内自动提醒'; elements.statusBadge.className = 'status-badge status-active'; }
+                    if (elements.startBtn) { elements.startBtn.disabled = true; elements.startBtn.style.opacity = '0.6'; }
+                    if (elements.stopBtn) { elements.stopBtn.style.background = '#ef4444'; }
+                } else {
+                    if (elements.statusBadge) { elements.statusBadge.innerHTML = '⚪ 闹铃未启动'; elements.statusBadge.className = 'status-badge status-inactive'; }
+                    if (elements.startBtn) { elements.startBtn.disabled = false; elements.startBtn.style.opacity = '1'; }
+                    if (elements.stopBtn) { elements.stopBtn.style.background = '#ef4444'; }
+                }
+            }
+
+            function updateNextReminderDisplay(timestamp) {
+                if (!timestamp || !elements.nextReminderDiv) {
+                    if (elements.nextReminderDiv) elements.nextReminderDiv.classList.add('hidden');
+                    return;
+                }
+                const date = new Date(timestamp);
+                const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+                if (elements.nextTimeText) elements.nextTimeText.innerText = timeStr;
+                if (elements.nextReminderDiv) elements.nextReminderDiv.classList.remove('hidden');
+            }
+
+            function updateStatsDisplay(stats) {
+                if (elements.todayCount) elements.todayCount.innerText = stats.todayCount;
+                if (elements.continuousDays) elements.continuousDays.innerText = stats.continuousDays;
+                if (elements.weeklyRate) { const rate = StatsModule.getWeeklyRate(); elements.weeklyRate.innerText = `${rate}%`; }
+            }
+
+            function showError(elementId, message, isError = true) {
+                const errorEl = elements[elementId];
+                const inputEl = elements[elementId === 'intervalError' ? 'intervalMinutes' : 'lockMinutes'];
+                if (errorEl) {
+                    if (isError) { errorEl.textContent = message; errorEl.classList.remove('hidden'); if (inputEl) inputEl.classList.add('input-error'); }
+                    else { errorEl.classList.add('hidden'); if (inputEl) inputEl.classList.remove('input-error'); }
+                }
+            }
+
+            function initStatsSubscription() {
+                if (statsUnsubscribe) statsUnsubscribe();
+                statsUnsubscribe = StatsModule.subscribe((stats) => updateStatsDisplay(stats));
+                updateStatsDisplay(StatsModule.load());
+            }
+
+            return { setElements, updateUI, updateNextReminderDisplay, updateStatsDisplay, showError, initStatsSubscription };
+        })();
+
+        // ==================== 主入口 ====================
+        (function () {
+            function showConfirmDialog(options) {
+                return new Promise((resolve) => {
+                    const { title, message, confirmText = '确定', cancelText = '取消', confirmColor = '#ef4444' } = options;
+                    const overlay = document.createElement('div');
+                    overlay.className = 'custom-dialog-overlay';
+                    const dialog = document.createElement('div');
+                    dialog.className = 'custom-dialog';
+                    dialog.innerHTML = `
+                <div class="dialog-icon">⚠️</div>
+                <div class="dialog-title">${title}</div>
+                <div class="dialog-message">${message}</div>
+                <div class="dialog-buttons">
+                    ${cancelText ? `<button class="dialog-btn dialog-btn-cancel">${cancelText}</button>` : ''}
+                    <button class="dialog-btn dialog-btn-confirm" style="color: ${confirmColor}">${confirmText}</button>
+                </div>
+            `;
+                    overlay.appendChild(dialog);
+                    document.body.appendChild(overlay);
+                    const cancelBtn = cancelText ? dialog.querySelector('.dialog-btn-cancel') : null;
+                    const confirmBtn = dialog.querySelector('.dialog-btn-confirm');
+                    const close = (result) => {
+                        overlay.style.animation = 'fadeOut 0.2s ease';
+                        setTimeout(() => { overlay.remove(); resolve(result); }, 200);
+                    };
+                    if (cancelBtn) cancelBtn.onclick = () => close(false);
+                    confirmBtn.onclick = () => close(true);
+                });
+            }
+
+            function showAutoCloseDialog(options) {
+                return new Promise((resolve) => {
+                    const { title, message, autoClose = 3000, confirmColor = '#22c55e' } = options;
+                    const overlay = document.createElement('div');
+                    overlay.className = 'custom-dialog-overlay auto-close-dialog';
+                    const dialog = document.createElement('div');
+                    dialog.className = 'custom-dialog auto-close-dialog-inner';
+                    dialog.innerHTML = `
+                <div class="dialog-icon">✅</div>
+                <div class="dialog-title" style="color: ${confirmColor}">${title}</div>
+                <div class="dialog-message">${message}</div>
+                <div class="auto-close-timer">
+                    <div class="timer-bar"></div>
+                    <div class="timer-text">${Math.ceil(autoClose / 1000)}秒后自动关闭</div>
+                </div>
+            `;
+                    overlay.appendChild(dialog);
+                    document.body.appendChild(overlay);
+                    const timerBar = dialog.querySelector('.timer-bar');
+                    if (timerBar) timerBar.style.animation = `shrink ${autoClose / 1000}s linear forwards`;
+                    const timeoutId = setTimeout(() => close(), autoClose);
+                    const close = () => {
+                        clearTimeout(timeoutId);
+                        overlay.style.animation = 'fadeOut 0.2s ease';
+                        setTimeout(() => { overlay.remove(); resolve(true); }, 200);
+                    };
+                    dialog.addEventListener('click', (e) => { e.stopPropagation(); close(); });
+                });
+            }
+
+            const elements = {
+                startTime: document.getElementById('startTime'), endTime: document.getElementById('endTime'),
+                intervalMinutes: document.getElementById('intervalMinutes'), lockMinutes: document.getElementById('lockMinutes'),
+                forceLockToggle: document.getElementById('forceLockToggle'), soundToggle: document.getElementById('soundToggle'),
+                notificationToggle: document.getElementById('notificationToggle'), startBtn: document.getElementById('startBtn'),
+                stopBtn: document.getElementById('stopBtn'), statusBadge: document.getElementById('statusBadge'),
+                nextReminderDiv: document.getElementById('nextReminder'), nextTimeText: document.getElementById('nextTimeText'),
+                lockOverlay: document.getElementById('lockOverlay'), countdownSpan: document.getElementById('countdownSeconds'),
+                unlockBtn: document.getElementById('unlockBtn'), timerRing: document.getElementById('timerRing'),
+                intervalError: document.getElementById('intervalError'), lockError: document.getElementById('lockError'),
+                todayCount: document.getElementById('todayCount'), continuousDays: document.getElementById('continuousDays'),
+                weeklyRate: document.getElementById('weeklyRate'), resetStatsBtn: document.getElementById('resetStatsBtn'),
+                testNotifyBtn: document.getElementById('testNotifyBtn')
+            };
+
+            Config.setElements(elements);
+            ReminderModule.setElements({ timerRing: elements.timerRing, countdownSpan: elements.countdownSpan, unlockBtn: elements.unlockBtn, lockOverlay: elements.lockOverlay });
+            UIModule.setElements(elements);
+
+            ReminderModule.setCallbacks({
+                onReminderTrigger: async () => {
+                    StatsModule.recordActivity();
+                    if (Config.get('notificationEnabled')) await NotificationModule.sendReminder();
+                },
+                onLockClose: () => {
+                    if (ReminderModule.isReminderRunning()) {
+                        const now = new Date();
+                        const config = Config.load();
+                        const next = ReminderModule.calculateNextReminder(now, config);
+                        ReminderModule.setNextReminderTime(next.getTime());
+                        UIModule.updateNextReminderDisplay(next.getTime());
+                    }
+                }
+            });
+
+            AudioModule.setLockedGetter(() => ReminderModule.isCurrentlyLocked());
+
+            function validateAndShowErrors() {
+                let isValid = true;
+                if (!Config.validateInterval(elements.intervalMinutes.value)) {
+                    UIModule.showError('intervalError', '提醒频率范围：10 ~ 300 分钟（步长10分钟）', true);
+                    isValid = false;
+                } else UIModule.showError('intervalError', '', false);
+                if (!Config.validateLockMinutes(elements.lockMinutes.value)) {
+                    UIModule.showError('lockError', '锁屏时长范围：1 ~ 30 分钟', true);
+                    isValid = false;
+                } else UIModule.showError('lockError', '', false);
+                return isValid;
+            }
+
+            function fixValues() {
+                elements.intervalMinutes.value = Config.fixIntervalValue(elements.intervalMinutes.value);
+                elements.lockMinutes.value = Config.fixLockValue(elements.lockMinutes.value);
+                validateAndShowErrors();
+            }
+
+            let mainInterval = null;
+            function checkAndRemind() {
+                if (!ReminderModule.isReminderRunning() || ReminderModule.isCurrentlyLocked()) return;
+                const now = Date.now();
+                const nextTime = ReminderModule.getNextReminderTime();
+                if (nextTime && now >= nextTime) {
+                    const config = Config.load();
+                    ReminderModule.trigger(config, AudioModule);
+                }
+            }
+
+            async function startAlarm() {
+                if (!validateAndShowErrors()) {
+                    await showConfirmDialog({ title: '配置无效', message: '请先修正上面的错误设置后再启动闹铃。', confirmText: '知道了', cancelText: '', confirmColor: '#667eea' });
+                    return;
+                }
+                if (ReminderModule.isReminderRunning()) return;
+
+                try { await AudioModule.resume(); } catch (e) { }
+                NotificationModule.initWithoutWait();
+
+                const config = Config.save();
+                const now = new Date();
+                const next = ReminderModule.calculateNextReminder(now, config);
+                ReminderModule.setNextReminderTime(next.getTime());
+                ReminderModule.start();
+                if (mainInterval) clearInterval(mainInterval);
+                mainInterval = setInterval(checkAndRemind, 500);
+                UIModule.updateUI(true);
+                UIModule.updateNextReminderDisplay(next.getTime());
+
+                await showAutoCloseDialog({
+                    title: '启动成功',
+                    message: `闹铃已启动！\n下次提醒时间：${next.getHours().toString().padStart(2, '0')}:${next.getMinutes().toString().padStart(2, '0')}:${next.getSeconds().toString().padStart(2, '0')}`,
+                    autoClose: 3000,
+                    confirmColor: '#22c55e'
+                });
+            }
+
+            function stopAlarm() {
+                ReminderModule.stop(AudioModule);
+                if (mainInterval) { clearInterval(mainInterval); mainInterval = null; }
+                UIModule.updateUI(false);
+                UIModule.updateNextReminderDisplay(null);
+            }
+
+            async function onUnlock() {
+                if (!ReminderModule.isCurrentlyLocked()) return;
+                const forceLock = Config.get('forceLock');
+                const unlocked = ReminderModule.unlock(forceLock);
+                if (!unlocked && !forceLock) {
+                    const confirmed = await showConfirmDialog({
+                        title: '提前结束提醒', message: '活动时间还没到，提前结束可能会影响健康习惯。\n确定要提前结束吗？',
+                        confirmText: '提前结束', cancelText: '继续活动', confirmColor: '#f59e0b'
+                    });
+                    if (confirmed) { ReminderModule.closeLockScreen(); AudioModule.stopContinuous(); }
+                }
+            }
+
+            async function resetStats() {
+                const confirmed = await showConfirmDialog({ title: '重置今日统计', message: '确定要重置今日的活动记录吗？', confirmText: '重置', cancelText: '取消', confirmColor: '#ef4444' });
+                if (confirmed) { StatsModule.resetToday(); UIModule.updateStatsDisplay(StatsModule.load()); }
+            }
+
+            async function testNotification() {
+                if (Config.get('notificationEnabled')) {
+                    const sent = await NotificationModule.sendTest();
+                    if (!sent) await showConfirmDialog({ title: '通知权限', message: '请允许浏览器通知权限，以便接收提醒。', confirmText: '知道了', cancelText: '', confirmColor: '#667eea' });
+                } else {
+                    await showConfirmDialog({ title: '通知未开启', message: '请在设置中开启桌面通知功能。', confirmText: '知道了', cancelText: '', confirmColor: '#667eea' });
+                }
+            }
+
+            elements.intervalMinutes.addEventListener('input', () => {
+                fixValues();
+                if (ReminderModule.isReminderRunning()) {
+                    const now = new Date(); const config = Config.load();
+                    const next = ReminderModule.calculateNextReminder(now, config);
+                    ReminderModule.setNextReminderTime(next.getTime());
+                    UIModule.updateNextReminderDisplay(next.getTime());
+                }
+            });
+            elements.lockMinutes.addEventListener('input', fixValues);
+            elements.startTime.addEventListener('change', () => { Config.save(); if (ReminderModule.isReminderRunning()) { const now = new Date(); const config = Config.load(); const next = ReminderModule.calculateNextReminder(now, config); ReminderModule.setNextReminderTime(next.getTime()); UIModule.updateNextReminderDisplay(next.getTime()); } });
+            elements.endTime.addEventListener('change', () => { Config.save(); if (ReminderModule.isReminderRunning()) { const now = new Date(); const config = Config.load(); const next = ReminderModule.calculateNextReminder(now, config); ReminderModule.setNextReminderTime(next.getTime()); UIModule.updateNextReminderDisplay(next.getTime()); } });
+            elements.soundToggle.addEventListener('change', () => { Config.save(); AudioModule.setEnabled(elements.soundToggle.checked); });
+            elements.notificationToggle.addEventListener('change', () => { Config.save(); NotificationModule.setEnabled(elements.notificationToggle.checked); if (elements.notificationToggle.checked) NotificationModule.initWithoutWait(); });
+            elements.forceLockToggle.addEventListener('change', () => Config.save());
+            elements.startBtn.addEventListener('click', startAlarm);
+            elements.stopBtn.addEventListener('click', stopAlarm);
+            elements.unlockBtn.addEventListener('click', onUnlock);
+            elements.resetStatsBtn.addEventListener('click', resetStats);
+            elements.testNotifyBtn.addEventListener('click', testNotification);
+
+            Config.load();
+            fixValues();
+            UIModule.initStatsSubscription();
+            UIModule.updateUI(false);
+            ReminderModule.closeLockScreen();
+            NotificationModule.initWithoutWait();
+
+            window.addEventListener('beforeunload', (e) => {
+                if (ReminderModule.isReminderRunning()) { e.preventDefault(); e.returnValue = '闹铃正在运行，确定要离开吗？'; }
+            });
+        })();
+    </script>
+</body>
+
+</html>

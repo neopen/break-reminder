@@ -1,4 +1,4 @@
-// sw.js - Service Worker for 健康闹铃
+// sw.js - Service Worker for it
 const CACHE_NAME = 'health-alarm-v1.0.0';
 const urlsToCache = [
   './',
@@ -80,7 +80,7 @@ self.addEventListener('sync', event => {
   console.log('[SW] Sync', event.tag);
   if (event.tag === 'reminder-sync') {
     event.waitUntil(
-      self.registration.showNotification('🧘 健康闹铃', {
+      self.registration.showNotification('🧘 别坐了', {
         body: '该活动啦！站起来走走吧！',
         icon: './icons/icon-192.png',
         badge: './icons/icon-96.png',
@@ -97,7 +97,7 @@ self.addEventListener('push', event => {
   console.log('[SW] Push', event);
   const data = event.data ? event.data.json() : {};
   event.waitUntil(
-    self.registration.showNotification(data.title || '🧘 健康闹铃', {
+    self.registration.showNotification(data.title || '🧘 别坐了', {
       body: data.body || '该活动啦！站起来走走，伸个懒腰！',
       icon: './icons/icon-192.png',
       badge: './icons/icon-96.png',
