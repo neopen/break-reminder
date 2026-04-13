@@ -1,119 +1,166 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <link rel="manifest" href="manifest.json">
     <title>健康闹铃 - 拒绝久坐</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/lock.css">
 </head>
+
 <body>
 
-<div class="app-container">
-    <div class="status-bar">
-        <h1>⏰ 健康闹铃</h1>
-        <p>拒绝久坐 · 强制活动</p>
+    <div class="app-container">
+        <div class="status-bar">
+            <h1>⏰ 健康闹铃</h1>
+            <p>拒绝久坐 · 强制活动</p>
+        </div>
+
+        <div class="content">
+            <!-- 统计卡片 -->
+            <div class="stats-card" id="statsCard">
+                <div class="stats-header">
+                    <span>📊 今日打卡</span>
+                    <button class="stats-reset-btn" id="resetStatsBtn" title="重置今日统计">↻</button>
+                </div>
+                <div class="stats-row">
+                    <div class="stat-item">
+                        <span class="stat-value" id="todayCount">0</span>
+                        <span class="stat-label">今日活动</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="continuousDays">0</span>
+                        <span class="stat-label">连续打卡</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="weeklyRate">0%</span>
+                        <span class="stat-label">本周完成率</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <!-- 时间段设置 -->
+                <div class="card-title">🕐 时间段设置</div>
+                <div class="time-row">
+                    <input type="time" id="startTime" class="time-input" value="08:00">
+                    <span>—</span>
+                    <input type="time" id="endTime" class="time-input" value="18:00">
+                </div>
+
+                <!-- 提醒设置 -->
+                <div class="card-title" style="margin-top: 16px;">🔁 提醒设置</div>
+                <div class="settings-row">
+                    <div class="settings-item">
+                        <span>间隔</span>
+                        <input type="number" id="intervalMinutes" class="settings-input" value="40" min="10" max="300"
+                            step="10">
+                        <span>分钟</span>
+                    </div>
+                    <div class="settings-item">
+                        <span class="settings-icon">🔊</span>
+                        <span>声音提示</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="soundToggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div id="intervalError" class="error-hint hidden"></div>
+
+                <!-- 通知设置（新增） -->
+                <div class="card-title" style="margin-top: 16px;">🔔 通知设置</div>
+                <div class="settings-row">
+                    <div class="settings-item settings-item-full">
+                        <span class="settings-icon">💬</span>
+                        <span>桌面通知</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="notificationToggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <!-- <button class="test-notify-btn" id="testNotifyBtn">测试</button> -->
+                    </div>
+                </div>
+
+                <!-- 锁屏设置 -->
+                <div class="card-title" style="margin-top: 16px;">🔒 锁屏设置</div>
+                <div class="settings-row">
+                    <div class="settings-item">
+                        <span>锁屏</span>
+                        <input type="number" id="lockMinutes" class="settings-input" value="5" min="1" max="30"
+                            step="1">
+                        <span>分钟</span>
+                    </div>
+                    <div class="settings-item">
+                        <span class="settings-icon">🔒</span>
+                        <span>强制锁屏</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="forceLockToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div id="lockError" class="error-hint hidden"></div>
+                <div class="warning-note">
+                    ⚠️ 强制锁屏开启后，弹框期间无法关闭，必须等待倒计时结束
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="startBtn">▶ 启动健康闹铃</button>
+            <button class="btn btn-danger" id="stopBtn">⏹️ 停止闹铃</button>
+
+            <div id="nextReminder" class="next-reminder hidden">
+                ⏰ 下次提醒时间: <span id="nextTimeText">--:--:--</span>
+            </div>
+        </div>
     </div>
 
-    <div class="content">
-        <div class="status-badge" id="statusBadge">
-            ⚪ 闹铃未启动
-        </div>
+    <!-- 锁屏弹框 -->
+    <div id="lockOverlay" class="lock-overlay hidden">
+        <div class="lock-card">
+            <div class="lock-icon">🧘</div>
+            <div class="lock-title">该活动啦！</div>
+            <div class="lock-message">站起来走走，伸个懒腰<br>活动一下筋骨</div>
 
-        <div class="card">
-            <!-- 时间段设置 -->
-            <div class="card-title">🕐 时间段设置</div>
-            <div class="time-row">
-                <input type="time" id="startTime" class="time-input" value="08:00">
-                <span>—</span>
-                <input type="time" id="endTime" class="time-input" value="18:00">
-            </div>
-
-            <!-- 提醒设置（统一使用 settings-row 样式） -->
-            <div class="card-title" style="margin-top: 16px;">🔁 提醒设置</div>
-            <div class="settings-row">
-                <div class="settings-item">
-                    <span>间隔</span>
-                    <input type="number" id="intervalMinutes" class="settings-input" value="40" min="10" max="300" step="10">
-                    <span>分钟</span>
-                </div>
-                <div class="settings-item">
-                    <span class="settings-icon">🔊</span>
-                    <span>声音提示</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="soundToggle" checked>
-                        <span class="slider"></span>
-                    </label>
+            <div class="timer-ring" id="timerRing">
+                <div class="timer-circle-bg"></div>
+                <div class="timer-center">
+                    <span class="timer-number" id="countdownSeconds">0</span>
+                    <span class="timer-unit">秒</span>
+                    <div class="timer-label">倒计时</div>
                 </div>
             </div>
-            <div id="intervalError" class="error-hint hidden"></div>
 
-            <!-- 锁屏设置（统一使用 settings-row 样式） -->
-            <div class="card-title" style="margin-top: 16px;">🔒 锁屏设置</div>
-            <div class="settings-row">
-                <div class="settings-item">
-                    <span>锁屏</span>
-                    <input type="number" id="lockMinutes" class="settings-input" value="5" min="1" max="30" step="1">
-                    <span>分钟</span>
+            <button id="unlockBtn" class="action-btn disabled">等待倒计时...</button>
+
+            <div class="reminder-suggestion">
+                <div class="suggestion-item">
+                    <span class="suggestion-icon">🚶</span>
+                    <span>走动一下</span>
                 </div>
-                <div class="settings-item">
-                    <span class="settings-icon">🔒</span>
-                    <span>强制锁屏</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="forceLockToggle">
-                        <span class="slider"></span>
-                    </label>
+                <div class="suggestion-item">
+                    <span class="suggestion-icon">💧</span>
+                    <span>喝杯水</span>
                 </div>
-            </div>
-            <div id="lockError" class="error-hint hidden"></div>
-            <div class="warning-note">
-                ⚠️ 强制锁屏开启后，弹框期间无法关闭，必须等待倒计时结束
-            </div>
-        </div>
-
-        <button class="btn btn-primary" id="startBtn">▶ 启动健康闹铃</button>
-        <button class="btn btn-danger" id="stopBtn">⏹️ 停止闹铃</button>
-
-        <div id="nextReminder" class="next-reminder hidden">
-            ⏰ 下次提醒时间: <span id="nextTimeText">--:--:--</span>
-        </div>
-    </div>
-</div>
-
-<!-- 锁屏弹框 -->
-<div id="lockOverlay" class="lock-overlay hidden">
-    <div class="lock-card">
-        <div class="lock-icon">🧘</div>
-        <div class="lock-title">该活动啦！</div>
-        <div class="lock-message">站起来走走，伸个懒腰<br>活动一下筋骨</div>
-        
-        <div class="timer-ring" id="timerRing">
-            <div class="timer-circle-bg"></div>
-            <div class="timer-center">
-                <span class="timer-number" id="countdownSeconds">0</span>
-                <span class="timer-unit">秒</span>
-                <div class="timer-label">倒计时</div>
-            </div>
-        </div>
-        
-        <button id="unlockBtn" class="action-btn disabled">等待倒计时...</button>
-        
-        <div class="reminder-suggestion">
-            <div class="suggestion-item">
-                <span class="suggestion-icon">🚶</span>
-                <span>走动一下</span>
-            </div>
-            <div class="suggestion-item">
-                <span class="suggestion-icon">💧</span>
-                <span>喝杯水</span>
-            </div>
-            <div class="suggestion-item">
-                <span class="suggestion-icon">👀</span>
-                <span>看远方</span>
+                <div class="suggestion-item">
+                    <span class="suggestion-icon">👀</span>
+                    <span>看远方</span>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<script src="script.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/notification.js"></script>
+    <script src="js/stats.js"></script>
+    <script src="js/reminder.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
 </body>
+
 </html>

@@ -1,0 +1,383 @@
+// 主入口
+(function () {
+    // 自定义确认弹框
+    function showConfirmDialog(options) {
+        return new Promise((resolve) => {
+            const { title, message, confirmText = '确定', cancelText = '取消', confirmColor = '#ef4444' } = options;
+
+            const overlay = document.createElement('div');
+            overlay.className = 'custom-dialog-overlay';
+
+            const dialog = document.createElement('div');
+            dialog.className = 'custom-dialog';
+
+            dialog.innerHTML = `
+                <div class="dialog-icon">⚠️</div>
+                <div class="dialog-title">${title}</div>
+                <div class="dialog-message">${message}</div>
+                <div class="dialog-buttons">
+                    ${cancelText ? `<button class="dialog-btn dialog-btn-cancel">${cancelText}</button>` : ''}
+                    <button class="dialog-btn dialog-btn-confirm" style="color: ${confirmColor}">${confirmText}</button>
+                </div>
+            `;
+
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+
+            const cancelBtn = cancelText ? dialog.querySelector('.dialog-btn-cancel') : null;
+            const confirmBtn = dialog.querySelector('.dialog-btn-confirm');
+
+            const close = (result) => {
+                overlay.style.animation = 'fadeOut 0.2s ease';
+                setTimeout(() => {
+                    overlay.remove();
+                    resolve(result);
+                }, 200);
+            };
+
+            if (cancelBtn) cancelBtn.onclick = () => close(false);
+            confirmBtn.onclick = () => close(true);
+        });
+    }
+
+    // DOM 元素
+    const elements = {
+        startTime: document.getElementById('startTime'),
+        endTime: document.getElementById('endTime'),
+        intervalMinutes: document.getElementById('intervalMinutes'),
+        lockMinutes: document.getElementById('lockMinutes'),
+        forceLockToggle: document.getElementById('forceLockToggle'),
+        soundToggle: document.getElementById('soundToggle'),
+        notificationToggle: document.getElementById('notificationToggle'),
+        startBtn: document.getElementById('startBtn'),
+        stopBtn: document.getElementById('stopBtn'),
+        statusBadge: document.getElementById('statusBadge'),
+        nextReminderDiv: document.getElementById('nextReminder'),
+        nextTimeText: document.getElementById('nextTimeText'),
+        lockOverlay: document.getElementById('lockOverlay'),
+        countdownSpan: document.getElementById('countdownSeconds'),
+        unlockBtn: document.getElementById('unlockBtn'),
+        timerRing: document.getElementById('timerRing'),
+        intervalError: document.getElementById('intervalError'),
+        lockError: document.getElementById('lockError'),
+        todayCount: document.getElementById('todayCount'),
+        continuousDays: document.getElementById('continuousDays'),
+        weeklyRate: document.getElementById('weeklyRate'),
+        resetStatsBtn: document.getElementById('resetStatsBtn'),
+        testNotifyBtn: document.getElementById('testNotifyBtn')
+    };
+
+    // 初始化各模块
+    Config.setElements(elements);
+    ReminderModule.setElements({
+        timerRing: elements.timerRing,
+        countdownSpan: elements.countdownSpan,
+        unlockBtn: elements.unlockBtn,
+        lockOverlay: elements.lockOverlay
+    });
+    UIModule.setElements(elements);
+
+    // 设置回调
+    ReminderModule.setCallbacks({
+        onReminderTrigger: async () => {
+            console.log('Reminder triggered');
+            StatsModule.recordActivity();
+            if (Config.get('notificationEnabled')) {
+                await NotificationModule.sendReminder();
+            }
+        },
+        onLockClose: () => {
+            console.log('Lock screen closed');
+            if (ReminderModule.isReminderRunning()) {
+                const now = new Date();
+                const config = Config.load();
+                const next = ReminderModule.calculateNextReminder(now, config);
+                ReminderModule.setNextReminderTime(next.getTime());
+                UIModule.updateNextReminderDisplay(next.getTime());
+            }
+        }
+    });
+
+    // 设置音频模块的 locked getter
+    AudioModule.setLockedGetter(() => ReminderModule.isCurrentlyLocked());
+
+    // 校验和修正函数
+    function validateAndShowErrors() {
+        let isValid = true;
+        const intervalValue = elements.intervalMinutes.value;
+        const lockValue = elements.lockMinutes.value;
+
+        if (!Config.validateInterval(intervalValue)) {
+            UIModule.showError('intervalError', '提醒频率范围：10 ~ 300 分钟（步长10分钟）', true);
+            isValid = false;
+        } else {
+            UIModule.showError('intervalError', '', false);
+        }
+
+        if (!Config.validateLockMinutes(lockValue)) {
+            UIModule.showError('lockError', '锁屏时长范围：1 ~ 30 分钟', true);
+            isValid = false;
+        } else {
+            UIModule.showError('lockError', '', false);
+        }
+
+        return isValid;
+    }
+
+    function fixValues() {
+        const fixedInterval = Config.fixIntervalValue(elements.intervalMinutes.value);
+        const fixedLock = Config.fixLockValue(elements.lockMinutes.value);
+        elements.intervalMinutes.value = fixedInterval;
+        elements.lockMinutes.value = fixedLock;
+        validateAndShowErrors();
+    }
+
+    // 主检查循环
+    let mainInterval = null;
+
+    function checkAndRemind() {
+        if (!ReminderModule.isReminderRunning()) return;
+        if (ReminderModule.isCurrentlyLocked()) return;
+
+        const now = Date.now();
+        const nextTime = ReminderModule.getNextReminderTime();
+        if (nextTime && now >= nextTime) {
+            console.log('Time to remind!');
+            const config = Config.load();
+            ReminderModule.trigger(config, AudioModule);
+        }
+    }
+
+    // 启动闹铃
+    async function startAlarm() {
+        console.log('startAlarm called - step 1');
+
+        if (!validateAndShowErrors()) {
+            console.log('Validation failed');
+            await showConfirmDialog({
+                title: '配置无效',
+                message: '请先修正上面的错误设置后再启动闹铃。',
+                confirmText: '知道了',
+                cancelText: '',
+                confirmColor: '#667eea'
+            });
+            return;
+        }
+
+        console.log('startAlarm - step 2: validation passed');
+
+        if (ReminderModule.isReminderRunning()) {
+            console.log('Already running');
+            return;
+        }
+
+        console.log('startAlarm - step 3: initializing audio');
+
+        try {
+            await AudioModule.resume();
+            console.log('Audio resumed');
+        } catch (e) { console.warn('Audio error:', e); }
+
+        console.log('startAlarm - step 4: initializing notification (non-blocking)');
+        NotificationModule.initWithoutWait();
+
+        console.log('startAlarm - step 5: saving config');
+
+        let config;
+        try {
+            config = Config.save();
+            console.log('Config saved:', config);
+        } catch (e) {
+            console.error('Config save error:', e);
+            return;
+        }
+
+        console.log('startAlarm - step 6: getting current time');
+        const now = new Date();
+        console.log('Current time:', now);
+
+        console.log('startAlarm - step 7: calculating next reminder');
+
+        let next;
+        try {
+            next = ReminderModule.calculateNextReminder(now, config);
+            console.log('Next reminder:', next);
+        } catch (e) {
+            console.error('Calculate next reminder error:', e);
+            return;
+        }
+
+        console.log('startAlarm - step 8: setting next reminder time');
+        ReminderModule.setNextReminderTime(next.getTime());
+        ReminderModule.start();
+
+        console.log('startAlarm - step 9: setting main interval');
+        if (mainInterval) clearInterval(mainInterval);
+        mainInterval = setInterval(checkAndRemind, 500);
+
+        console.log('startAlarm - step 10: updating UI');
+        UIModule.updateUI(true);
+        UIModule.updateNextReminderDisplay(next.getTime());
+
+        console.log('startAlarm - step 11: showing success dialog');
+        await showConfirmDialog({
+            title: '启动成功',
+            message: `健康闹铃已启动！\n下次提醒时间：${next.getHours().toString().padStart(2, '0')}:${next.getMinutes().toString().padStart(2, '0')}:${next.getSeconds().toString().padStart(2, '0')}`,
+            confirmText: '好的',
+            cancelText: '',
+            confirmColor: '#22c55e'
+        });
+
+        console.log('startAlarm completed successfully');
+    }
+
+    // 停止闹铃
+    function stopAlarm() {
+        console.log('stopAlarm called');
+        ReminderModule.stop(AudioModule);
+        if (mainInterval) {
+            clearInterval(mainInterval);
+            mainInterval = null;
+        }
+        UIModule.updateUI(false);
+        UIModule.updateNextReminderDisplay(null);
+    }
+
+    // 解锁处理
+    async function onUnlock() {
+        console.log('onUnlock called');
+        if (!ReminderModule.isCurrentlyLocked()) return;
+
+        const forceLock = Config.get('forceLock');
+        const unlocked = ReminderModule.unlock(forceLock);
+
+        if (!unlocked && !forceLock) {
+            const confirmed = await showConfirmDialog({
+                title: '提前结束提醒',
+                message: '活动时间还没到，提前结束可能会影响健康习惯。\n确定要提前结束吗？',
+                confirmText: '提前结束',
+                cancelText: '继续活动',
+                confirmColor: '#f59e0b'
+            });
+
+            if (confirmed) {
+                ReminderModule.closeLockScreen();
+                AudioModule.stopContinuous();
+            }
+        }
+    }
+
+    // 重置统计
+    async function resetStats() {
+        const confirmed = await showConfirmDialog({
+            title: '重置今日统计',
+            message: '确定要重置今日的活动记录吗？',
+            confirmText: '重置',
+            cancelText: '取消',
+            confirmColor: '#ef4444'
+        });
+
+        if (confirmed) {
+            StatsModule.resetToday();
+            UIModule.updateStatsDisplay(StatsModule.load());
+        }
+    }
+
+    // 测试通知
+    async function testNotification() {
+        if (Config.get('notificationEnabled')) {
+            const sent = await NotificationModule.sendTest();
+            if (!sent) {
+                await showConfirmDialog({
+                    title: '通知权限',
+                    message: '请允许浏览器通知权限，以便接收提醒。',
+                    confirmText: '知道了',
+                    cancelText: '',
+                    confirmColor: '#667eea'
+                });
+            }
+        } else {
+            await showConfirmDialog({
+                title: '通知未开启',
+                message: '请在设置中开启桌面通知功能。',
+                confirmText: '知道了',
+                cancelText: '',
+                confirmColor: '#667eea'
+            });
+        }
+    }
+
+    // 事件绑定
+    elements.intervalMinutes.addEventListener('input', () => {
+        fixValues();
+        if (ReminderModule.isReminderRunning()) {
+            const now = new Date();
+            const config = Config.load();
+            const next = ReminderModule.calculateNextReminder(now, config);
+            ReminderModule.setNextReminderTime(next.getTime());
+            UIModule.updateNextReminderDisplay(next.getTime());
+        }
+    });
+
+    elements.lockMinutes.addEventListener('input', fixValues);
+
+    elements.startTime.addEventListener('change', () => {
+        Config.save();
+        if (ReminderModule.isReminderRunning()) {
+            const now = new Date();
+            const config = Config.load();
+            const next = ReminderModule.calculateNextReminder(now, config);
+            ReminderModule.setNextReminderTime(next.getTime());
+            UIModule.updateNextReminderDisplay(next.getTime());
+        }
+    });
+
+    elements.endTime.addEventListener('change', () => {
+        Config.save();
+        if (ReminderModule.isReminderRunning()) {
+            const now = new Date();
+            const config = Config.load();
+            const next = ReminderModule.calculateNextReminder(now, config);
+            ReminderModule.setNextReminderTime(next.getTime());
+            UIModule.updateNextReminderDisplay(next.getTime());
+        }
+    });
+
+    elements.soundToggle.addEventListener('change', () => {
+        Config.save();
+        AudioModule.setEnabled(elements.soundToggle.checked);
+    });
+
+    elements.notificationToggle.addEventListener('change', () => {
+        Config.save();
+        NotificationModule.setEnabled(elements.notificationToggle.checked);
+        if (elements.notificationToggle.checked) {
+            NotificationModule.initWithoutWait();
+        }
+    });
+
+    elements.forceLockToggle.addEventListener('change', () => Config.save());
+    elements.startBtn.addEventListener('click', startAlarm);
+    elements.stopBtn.addEventListener('click', stopAlarm);
+    elements.unlockBtn.addEventListener('click', onUnlock);
+    elements.resetStatsBtn.addEventListener('click', resetStats);
+    elements.testNotifyBtn.addEventListener('click', testNotification);
+
+    // 初始化
+    Config.load();
+    fixValues();
+    UIModule.initStatsSubscription();
+    UIModule.updateUI(false);
+    ReminderModule.closeLockScreen();
+    NotificationModule.initWithoutWait();
+
+    console.log('App initialized');
+
+    // 页面关闭提醒
+    window.addEventListener('beforeunload', (e) => {
+        if (ReminderModule.isReminderRunning()) {
+            e.preventDefault();
+            e.returnValue = '闹铃正在运行，确定要离开吗？';
+        }
+    });
+})();

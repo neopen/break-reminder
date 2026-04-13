@@ -1,0 +1,21 @@
+{
+    "name": "健康闹铃",
+    "short_name": "健康闹铃",
+    "description": "拒绝久坐，定时提醒活动",
+    "start_url": ".",
+    "display": "standalone",
+    "theme_color": "#667eea",
+    "background_color": "#667eea",
+    "icons": [
+        {
+            "src": "icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

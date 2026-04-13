@@ -1,0 +1,280 @@
+.lock-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: white;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+.lock-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border-radius: 56px;
+    padding: 48px 32px;
+    margin: 20px;
+    width: calc(100% - 40px);
+    max-width: 380px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.lock-icon {
+    font-size: 72px;
+    margin-bottom: 16px;
+    animation: bounce 1s ease infinite;
+}
+
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.lock-title {
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.lock-message {
+    font-size: 18px;
+    margin-bottom: 32px;
+    opacity: 0.9;
+    line-height: 1.5;
+}
+
+.timer-ring {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 32px;
+}
+
+.timer-circle-bg {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.timer-circle-progress {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: rotate(-90deg);
+}
+
+.timer-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: 100%;
+}
+
+.timer-number {
+    font-size: 52px;
+    font-weight: 800;
+    font-family: monospace;
+    background: linear-gradient(135deg, #fff 0%, #c4b5fd 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.timer-unit {
+    font-size: 16px;
+    margin-left: 4px;
+    opacity: 0.7;
+}
+
+.timer-label {
+    font-size: 12px;
+    opacity: 0.5;
+    margin-top: 4px;
+}
+
+.action-btn {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    border: none;
+    padding: 16px 32px;
+    border-radius: 60px;
+    font-size: 18px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+}
+
+.action-btn:active {
+    transform: scale(0.97);
+}
+
+.action-btn.disabled {
+    background: linear-gradient(135deg, #475569 0%, #334155 100%);
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.action-btn.disabled:active {
+    transform: none;
+}
+
+.reminder-suggestion {
+    margin-top: 24px;
+    font-size: 14px;
+    opacity: 0.6;
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+}
+
+.suggestion-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.suggestion-icon {
+    font-size: 24px;
+}
+
+.custom-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    z-index: 20000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.2s ease;
+}
+
+.custom-dialog {
+    background: white;
+    border-radius: 32px;
+    width: 320px;
+    max-width: 85%;
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dialog-icon {
+    text-align: center;
+    padding: 32px 32px 16px 32px;
+    font-size: 56px;
+}
+
+.dialog-title {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: #1e293b;
+    padding: 0 24px 12px 24px;
+}
+
+.dialog-message {
+    text-align: center;
+    font-size: 16px;
+    color: #64748b;
+    padding: 0 24px 24px 24px;
+    line-height: 1.5;
+}
+
+.dialog-buttons {
+    display: flex;
+    border-top: 1px solid #e2e8f0;
+}
+
+.dialog-btn {
+    flex: 1;
+    text-align: center;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    background: white;
+}
+
+.dialog-btn:active {
+    background: #f1f5f9;
+}
+
+.dialog-btn-cancel {
+    color: #64748b;
+    border-right: 1px solid #e2e8f0;
+}
+
+.dialog-btn-confirm {
+    color: #ef4444;
+    font-weight: 700;
+}
