@@ -179,17 +179,21 @@
     // 校验和修正函数
     function validateAndShowErrors() {
         let isValid = true;
-        const intervalValue = elements.intervalMinutes.value;
-        const lockValue = elements.lockMinutes.value;
+        const intervalValue = elements.intervalMinutes.value || 40;
+        const intervalMin = elements.intervalMinutes.min || 10;
+        const intervalMax = elements.intervalMinutes.max || 300;
+        const lockValue = elements.lockMinutes.value || 5;
+        const lockMin = elements.lockMinutes.min || 1;
+        const lockMax = elements.lockMinutes.max || 30;
 
-        if (!Config.validateInterval(intervalValue)) {
-            UIModule.showError('intervalError', '提醒频率范围：10 ~ 300 分钟（步长10分钟）', true);
+        if (!Config.validateInterval(intervalValue, intervalMin, intervalMax)) {
+            UIModule.showError('intervalError', '提醒频率范围：10 ~ 300 分钟', true);
             isValid = false;
         } else {
             UIModule.showError('intervalError', '', false);
         }
 
-        if (!Config.validateLockMinutes(lockValue)) {
+        if (!Config.validateLockMinutes(lockValue, lockMin, lockMax)) {
             UIModule.showError('lockError', '锁屏时长范围：1 ~ 30 分钟', true);
             isValid = false;
         } else {
@@ -200,8 +204,15 @@
     }
 
     function fixValues() {
-        const fixedInterval = Config.fixIntervalValue(elements.intervalMinutes.value);
-        const fixedLock = Config.fixLockValue(elements.lockMinutes.value);
+        const intervalValue = elements.intervalMinutes.value || 40;
+        const intervalMin = elements.intervalMinutes.min || 10;
+        const intervalMax = elements.intervalMinutes.max || 300;
+        const intervalStep = elements.intervalMinutes.step || 5;
+        const lockValue = elements.lockMinutes.value || 5;
+        const lockMin = elements.lockMinutes.min || 1;
+        const lockMax = elements.lockMinutes.max || 30;
+        const fixedInterval = Config.fixIntervalValue(intervalValue, intervalMin, intervalMax, intervalStep);
+        const fixedLock = Config.fixLockValue(lockValue, lockMin, lockMax);
         elements.intervalMinutes.value = fixedInterval;
         elements.lockMinutes.value = fixedLock;
         validateAndShowErrors();

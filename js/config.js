@@ -83,29 +83,29 @@ const Config = (function () {
         };
     }
 
-    function validateInterval(value) {
+    function validateInterval(value, min, max) {
         const num = parseInt(value);
-        return !isNaN(num) && num >= 10 && num <= 300;
+        return !isNaN(num) && num >= min && num <= max;
     }
 
-    function validateLockMinutes(value) {
+    function validateLockMinutes(value, min, max) {
         const num = parseInt(value);
-        return !isNaN(num) && num >= 1 && num <= 30;
+        return !isNaN(num) && num >= min && num <= max;
     }
 
-    function fixIntervalValue(value) {
+    function fixIntervalValue(value, min, max, step) {
         let num = parseInt(value);
         if (isNaN(num)) return 40;
-        if (num < 10) return 10;
-        if (num > 300) return 300;
-        return Math.round(num / 10) * 10;
+        if (num < min) return min;
+        if (num > max) return max;
+        return Math.round(num / step) * step;
     }
 
-    function fixLockValue(value) {
+    function fixLockValue(value, min, max) {
         let num = parseInt(value);
         if (isNaN(num)) return 5;
-        if (num < 1) return 1;
-        if (num > 30) return 30;
+        if (num < min) return min;
+        if (num > max) return max;
         return num;
     }
 
