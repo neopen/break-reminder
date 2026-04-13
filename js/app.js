@@ -557,7 +557,9 @@
     elements.stopBtn.addEventListener('click', stopAlarm);
     elements.unlockBtn.addEventListener('click', onUnlock);
     elements.resetStatsBtn.addEventListener('click', resetStats);
-    elements.testNotifyBtn.addEventListener('click', testNotification);
+    if (elements.testNotifyBtn) {
+        elements.testNotifyBtn.addEventListener('click', testNotification);
+    }
 
     // 初始化
     Config.load();

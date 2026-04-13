@@ -144,7 +144,7 @@ const StatsModule = (function () {
         const now = new Date();
         const dayOfWeek = now.getDay() || 7;
         const daysPassed = dayOfWeek;
-        const targetPerDay = 3;
+        const targetPerDay = 5;
         const totalTarget = daysPassed * targetPerDay;
 
         if (totalTarget === 0) return 0;
