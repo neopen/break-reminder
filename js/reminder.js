@@ -106,69 +106,81 @@ const ReminderModule = (function () {
     }
 
     function closeLockScreen() {
-        console.log('closeLockScreen called');
-        if (lockTimerInterval) {
-            clearInterval(lockTimerInterval);
-            lockTimerInterval = null;
-        }
-
-        if (lockOverlay) {
-            lockOverlay.style.animation = 'fadeOut 0.3s ease';
-            setTimeout(() => {
-                lockOverlay.classList.add('hidden');
-                lockOverlay.style.animation = '';
-                isLocked = false;
-                currentLockEndTime = null;
-                if (onLockClose) onLockClose();
-            }, 300);
-        }
-    }
+		console.log('closeLockScreen called');
+		if (lockTimerInterval) {
+			clearInterval(lockTimerInterval);
+			lockTimerInterval = null;
+		}
+		
+		// 恢复页面滚动
+		document.body.classList.remove('lock-active');
+		
+		if (lockOverlay) {
+			lockOverlay.style.animation = 'fadeOut 0.3s ease';
+			setTimeout(() => {
+				lockOverlay.classList.add('hidden');
+				lockOverlay.style.animation = '';
+				isLocked = false;
+				currentLockEndTime = null;
+				if (onLockClose) onLockClose();
+			}, 300);
+		}
+	}
 
     function showLockScreen(minutes, forceLock, onComplete) {
-        if (isLocked) return;
-
-        isLocked = true;
-        const totalSeconds = minutes * 60;
-        const endTime = Date.now() + (totalSeconds * 1000);
-        currentLockEndTime = endTime;
-
-        if (progressCircle) {
-            progressCircle.style.background = 'conic-gradient(from 0deg, #a78bfa 0deg, #a78bfa 0deg, rgba(255, 255, 255, 0.1) 0deg)';
-        }
-
-        if (lockOverlay) {
-            lockOverlay.classList.remove('hidden');
-            lockOverlay.style.animation = 'fadeIn 0.3s ease';
-        }
-
-        if (lockTimerInterval) clearInterval(lockTimerInterval);
-
-        const updateTimer = () => {
-            const now = Date.now();
-            const remaining = Math.max(0, Math.ceil((currentLockEndTime - now) / 1000));
-            if (countdownSpan) countdownSpan.innerText = remaining;
-            updateProgressCircle(remaining, totalSeconds);
-
-            if (remaining <= 0) {
-                clearInterval(lockTimerInterval);
-                lockTimerInterval = null;
-                closeLockScreen();
-                if (onComplete) onComplete();
-            } else if (unlockBtn) {
-                unlockBtn.innerText = `⏳ 请活动 ${remaining} 秒`;
-                if (forceLock) {
-                    unlockBtn.classList.add('disabled');
-                    unlockBtn.disabled = true;
-                } else {
-                    unlockBtn.classList.remove('disabled');
-                    unlockBtn.disabled = false;
-                }
-            }
-        };
-
-        updateTimer();
-        lockTimerInterval = setInterval(updateTimer, 100);
-    }
+		if (isLocked) return;
+		
+		isLocked = true;
+		const totalSeconds = minutes * 60;
+		const endTime = Date.now() + (totalSeconds * 1000);
+		currentLockEndTime = endTime;
+		
+		// 防止页面滚动
+		document.body.classList.add('lock-active');
+		
+		if (progressCircle) {
+			progressCircle.style.background = 'conic-gradient(from 0deg, #a78bfa 0deg, #a78bfa 0deg, rgba(255, 255, 255, 0.1) 0deg)';
+		}
+		
+		if (lockOverlay) {
+			lockOverlay.classList.remove('hidden');
+			lockOverlay.style.animation = 'fadeIn 0.3s ease';
+			
+			// 确保全屏覆盖，移除任何可能的关闭按钮
+			const existingCloseBtn = lockOverlay.querySelector('.close-btn, .close-button, [data-close]');
+			if (existingCloseBtn) {
+				existingCloseBtn.remove();
+			}
+		}
+		
+		if (lockTimerInterval) clearInterval(lockTimerInterval);
+		
+		const updateTimer = () => {
+			const now = Date.now();
+			const remaining = Math.max(0, Math.ceil((currentLockEndTime - now) / 1000));
+			if (countdownSpan) countdownSpan.innerText = remaining;
+			updateProgressCircle(remaining, totalSeconds);
+			
+			if (remaining <= 0) {
+				clearInterval(lockTimerInterval);
+				lockTimerInterval = null;
+				closeLockScreen();
+				if (onComplete) onComplete();
+			} else if (unlockBtn) {
+				unlockBtn.innerText = `⏳ 请活动 ${remaining} 秒`;
+				if (forceLock) {
+					unlockBtn.classList.add('disabled');
+					unlockBtn.disabled = true;
+				} else {
+					unlockBtn.classList.remove('disabled');
+					unlockBtn.disabled = false;
+				}
+			}
+		};
+		
+		updateTimer();
+		lockTimerInterval = setInterval(updateTimer, 100);
+	}
 
     function trigger(config, audioModule) {
         if (!isRunning || isLocked) return;

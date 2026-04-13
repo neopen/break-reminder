@@ -102,3 +102,17 @@ body {
     font-size: 12px;
     opacity: 0.8;
 }
+
+/* 确保所有弹框都在最顶层 */
+.lock-overlay,
+.custom-dialog-overlay {
+    z-index: 999999 !important;
+}
+
+/* 禁用页面滚动 */
+body.lock-active {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+}
