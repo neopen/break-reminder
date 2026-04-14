@@ -1,78 +1,260 @@
 // 主入口
 (function () {
-    // 自定义确认弹框
+    // 简化版确认弹框（不依赖 CSS 类）
     function showConfirmDialog(options) {
+        console.log('showConfirmDialog called', options);
         return new Promise((resolve) => {
-            const { title, message, confirmText = '确定', cancelText = '取消', confirmColor = '#ef4444' } = options;
+            const { title, message, confirmText = '确定', cancelText = '取消', confirmColor = '#f59e0b' } = options;
 
+            // 创建覆盖层
             const overlay = document.createElement('div');
-            overlay.className = 'custom-dialog-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                z-index: 100000;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-family: system-ui, -apple-system, sans-serif;
+            `;
 
+            // 创建弹框
             const dialog = document.createElement('div');
-            dialog.className = 'custom-dialog';
+            dialog.style.cssText = `
+                background: white;
+                border-radius: 28px;
+                width: 300px;
+                max-width: 85%;
+                overflow: hidden;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+                animation: slideUp 0.3s ease;
+                padding: 0;
+            `;
 
             dialog.innerHTML = `
-                <div class="dialog-icon">⚠️</div>
-                <div class="dialog-title">${title}</div>
-                <div class="dialog-message">${message}</div>
-                <div class="dialog-buttons">
-                    ${cancelText ? `<button class="dialog-btn dialog-btn-cancel">${cancelText}</button>` : ''}
-                    <button class="dialog-btn dialog-btn-confirm" style="color: ${confirmColor}">${confirmText}</button>
+                <div style="padding: 28px 24px 16px 24px; text-align: center;">
+                    <div style="font-size: 52px; color: #b8b814; margin-bottom: 12px; display: block;">⚠️</div>
+                    <div style="font-size: 20px; font-weight: 700; color: #1e293b;">${title}</div>
+                </div>
+                <div style="padding: 0 24px 28px 24px; text-align: center;">
+                    <div style="font-size: 15px; color: #64748b; line-height: 1.5;">${message}</div>
+                </div>
+                <div style="display: flex; border-top: 1px solid #e2e8f0;">
+                    ${cancelText ? `<button id="dialog-cancel" style="flex: 1; padding: 16px; font-size: 16px; font-weight: 600; border: none; background: white; color: #64748b; cursor: pointer; border-right: 1px solid #e2e8f0;">${cancelText}</button>` : ''}
+                    <button id="dialog-confirm" style="flex: 1; padding: 16px; font-size: 16px; font-weight: 600; border: none; background: white; color: ${confirmColor}; cursor: pointer;">${confirmText}</button>
                 </div>
             `;
 
             overlay.appendChild(dialog);
             document.body.appendChild(overlay);
 
-            const cancelBtn = cancelText ? dialog.querySelector('.dialog-btn-cancel') : null;
-            const confirmBtn = dialog.querySelector('.dialog-btn-confirm');
+            // 添加动画样式（如果还没有）
+            if (!document.querySelector('#dialog-animation-style')) {
+                const style = document.createElement('style');
+                style.id = 'dialog-animation-style';
+                style.textContent = `
+                    @keyframes slideUp {
+                        from { opacity: 0; transform: translateY(30px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            const cancelBtn = cancelText ? dialog.querySelector('#dialog-cancel') : null;
+            const confirmBtn = dialog.querySelector('#dialog-confirm');
 
             const close = (result) => {
-                overlay.style.animation = 'fadeOut 0.2s ease';
-                setTimeout(() => {
+                if (overlay && overlay.remove) {
                     overlay.remove();
-                    resolve(result);
-                }, 200);
+                }
+                resolve(result);
             };
 
             if (cancelBtn) cancelBtn.onclick = () => close(false);
             confirmBtn.onclick = () => close(true);
+            
+            console.log('Dialog shown');
         });
     }
 
+    // 在锁屏弹框内部显示的确认弹框
+    function showConfirmDialogInsideLock(options) {
+        console.log('showConfirmDialogInsideLock called');
+        return new Promise((resolve) => {
+            const { title, message, confirmText = '确定', cancelText = '取消', confirmColor = '#f59e0b' } = options;
 
-    // 自动关闭的提示弹框（3秒后自动关闭）
+            // 获取锁屏弹框容器
+            const lockOverlayEl = document.getElementById('lockOverlay');
+            if (!lockOverlayEl) {
+                console.error('Lock overlay not found');
+                resolve(false);
+                return;
+            }
+
+            // 找到 lock-card 元素
+            const lockCard = lockOverlayEl.querySelector('.lock-card');
+            if (!lockCard) {
+                console.error('Lock card not found');
+                resolve(false);
+                return;
+            }
+
+            // 移除已存在的确认弹框
+            const existingDialog = lockOverlayEl.querySelector('.in-lock-dialog');
+            if (existingDialog) {
+                existingDialog.remove();
+            }
+
+            // 创建确认弹框容器
+            const dialogContainer = document.createElement('div');
+            dialogContainer.className = 'in-lock-dialog';
+            dialogContainer.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.85);
+                backdrop-filter: blur(8px);
+                z-index: 100;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                border-radius: 56px;
+            `;
+
+            const dialog = document.createElement('div');
+            dialog.style.cssText = `
+                background: white;
+                border-radius: 28px;
+                width: 280px;
+                max-width: 85%;
+                overflow: hidden;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                text-align: center;
+                padding: 0;
+            `;
+
+            // 确保图标颜色可见（白色背景下使用深色图标）
+            dialog.innerHTML = `
+                <div style="padding: 28px 24px 16px 24px; text-align: center;">
+                    <div style="font-size: 52px; color: #b8b814; margin-bottom: 12px; display: block;">⚠️</div>
+                    <div style="font-size: 20px; font-weight: 700; color: #1e293b;">${title}</div>
+                </div>
+                <div style="padding: 0 24px 28px 24px; text-align: center;">
+                    <div style="font-size: 15px; color: #64748b; line-height: 1.5;">${message}</div>
+                </div>
+                <div style="display: flex; border-top: 1px solid #e2e8f0;">
+                    ${cancelText ? `<button id="inlock-dialog-cancel" style="flex: 1; padding: 16px; font-size: 16px; font-weight: 600; border: none; background: white; color: #64748b; cursor: pointer; border-right: 1px solid #e2e8f0;">${cancelText}</button>` : ''}
+                    <button id="inlock-dialog-confirm" style="flex: 1; padding: 16px; font-size: 16px; font-weight: 600; border: none; background: white; color: ${confirmColor}; cursor: pointer;">${confirmText}</button>
+                </div>
+            `;
+
+            dialogContainer.appendChild(dialog);
+            
+            // 保存原始 lock-card 的样式
+            const originalPosition = lockCard.style.position;
+            lockCard.style.position = 'relative';
+            
+            lockCard.appendChild(dialogContainer);
+
+            const cancelBtn = cancelText ? dialog.querySelector('#inlock-dialog-cancel') : null;
+            const confirmBtn = dialog.querySelector('#inlock-dialog-confirm');
+
+            const close = (result) => {
+                console.log('In-lock dialog closing with result:', result);
+                if (dialogContainer && dialogContainer.remove) {
+                    dialogContainer.remove();
+                }
+                lockCard.style.position = originalPosition;
+                resolve(result);
+            };
+
+            if (cancelBtn) cancelBtn.onclick = () => close(false);
+            confirmBtn.onclick = () => close(true);
+            
+            console.log('In-lock dialog added to lock overlay');
+        });
+    }
+
+    // 简化版自动关闭提示弹框
     function showAutoCloseDialog(options) {
+        console.log('showAutoCloseDialog called', options);
         return new Promise((resolve) => {
             const { title, message, autoClose = 3000, confirmColor = '#22c55e' } = options;
 
+            // 创建覆盖层
             const overlay = document.createElement('div');
-            overlay.className = 'custom-dialog-overlay auto-close-dialog';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                backdrop-filter: blur(8px);
+                z-index: 100000;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-family: system-ui, -apple-system, sans-serif;
+            `;
 
+            // 创建弹框
             const dialog = document.createElement('div');
-            dialog.className = 'custom-dialog auto-close-dialog-inner';
+            dialog.style.cssText = `
+                background: white;
+                border-radius: 28px;
+                width: 300px;
+                max-width: 85%;
+                overflow: hidden;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+                text-align: center;
+                animation: slideUp 0.3s ease;
+            `;
 
             dialog.innerHTML = `
-				<div class="dialog-icon">✅</div>
-				<div class="dialog-title" style="color: ${confirmColor}">${title}</div>
-				<div class="dialog-message">${message}</div>
-				<div class="auto-close-timer">
-					<div class="timer-bar"></div>
-					<div class="timer-text">${Math.ceil(autoClose / 1000)}秒后自动关闭</div>
-				</div>
-			`;
+                <div style="text-align: center; padding: 32px 24px 16px 24px; font-size: 48px;">✅</div>
+                <div style="text-align: center; font-size: 20px; font-weight: 700; color: ${confirmColor}; padding: 0 24px 8px 24px;">${title}</div>
+                <div style="text-align: center; font-size: 15px; color: #64748b; padding: 0 24px 24px 24px; line-height: 1.5;">${message}</div>
+                <div style="padding: 16px 24px 24px 24px; border-top: 1px solid #e2e8f0;">
+                    <div style="height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden;">
+                        <div id="auto-close-timer-bar" style="width: 100%; height: 100%; background: ${confirmColor}; border-radius: 2px; animation: shrink ${autoClose / 1000}s linear forwards;"></div>
+                    </div>
+                    <div style="text-align: center; font-size: 12px; color: #94a3b8; margin-top: 8px;">${Math.ceil(autoClose / 1000)}秒后自动关闭</div>
+                </div>
+            `;
 
             overlay.appendChild(dialog);
             document.body.appendChild(overlay);
 
-            // 添加进度条动画
-            const timerBar = dialog.querySelector('.timer-bar');
-            if (timerBar) {
-                timerBar.style.animation = `shrink ${autoClose / 1000}s linear forwards`;
+            // 添加动画样式
+            if (!document.querySelector('#dialog-animation-style')) {
+                const style = document.createElement('style');
+                style.id = 'dialog-animation-style';
+                style.textContent = `
+                    @keyframes slideUp {
+                        from { opacity: 0; transform: translateY(30px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+                    @keyframes shrink {
+                        from { width: 100%; }
+                        to { width: 0%; }
+                    }
+                    @keyframes fadeOut {
+                        from { opacity: 1; }
+                        to { opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
             }
 
-            // 自动关闭
-            const timeoutId = setTimeout(() => {
+            let timeoutId = setTimeout(() => {
                 close();
             }, autoClose);
 
@@ -80,7 +262,9 @@
                 clearTimeout(timeoutId);
                 overlay.style.animation = 'fadeOut 0.2s ease';
                 setTimeout(() => {
-                    overlay.remove();
+                    if (overlay && overlay.remove) {
+                        overlay.remove();
+                    }
                     resolve(true);
                 }, 200);
             };
@@ -91,13 +275,7 @@
                 close();
             });
 
-            // 点击遮罩不关闭
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) {
-                    // 遮罩点击不关闭，只能等自动关闭或点弹框
-                    return;
-                }
-            });
+            console.log('Auto-close dialog shown');
         });
     }
 
@@ -157,20 +335,12 @@
             // 锁屏关闭后，重新调度下一次提醒
             if (ReminderModule.isReminderRunning()) {
                 const now = new Date();
-                console.log('[APP] Current time:', now);
                 const config = Config.load();
-                console.log('[APP] Config:', config);
                 const next = ReminderModule.calculateNextReminder(now, config);
-                console.log('[APP] Calculated next reminder:', next);
                 ReminderModule.setNextReminderTime(next.getTime());
-                console.log('[APP] Next reminder timestamp set to:', next.getTime());
                 UIModule.updateNextReminderDisplay(next.getTime());
-                console.log('[APP] Next reminder updated to:', next, 'timestamp:', next.getTime());
                 // 确保检查循环正在运行
                 ReminderModule.startCheckLoop();
-                console.log('[APP] Check loop restarted');
-            } else {
-                console.log('[APP] Reminder not running, skip updating next reminder');
             }
             // 确保声音停止（二次保险）
             AudioModule.stopContinuous();
@@ -185,8 +355,6 @@
         navigator.serviceWorker.register('../sw.js')
             .then(reg => {
                 console.log('Service Worker registered:', reg);
-
-                // 注册后台同步（可选）
                 if ('sync' in reg) {
                     reg.sync.register('reminder-sync');
                 }
@@ -198,11 +366,11 @@
     function validateAndShowErrors() {
         let isValid = true;
         const intervalValue = elements.intervalMinutes.value || 40;
-        const intervalMin = elements.intervalMinutes.min || 10;
-        const intervalMax = elements.intervalMinutes.max || 300;
+        const intervalMin = parseInt(elements.intervalMinutes.min) || 10;
+        const intervalMax = parseInt(elements.intervalMinutes.max) || 300;
         const lockValue = elements.lockMinutes.value || 5;
-        const lockMin = elements.lockMinutes.min || 1;
-        const lockMax = elements.lockMinutes.max || 30;
+        const lockMin = parseInt(elements.lockMinutes.min) || 1;
+        const lockMax = parseInt(elements.lockMinutes.max) || 30;
 
         if (!Config.validateInterval(intervalValue, intervalMin, intervalMax)) {
             UIModule.showError('intervalError', '提醒频率范围：10 ~ 300 分钟', true);
@@ -223,33 +391,17 @@
 
     function fixValues() {
         const intervalValue = elements.intervalMinutes.value || 40;
-        const intervalMin = elements.intervalMinutes.min || 10;
-        const intervalMax = elements.intervalMinutes.max || 300;
-        const intervalStep = elements.intervalMinutes.step || 5;
+        const intervalMin = parseInt(elements.intervalMinutes.min) || 10;
+        const intervalMax = parseInt(elements.intervalMinutes.max) || 300;
+        const intervalStep = parseInt(elements.intervalMinutes.step) || 5;
         const lockValue = elements.lockMinutes.value || 5;
-        const lockMin = elements.lockMinutes.min || 1;
-        const lockMax = elements.lockMinutes.max || 30;
+        const lockMin = parseInt(elements.lockMinutes.min) || 1;
+        const lockMax = parseInt(elements.lockMinutes.max) || 30;
         const fixedInterval = Config.fixIntervalValue(intervalValue, intervalMin, intervalMax, intervalStep);
         const fixedLock = Config.fixLockValue(lockValue, lockMin, lockMax);
         elements.intervalMinutes.value = fixedInterval;
         elements.lockMinutes.value = fixedLock;
         validateAndShowErrors();
-    }
-
-    // 主检查循环
-    let mainInterval = null;
-
-    function checkAndRemind() {
-        if (!ReminderModule.isReminderRunning()) return;
-        if (ReminderModule.isCurrentlyLocked()) return;
-
-        const now = Date.now();
-        const nextTime = ReminderModule.getNextReminderTime();
-        if (nextTime && now >= nextTime) {
-            console.log('Time to remind!');
-            const config = Config.load();
-            ReminderModule.trigger(config, AudioModule);
-        }
     }
 
     // 启动闹铃
@@ -274,7 +426,7 @@
 
         // 初始化音频和通知（非阻塞）
         await AudioModule.resume();
-        NotificationModule.initWithoutWait(); // 使用非阻塞方式初始化通知
+        NotificationModule.initWithoutWait();
 
         Config.save();
 
@@ -294,22 +446,32 @@
         UIModule.updateUI(true);
         UIModule.updateNextReminderDisplay(next.getTime());
 
+        // 显示启动成功提示
+        showAutoCloseDialog({
+            title: '启动成功',
+            message: `闹铃已启动，将在 ${next.toLocaleTimeString()} 开始提醒`,
+            autoClose: 3000,
+            confirmColor: '#22c55e'
+        });
+
         console.log('Alarm started, next reminder at:', new Date(next.getTime()));
-        console.log('Lock minutes from config:', config.lockMinutes);
     }
 
     // 停止闹铃
     function stopAlarm() {
         console.log('stopAlarm called');
         ReminderModule.stop(AudioModule);
-        if (mainInterval) {
-            clearInterval(mainInterval);
-            mainInterval = null;
-        }
         UIModule.updateUI(false);
         UIModule.updateNextReminderDisplay(null);
+        
+        // 显示停止成功提示
+        showAutoCloseDialog({
+            title: '闹铃已停止',
+            message: '闹铃已关闭，记得定时起来活动哦！',
+            autoClose: 2000,
+            confirmColor: '#64748b'
+        });
     }
-
 
     // 解锁处理
     async function onUnlock() {
@@ -322,27 +484,54 @@
         const forceLock = Config.get('forceLock');
         console.log('forceLock:', forceLock);
         
-        // 如果是强制锁定，不允许提前解锁
-        if (forceLock) {
-            console.log('Force lock enabled, cannot unlock early');
-            return;
-        }
+        // 调用 unlock 方法检查状态
+        const unlocked = ReminderModule.unlock(forceLock);
+        console.log('unlocked result:', unlocked);
         
-        // 非强制锁定，显示确认对话框
-        console.log('Showing confirm dialog');
-        const confirmed = await showConfirmDialog({
-            title: '提前结束提醒',
-            message: '活动时间还没到，提前结束可能会影响健康习惯。\n确定要提前结束吗？',
-            confirmText: '提前结束',
-            cancelText: '继续活动',
-            confirmColor: '#f59e0b'
-        });
-        console.log('confirmed:', confirmed);
-
-        if (confirmed) {
-            console.log('Closing lock screen');
+        if (!unlocked && !forceLock) {
+            // 非强制锁定且时间未到，显示确认对话框
+            console.log('Showing confirm dialog inside lock overlay');
+            
+            // 获取锁屏弹框元素
+            const lockOverlayEl = document.getElementById('lockOverlay');
+            
+            if (lockOverlayEl && lockOverlayEl.classList.contains('hidden') === false) {
+                // 在锁屏弹框内部创建确认弹框
+                showConfirmDialogInsideLock({
+                    title: '提前结束提醒',
+                    message: '活动时间还没到，提前结束可能会影响健康习惯。\n确定要提前结束吗？',
+                    confirmText: '提前结束',
+                    cancelText: '继续活动',
+                    confirmColor: '#f59e0b'
+                }).then((confirmed) => {
+                    console.log('confirmed:', confirmed);
+                    if (confirmed) {
+                        console.log('Closing lock screen');
+                        ReminderModule.closeLockScreen();
+                        AudioModule.stopContinuous();
+                    }
+                });
+            } else {
+                // 降级方案：使用普通弹框
+                const confirmed = await showConfirmDialog({
+                    title: '提前结束提醒',
+                    message: '活动时间还没到，提前结束可能会影响健康习惯。\n确定要提前结束吗？',
+                    confirmText: '提前结束',
+                    cancelText: '继续活动',
+                    confirmColor: '#f59e0b'
+                });
+                if (confirmed) {
+                    ReminderModule.closeLockScreen();
+                    AudioModule.stopContinuous();
+                }
+            }
+        } else if (unlocked) {
+            // 时间已到，直接关闭
+            console.log('Time is up, closing lock screen');
             ReminderModule.closeLockScreen();
             AudioModule.stopContinuous();
+        } else {
+            console.log('Force lock enabled or cannot unlock early');
         }
     }
 
@@ -359,6 +548,13 @@
         if (confirmed) {
             StatsModule.resetToday();
             UIModule.updateStatsDisplay(StatsModule.load());
+            
+            showAutoCloseDialog({
+                title: '重置成功',
+                message: '今日统计已重置',
+                autoClose: 1500,
+                confirmColor: '#22c55e'
+            });
         }
     }
 
@@ -373,6 +569,13 @@
                     confirmText: '知道了',
                     cancelText: '',
                     confirmColor: '#667eea'
+                });
+            } else {
+                showAutoCloseDialog({
+                    title: '通知测试成功',
+                    message: '桌面通知已开启，您将收到提醒',
+                    autoClose: 2000,
+                    confirmColor: '#22c55e'
                 });
             }
         } else {
@@ -435,107 +638,6 @@
         }
     });
 
-
-    /*
-    // 数据管理相关元素
-    const exportDataBtn = document.getElementById('exportDataBtn');
-    const importFileInput = document.getElementById('importFileInput');
-    const autoBackupToggle = document.getElementById('autoBackupToggle');
-    const dataSizeInfo = document.getElementById('dataSizeInfo');
-
-    // 更新数据大小显示
-    function updateDataSizeInfo() {
-        if (dataSizeInfo) {
-            const size = StorageModule.getDataSize();
-            dataSizeInfo.textContent = `数据大小: ${size} KB`;
-        }
-    }
-
-    // 导出数据
-    exportDataBtn.addEventListener('click', () => {
-        StorageModule.exportData();
-        showAutoCloseDialog({
-            title: '导出成功',
-            message: '备份文件已保存到下载目录',
-            autoClose: 2000,
-            confirmColor: '#22c55e'
-        });
-    });
-
-    // 导入数据
-    importFileInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const confirmed = await showConfirmDialog({
-            title: '确认导入',
-            message: '导入数据将覆盖当前所有设置和记录，确定要继续吗？',
-            confirmText: '确认导入',
-            cancelText: '取消',
-            confirmColor: '#f59e0b'
-        });
-
-        if (confirmed) {
-            try {
-                await StorageModule.importData(file);
-                // 重新加载配置和统计
-                Config.load();
-                fixValues();
-                UIModule.initStatsSubscription();
-                UIModule.updateStatsDisplay(StatsModule.load());
-                updateDataSizeInfo();
-
-                showAutoCloseDialog({
-                    title: '导入成功',
-                    message: '数据已恢复，请刷新页面查看',
-                    autoClose: 2000,
-                    confirmColor: '#22c55e'
-                });
-            } catch (err) {
-                showConfirmDialog({
-                    title: '导入失败',
-                    message: '文件格式错误或数据损坏',
-                    confirmText: '知道了',
-                    cancelText: '',
-                    confirmColor: '#ef4444'
-                });
-            }
-        }
-        importFileInput.value = '';
-    });
-
-    // 自动备份开关
-    let autoBackupEnabled = localStorage.getItem('autoBackupEnabled') !== 'false';
-    if (autoBackupEnabled) {
-        StorageModule.startAutoBackup();
-        autoBackupToggle.textContent = '⏰ 自动备份: 开启';
-        autoBackupToggle.classList.add('active');
-    } else {
-        StorageModule.setEnabled(false);
-        autoBackupToggle.textContent = '⏰ 自动备份: 关闭';
-        autoBackupToggle.classList.remove('active');
-    }
-
-    autoBackupToggle.addEventListener('click', () => {
-        autoBackupEnabled = !autoBackupEnabled;
-        localStorage.setItem('autoBackupEnabled', autoBackupEnabled);
-
-        if (autoBackupEnabled) {
-            StorageModule.startAutoBackup();
-            autoBackupToggle.textContent = '⏰ 自动备份: 开启';
-            autoBackupToggle.classList.add('active');
-        } else {
-            StorageModule.stopAutoBackup();
-            autoBackupToggle.textContent = '⏰ 自动备份: 关闭';
-            autoBackupToggle.classList.remove('active');
-        }
-    });
-
-    // 更新数据大小
-    updateDataSizeInfo();
-    setInterval(updateDataSizeInfo, 60000); // 每分钟更新一次
-*/
-
     elements.forceLockToggle.addEventListener('change', () => Config.save());
     elements.startBtn.addEventListener('click', startAlarm);
     elements.stopBtn.addEventListener('click', stopAlarm);
@@ -572,30 +674,17 @@
             });
             ipcRenderer.on('lock-closed', () => {
                 console.log('[APP] Received lock-closed from main process');
-                // 重置锁相关的状态标志
-                console.log('[APP] Resetting lock states');
                 ReminderModule.resetLockStates();
                 
-                // 计算并更新下次提醒时间
                 if (ReminderModule.isReminderRunning()) {
                     const now = new Date();
-                    console.log('[APP] Current time:', now);
                     const config = Config.load();
-                    console.log('[APP] Config:', config);
                     const next = ReminderModule.calculateNextReminder(now, config);
-                    console.log('[APP] Calculated next reminder:', next);
                     ReminderModule.setNextReminderTime(next.getTime());
-                    console.log('[APP] Next reminder timestamp set to:', next.getTime());
                     UIModule.updateNextReminderDisplay(next.getTime());
-                    console.log('[APP] Next reminder updated to:', next, 'timestamp:', next.getTime());
                 }
                 
-                // 确保检查循环正在运行
-                console.log('[APP] Restarting check loop');
                 ReminderModule.startCheckLoop();
-                
-                // 确保声音停止
-                console.log('[APP] Stopping audio');
                 AudioModule.stopContinuous();
             });
         } catch (e) {

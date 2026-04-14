@@ -1,137 +1,77 @@
 {
-  "name": "别坐了",
-  "short_name": "别坐了",
-  "description": "拒绝久坐，定时提醒活动。强制锁屏，让你必须起来走动。",
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#667eea",
-  "background_color": "#667eea",
-  "orientation": "portrait",
-  "scope": "/",
-  "lang": "zh-CN",
-  "dir": "ltr",
-  "categories": ["health", "fitness", "productivity", "lifestyle"],
-  "icons": [
-    {
-      "src": "icons/icon-32.png",
-      "sizes": "32x32",
-      "type": "image/png",
-      "purpose": "any"
-    },
-	{
-      "src": "icons/icon-48.png",
-      "sizes": "48x48",
-      "type": "image/png",
-      "purpose": "any"
-    },
-	{
-      "src": "icons/icon-72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any"
-    },
-	{
-      "src": "icons/icon-114.png",
-      "sizes": "114x114",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-256.png",
-      "sizes": "256x256",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-1024.png",
-      "sizes": "1024x1024",
-      "type": "image/png",
-      "purpose": "any"
-    }
+  "name": "active-break-clock",
+  "version": "0.4.0",
+  "description": "一款强制锁屏的健康提醒应用，帮你打破久坐循环，养成定时活动的好习惯。",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win --x64",
+    "build:win32": "electron-builder --win --ia32",
+    "clean": "rmdir /s /q dist node_modules && npm install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/neopen/active-break-clock.git"
+  },
+  "keywords": [
+    "health",
+    "reminder",
+    "stand-up",
+    "break-reminder",
+    "sedentary",
+    "electron",
+    "desktop-app"
   ],
-  "screenshots": [
-    {
-      "src": "screenshots/screenshot-1.png",
-      "sizes": "424x811",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "主界面"
+  "author": "neopen",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/neopen/active-break-clock/issues"
+  },
+  "homepage": "https://github.com/neopen/active-break-clock#readme",
+  "type": "commonjs",
+  "build": {
+    "appId": "com.neopen.activebreakclock",
+    "productName": "别坐了",
+    "directories": {
+      "output": "dist"
     },
-    {
-      "src": "screenshots/screenshot-2.png",
-      "sizes": "436x815",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "锁屏提醒"
-    }
-  ],
-  "prefer_related_applications": false,
-  "shortcuts": [
-    {
-      "name": "启动闹铃",
-      "short_name": "启动",
-      "description": "快速启动防久坐闹铃",
-      "url": ".",
-      "icons": [
+    "files": [
+      "**/*",
+      "!node_modules/.cache",
+      "!dist",
+      "!docs",
+      "!icons",
+      "!lock_temp.html",
+      "!*.md",
+      "!.gitignore"
+    ],
+    "win": {
+      "target": [
         {
-          "src": "icons/icon-96.png",
-          "sizes": "96x96"
+          "target": "nsis",
+          "arch": ["x64"]
         }
-      ]
+      ],
+      "icon": "icons/icon-256.png",
+      "publisherName": "neopen",
+      "verifyUpdateCodeSignature": false,
+      "signAndEditExecutable": false
     },
-    {
-      "name": "查看统计",
-      "short_name": "统计",
-      "description": "查看今日活动统计",
-      "url": "?view=stats",
-      "icons": [
-        {
-          "src": "icons/icon-96.png",
-          "sizes": "96x96"
-        }
-      ]
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "别坐了",
+      "perMachine": true,
+      "installerIcon": "icons/icon-256.ico",
+      "uninstallerIcon": "icons/icon-256.ico",
+      "license": "LICENSE"
     }
-  ],
-  "related_applications": [],
-  "iarc_rating_id": "",
-  "features": [
-    "AudioContext",
-    "Notifications"
-  ]
+  },
+  "devDependencies": {
+    "electron": "^29.4.6",
+    "electron-builder": "^24.13.3"
+  }
 }
