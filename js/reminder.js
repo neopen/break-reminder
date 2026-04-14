@@ -328,8 +328,8 @@ const ReminderModule = (function () {
         });
     }
 
-    function start() {
-        console.log('ReminderModule.start called');
+    function start(config) {
+        console.log('ReminderModule.start called, config:', config);
         isRunning = true;
         pendingLock = false;
         isLocked = false;

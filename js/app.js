@@ -272,9 +272,9 @@
             return;
         }
 
-        // 初始化音频和通知
+        // 初始化音频和通知（非阻塞）
         await AudioModule.resume();
-        await NotificationModule.init();
+        NotificationModule.initWithoutWait(); // 使用非阻塞方式初始化通知
 
         Config.save();
 
