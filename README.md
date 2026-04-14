@@ -63,9 +63,9 @@
 
 ### 方式二：安装桌面应用
 
-下载安装 exe 软件：[GitHub Releases](https://github.com/neopen/health-clock-app/releases) 找最新版下载
+下载安装 exe 软件：[GitHub Releases](https://github.com/neopen/active-break-clock/releases) 找最新版下载
 
-支持平台：Windows、macOS、Linux
+支持平台：Windows（测试通过）、macOS（尚未测试）、Linux（尚未测试）
 
 ### 方式三：PWA 安装（推荐）
 
