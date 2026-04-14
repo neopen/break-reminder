@@ -116,3 +116,90 @@ body.lock-active {
     width: 100% !important;
     height: 100% !important;
 }
+
+
+/* 状态栏 - 改为 flex 布局 */
+.status-bar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px 24px 12px;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.status-bar-left h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.status-bar-left p {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.status-bar-right {
+    padding-top: 4px;
+}
+
+/* 下载链接样式 */
+.download-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 6px 14px;
+    border-radius: 40px;
+    text-decoration: none;
+    color: white;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+    backdrop-filter: blur(4px);
+    white-space: nowrap;
+}
+
+.download-link:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.02);
+}
+
+.download-link:active {
+    transform: scale(0.98);
+}
+
+.download-link .download-icon {
+    font-size: 14px;
+}
+
+.download-link .download-text {
+    font-size: 13px;
+}
+
+/* 移动端适配 */
+@media (max-width: 480px) {
+    .status-bar {
+        padding: 16px 20px 10px;
+    }
+    
+    .status-bar-left h1 {
+        font-size: 22px;
+    }
+    
+    .status-bar-left p {
+        font-size: 11px;
+    }
+    
+    .download-link {
+        padding: 4px 10px;
+    }
+    
+    .download-link .download-text {
+        font-size: 11px;
+    }
+    
+    .download-link .download-icon {
+        font-size: 12px;
+    }
+}
