@@ -1,0 +1,57 @@
+{
+  "name": "health-clock-app",
+  "version": "1.0.0",
+  "description": "一款强制提醒活动的桌面应用，帮助久坐用户定时起身活动，支持锁屏强制提醒、桌面通知、每日打卡统计。",
+  "main": "main.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/neopen/health-clock-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/neopen/health-clock-app/issues"
+  },
+  "homepage": "https://github.com/neopen/health-clock-app#readme",
+  "build": {
+    "appId": "com.yourname.standupalarm",
+    "productName": "起来走走",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/.cache",
+      "!dist"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "icons/icon-96.png"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "icons/icon-96.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "icons/icon-96.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  },
+  "devDependencies": {
+    "electron": "^41.2.0"
+  }
+}

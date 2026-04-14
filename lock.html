@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>锁屏提醒</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .lock-card {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(20px);
+            border-radius: 56px;
+            padding: 48px 32px;
+            margin: 20px;
+            width: calc(100% - 40px);
+            max-width: 380px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .lock-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 1s ease infinite;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .lock-title {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .lock-message {
+            font-size: 18px;
+            margin-bottom: 40px;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .timer-ring {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            margin: 0 auto 32px;
+        }
+
+        .timer-circle-bg {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .timer-circle-progress {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: rotate(-90deg);
+        }
+
+        .timer-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            width: 100%;
+        }
+
+        .timer-number {
+            font-size: 56px;
+            font-weight: 800;
+            font-family: monospace;
+            background: linear-gradient(135deg, #fff 0%, #c4b5fd 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .timer-unit {
+            font-size: 18px;
+            margin-left: 4px;
+            opacity: 0.7;
+        }
+
+        .timer-label {
+            font-size: 12px;
+            opacity: 0.5;
+            margin-top: 6px;
+        }
+
+        .reminder-suggestion {
+            margin-top: 32px;
+            font-size: 14px;
+            opacity: 0.6;
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+        }
+
+        .suggestion-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .suggestion-icon {
+            font-size: 28px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="lock-card">
+        <div class="lock-icon">🧘</div>
+        <div class="lock-title">该活动啦！</div>
+        <div class="lock-message">站起来走走，伸个懒腰<br>活动一下筋骨</div>
+
+        <div class="timer-ring" id="timerRing">
+            <div class="timer-circle-bg"></div>
+            <div class="timer-center">
+                <span class="timer-number" id="countdownSeconds">0</span>
+                <span class="timer-unit">秒</span>
+                <div class="timer-label">倒计时</div>
+            </div>
+        </div>
+
+        <div class="reminder-suggestion">
+            <div class="suggestion-item">
+                <span class="suggestion-icon">🚶</span>
+                <span>走动一下</span>
+            </div>
+            <div class="suggestion-item">
+                <span class="suggestion-icon">💧</span>
+                <span>喝杯水</span>
+            </div>
+            <div class="suggestion-item">
+                <span class="suggestion-icon">👀</span>
+                <span>看远方</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 从 URL 参数获取倒计时时长
+        const urlParams = new URLSearchParams(window.location.search);
+        let remainingSeconds = parseInt(urlParams.get('duration')) || 120;
+
+        const countdownSpan = document.getElementById('countdownSeconds');
+        const timerRing = document.getElementById('timerRing');
+        let progressCircle = null;
+
+        // 创建进度圆环
+        function createProgressCircle() {
+            if (!progressCircle && timerRing) {
+                progressCircle = document.createElement('div');
+                progressCircle.className = 'timer-circle-progress';
+                const timerCenter = timerRing.querySelector('.timer-center');
+                if (timerCenter) {
+                    timerRing.insertBefore(progressCircle, timerCenter);
+                }
+            }
+        }
+
+        function updateProgressCircle(remaining, total) {
+            createProgressCircle();
+            if (progressCircle) {
+                const percent = (total - remaining) / total;
+                const angle = percent * 360;
+                progressCircle.style.background = `conic-gradient(from 0deg, #a78bfa 0deg, #a78bfa ${angle}deg, rgba(255, 255, 255, 0.1) ${angle}deg)`;
+            }
+        }
+
+        function updateTimer() {
+            countdownSpan.innerText = remainingSeconds;
+            updateProgressCircle(remainingSeconds, totalSeconds);
+
+            if (remainingSeconds <= 0) {
+                // 通知主进程关闭锁屏窗口
+                if (window.require) {
+                    const { ipcRenderer } = window.require('electron');
+                    ipcRenderer.send('lock-complete');
+                }
+                window.close();
+            }
+            remainingSeconds--;
+        }
+
+        const totalSeconds = remainingSeconds;
+        updateTimer();
+        const timerInterval = setInterval(updateTimer, 1000);
+
+        // 防止用户关闭窗口（通过键盘）
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' || e.key === 'F11' || (e.ctrlKey && e.key === 'w')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    </script>
+</body>
+
+</html>

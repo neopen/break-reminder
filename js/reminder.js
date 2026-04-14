@@ -15,82 +15,6 @@ const ReminderModule = (function () {
     let onReminderTrigger = null;
     let onLockClose = null;
 
-    // 将应用窗口带到前台（PakePlus/Electron 环境）
-    function bringWindowToFront() {
-        console.log('bringWindowToFront called');
-
-        // 方式1: PakePlus API
-        if (typeof window.pake !== 'undefined') {
-            try {
-                if (window.pake.focus) window.pake.focus();
-                if (window.pake.setAlwaysOnTop) window.pake.setAlwaysOnTop(true);
-                console.log('PakePlus: window brought to front');
-            } catch (e) {
-                console.warn('PakePlus focus error:', e);
-            }
-        }
-
-        // 方式2: Electron API
-        if (typeof window.require !== 'undefined') {
-            try {
-                const { remote } = window.require('electron');
-                const win = remote.getCurrentWindow();
-                win.setAlwaysOnTop(true, 'floating');
-                win.focus();
-                console.log('Electron: window brought to front');
-
-                // 设置定时器，提醒结束后取消置顶
-                if (currentLockEndTime) {
-                    const duration = currentLockEndTime - Date.now();
-                    if (duration > 0) {
-                        setTimeout(() => {
-                            win.setAlwaysOnTop(false);
-                            console.log('Electron: always on top disabled');
-                        }, duration);
-                    }
-                }
-            } catch (e) {
-                console.warn('Electron focus error:', e);
-            }
-        }
-
-        // 方式3: 普通浏览器环境 - 尝试聚焦窗口
-        if (typeof window !== 'undefined') {
-            try {
-                window.focus();
-                // 尝试请求全屏
-                const docEl = document.documentElement;
-                if (docEl.requestFullscreen && !document.fullscreenElement) {
-                    docEl.requestFullscreen().catch(e => console.warn('Fullscreen request failed:', e));
-                }
-            } catch (e) { }
-        }
-    }
-
-    // 恢复窗口状态
-    function restoreWindowState() {
-        console.log('restoreWindowState called');
-
-        if (typeof window.require !== 'undefined') {
-            try {
-                const { remote } = window.require('electron');
-                const win = remote.getCurrentWindow();
-                win.setAlwaysOnTop(false);
-            } catch (e) { }
-        }
-
-        if (typeof window.pake !== 'undefined') {
-            try {
-                if (window.pake.setAlwaysOnTop) window.pake.setAlwaysOnTop(false);
-            } catch (e) { }
-        }
-
-        // 退出全屏
-        if (document.fullscreenElement || document.webkitFullscreenElement) {
-            document.exitFullscreen?.() || document.webkitExitFullscreen?.();
-        }
-    }
-
     function setElements(elements) {
         timerRing = elements.timerRing;
         countdownSpan = elements.countdownSpan;
@@ -183,14 +107,18 @@ const ReminderModule = (function () {
 
     function closeLockScreen() {
         console.log('closeLockScreen called');
+        if (typeof window !== 'undefined' && window.require) {
+            const { ipcRenderer } = window.require('electron');
+            ipcRenderer.send('hide-lock');
+            if (mainWindow) {
+                mainWindow.setEnabled(true);
+            }
+        }
 
         if (lockTimerInterval) {
             clearInterval(lockTimerInterval);
             lockTimerInterval = null;
         }
-
-        // 恢复窗口状态
-        restoreWindowState();
 
         // 恢复页面滚动
         document.body.classList.remove('lock-active');
@@ -210,9 +138,31 @@ const ReminderModule = (function () {
     function showLockScreen(minutes, forceLock, onComplete) {
         if (isLocked) return;
 
-        // ========== 将窗口带到前台 ==========
-        bringWindowToFront();
-        // =================================
+        // 检测是否在 Electron 环境中
+        if (typeof window !== 'undefined' && window.require) {
+            const { ipcRenderer } = window.require('electron');
+
+            isLocked = true;
+
+            // 通知主进程创建锁屏窗口
+            ipcRenderer.send('show-lock', minutes);
+
+            // 保存完成回调，等锁屏结束后调用
+            window._lockCompleteCallback = () => {
+                isLocked = false;
+                if (onComplete) onComplete();
+            };
+
+            // 监听锁屏完成事件
+            ipcRenderer.once('lock-complete', () => {
+                if (window._lockCompleteCallback) {
+                    window._lockCompleteCallback();
+                    delete window._lockCompleteCallback;
+                }
+            });
+
+            return;
+        }
 
         isLocked = true;
         const totalSeconds = minutes * 60;
@@ -230,17 +180,7 @@ const ReminderModule = (function () {
             lockOverlay.classList.remove('hidden');
             lockOverlay.style.animation = 'fadeIn 0.3s ease';
 
-            // 确保全屏覆盖
-            lockOverlay.style.position = 'fixed';
-            lockOverlay.style.top = '0';
-            lockOverlay.style.left = '0';
-            lockOverlay.style.right = '0';
-            lockOverlay.style.bottom = '0';
-            lockOverlay.style.width = '100%';
-            lockOverlay.style.height = '100%';
-            lockOverlay.style.zIndex = '2147483647';
-
-            // 移除任何可能的关闭按钮
+            // 确保全屏覆盖，移除任何可能的关闭按钮
             const existingCloseBtn = lockOverlay.querySelector('.close-btn, .close-button, [data-close]');
             if (existingCloseBtn) {
                 existingCloseBtn.remove();
@@ -281,13 +221,11 @@ const ReminderModule = (function () {
 
         const lockMins = Math.min(30, Math.max(1, config.lockMinutes || 5));
 
-        // 播放声音
         if (config.soundEnabled && audioModule) {
             audioModule.playAlert();
             audioModule.startContinuous();
         }
 
-        // 触发回调（用于统计和通知）
         if (onReminderTrigger) onReminderTrigger();
 
         showLockScreen(lockMins, config.forceLock || false, () => {
@@ -315,9 +253,6 @@ const ReminderModule = (function () {
         }
 
         nextReminderTimestamp = null;
-
-        // 恢复窗口状态
-        restoreWindowState();
     }
 
     function setMainInterval(fn, interval) {
