@@ -366,7 +366,8 @@ const ReminderModule = (function () {
             isCreatingLock = false;
         }
 
-        nextReminderTimestamp = null;
+        // 注意：不要重置 nextReminderTimestamp，否则会导致下一次提醒无法触发
+        // nextReminderTimestamp = null;
     }
 
     let mainIntervalId = null;
