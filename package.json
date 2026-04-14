@@ -7,11 +7,8 @@
     "start": "electron .",
     "build": "electron-builder --win --x64",
     "build:win": "electron-builder --win --x64",
-    "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux",
-    "build:all": "electron-builder --win --mac --linux",
-    "postinstall": "electron-builder install-app-deps",
-    "pack": "electron-builder --dir"
+    "clean": "rmdir /s /q dist node_modules",
+    "compress": "compress.bat"
   },
   "repository": {
     "type": "git",
@@ -45,8 +42,7 @@
     "productName": "HealthClock",
     "copyright": "Copyright © 2026 neopen",
     "directories": {
-      "output": "dist",
-      "buildResources": "build"
+      "output": "dist"
     },
     "files": [
       "**/*",
@@ -58,46 +54,39 @@
       "!*.md",
       "!*.log",
       "!.git",
-      "!.github"
+      "!.github",
+      "!build",
+      "!test",
+      "!*.ts",
+      "!*.map",
+      "!*.d.ts",
+      "!*.po",
+      "!*.mo"
     ],
     "win": {
       "target": "nsis",
       "icon": "icons/icon-256.png",
       "publisherName": "neopen",
-      "artifactName": "HealthClock_x64_${version}.${ext}"
+      "artifactName": "HealthClock_${version}_x64_Setup.${ext}",
+      "compression": "maximum"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
+      "createStartMenuShortcut": false,
       "shortcutName": "别坐了",
-      "perMachine": true,
       "runAfterFinish": true,
-      "artifactName": "HealthClock_x64_${version}.${ext}"
-    },
-    "mac": {
-      "target": "dmg",
-      "icon": "icons/icon-256.png",
-      "category": "public.app-category.healthcare-fitness",
-      "artifactName": "HealthClock_${version}.${ext}"
-    },
-    "linux": {
-      "target": "AppImage",
-      "icon": "icons/icon-256.png",
-      "category": "Utility",
-      "artifactName": "HealthClock_${version}.${ext}"
+      "deleteAppDataOnUninstall": true
     },
     "asar": true,
-    "compression": "maximum"
+    "compression": "maximum",
+    "removePackageScripts": true,
+    "npmRebuild": false
   },
   "devDependencies": {
     "electron": "^41.2.0",
     "electron-builder": "^24.13.3"
-  },
-  "engines": {
-    "node": ">=16.0.0",
-    "npm": ">=8.0.0"
-  },
-  "private": false
+  }
 }
