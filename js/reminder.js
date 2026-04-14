@@ -195,6 +195,7 @@ const ReminderModule = (function () {
                     console.log('[REMINDER] Lock complete event received');
                     isLocked = false;
                     isCreatingLock = false;
+                    pendingLock = false;  // 添加这行：重置 pendingLock
                     // 确保声音停止
                     if (AudioModule) {
                         AudioModule.stopContinuous();

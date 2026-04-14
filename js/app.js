@@ -153,6 +153,7 @@
             }
         },
         onLockClose: () => {
+            console.log('[APP] onLockClose called - resetting states');
             // 锁屏关闭后，重新调度下一次提醒
             if (ReminderModule.isReminderRunning()) {
                 const now = new Date();
@@ -161,6 +162,8 @@
                 ReminderModule.setNextReminderTime(next.getTime());
                 UIModule.updateNextReminderDisplay(next.getTime());
             }
+            // 确保声音停止（二次保险）
+            AudioModule.stopContinuous();
         }
     });
 

@@ -33,16 +33,13 @@ function createLockWindow(durationSeconds, forceLock) {
     console.log('[MAIN] createLockWindow called, durationSeconds:', durationSeconds, 'forceLock:', forceLock);
     console.log('[MAIN] Current state - isLockWindowClosing:', isLockWindowClosing, 'lockWindow exists:', !!lockWindow);
 
-    if (isLockWindowClosing) {
-        console.log('[MAIN] Lock window is closing, skip creating new.');
-        return;
-    }
+    // 重置关闭标志，允许创建新窗口
+    isLockWindowClosing = false;
 
     if (lockWindow && !lockWindow.isDestroyed()) {
         console.log('[MAIN] Closing existing lock window before creating new.');
         try {
-            lockWindow._forceClose = true;
-            lockWindow.close();
+            lockWindow.destroy();  // 直接销毁，不经过 close 事件
         } catch (e) { }
         lockWindow = null;
     }
@@ -117,7 +114,6 @@ function createLockWindow(durationSeconds, forceLock) {
 
     lockWindow.webContents.on('did-finish-load', () => {
         console.log('[MAIN] Lock window finished loading');
-        // 确保窗口获得焦点
         lockWindow.focus();
     });
 
@@ -131,30 +127,18 @@ function createLockWindow(durationSeconds, forceLock) {
         restoreMainWindow();
     });
 
-    // 阻止所有关闭尝试
-    lockWindow.on('close', (e) => {
-        console.log('[MAIN] Lock window close event, _forceClose:', lockWindow._forceClose);
-        if (!lockWindow._forceClose) {
-            console.log('[MAIN] Close prevented - user cannot close lock window manually');
-            e.preventDefault();
-            return false;
-        }
-        console.log('[MAIN] Close allowed');
-        return true;
-    });
-
     // 备用定时器：根据秒数设置
     const timeoutMs = validDuration * 1000 + 3000;
     console.log('[MAIN] Setting fallback timer for', timeoutMs, 'ms');
     lockTimer = setTimeout(() => {
         console.log('[MAIN] Fallback timer triggered - forcing lock window close');
-        closeLockWindow();
+        forceCloseLockWindow();
     }, timeoutMs);
 
     console.log('[MAIN] Lock window created successfully');
 }
 
-// 强制关闭锁屏窗口（用于 Electron 全屏窗口）
+// 强制关闭锁屏窗口 - 使用 destroy 方法
 function forceCloseLockWindow() {
     console.log('[MAIN] forceCloseLockWindow called');
 
@@ -164,24 +148,12 @@ function forceCloseLockWindow() {
     }
 
     if (lockWindow && !lockWindow.isDestroyed()) {
+        console.log('[MAIN] Force destroying lock window');
         try {
-            // 先退出全屏
-            if (lockWindow.isFullScreen()) {
-                lockWindow.setFullScreen(false);
-            }
-            // 设置强制关闭标志
-            lockWindow._forceClose = true;
-            // 尝试关闭
-            lockWindow.close();
-            // 如果关闭失败，强制销毁
-            if (!lockWindow.isDestroyed()) {
-                lockWindow.destroy();
-            }
+            // 直接销毁窗口，不触发 close 事件
+            lockWindow.destroy();
         } catch (e) {
-            console.error('[MAIN] Error force closing lock window:', e);
-            try {
-                lockWindow.destroy();
-            } catch (e2) { }
+            console.error('[MAIN] Error destroying lock window:', e);
         }
         lockWindow = null;
     }
@@ -189,7 +161,6 @@ function forceCloseLockWindow() {
     isLockWindowClosing = false;
     restoreMainWindow();
 }
-
 
 function closeLockWindow() {
     console.log('[MAIN] closeLockWindow called, isLockWindowClosing:', isLockWindowClosing);
@@ -221,54 +192,11 @@ function closeLockWindow() {
         mainWindow.webContents.send('stop-sound');
     }
 
+    // 直接使用 destroy 方法强制关闭全屏窗口
     try {
-        // 先退出全屏模式
-        if (lockWindow.isFullScreen()) {
-            console.log('[MAIN] Exiting fullscreen mode');
-            lockWindow.setFullScreen(false);
-            setTimeout(() => {
-                try {
-                    lockWindow._forceClose = true;
-                    lockWindow.close();
-                    setTimeout(() => {
-                        if (lockWindow && !lockWindow.isDestroyed()) {
-                            console.log('[MAIN] Force destroying lock window');
-                            lockWindow.destroy();
-                            lockWindow = null;
-                            isLockWindowClosing = false;
-                            restoreMainWindow();
-                        }
-                    }, 500);
-                } catch (e) {
-                    console.error('[MAIN] Error closing after exit fullscreen:', e);
-                    if (lockWindow && !lockWindow.isDestroyed()) {
-                        lockWindow.destroy();
-                    }
-                    lockWindow = null;
-                    isLockWindowClosing = false;
-                    restoreMainWindow();
-                }
-            }, 200);
-        } else {
-            lockWindow._forceClose = true;
-            lockWindow.close();
-            setTimeout(() => {
-                if (lockWindow && !lockWindow.isDestroyed()) {
-                    console.log('[MAIN] Force destroying lock window');
-                    lockWindow.destroy();
-                    lockWindow = null;
-                    isLockWindowClosing = false;
-                    restoreMainWindow();
-                }
-            }, 500);
-        }
+        lockWindow.destroy();
     } catch (e) {
-        console.error('[MAIN] Error closing lock window:', e);
-        try {
-            if (lockWindow && !lockWindow.isDestroyed()) {
-                lockWindow.destroy();
-            }
-        } catch (e2) { }
+        console.error('[MAIN] Error destroying lock window:', e);
         lockWindow = null;
         isLockWindowClosing = false;
         restoreMainWindow();
@@ -295,7 +223,6 @@ function restoreMainWindow() {
         console.log('[MAIN] Enabling and focusing main window');
         mainWindow.setEnabled(true);
         mainWindow.focus();
-        // 确保主窗口在最前
         mainWindow.setAlwaysOnTop(false);
         mainWindow.moveTop();
     } else {
