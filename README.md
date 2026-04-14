@@ -45,7 +45,9 @@
 
 ### 主界面
 
-<img src="./imgs/image-20260414080915032.png" alt="image-20260414080915032" style="zoom:60%;" />
+<img src="./imgs/image-20260414153729423.png" alt="image-20260414153729423" style="zoom:50%;" />
+
+
 
 ### 锁屏提醒界面
 
