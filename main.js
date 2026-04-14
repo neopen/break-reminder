@@ -13,13 +13,18 @@ function createMainWindow() {
     mainWindow = new BrowserWindow({
         width: 500,
         height: 750,
-        resizable: false,
+        resizable: true,
         frame: true,
+        titleBarStyle: 'hidden',
         webPreferences: {
             nodeIntegration: true,
-            contextIsolation: false
+            contextIsolation: false,
+            zoomFactor: 0.65
         }
     });
+
+    // 移除默认菜单（保留窗口控制按钮，但移除 File/Edit 等菜单）
+    mainWindow.setMenu(null);
 
     mainWindow.loadFile('index.html');
 
@@ -39,7 +44,7 @@ function createLockWindow(durationSeconds, forceLock) {
     if (lockWindow && !lockWindow.isDestroyed()) {
         console.log('[MAIN] Closing existing lock window before creating new.');
         try {
-            lockWindow.destroy();  // 直接销毁，不经过 close 事件
+            lockWindow.destroy();
         } catch (e) { }
         lockWindow = null;
     }
@@ -58,77 +63,66 @@ function createLockWindow(durationSeconds, forceLock) {
 
     console.log('[MAIN] Using duration:', validDuration, 'seconds (', Math.floor(validDuration / 60), 'minutes)');
 
-    // 注入参数到 lock.html
-    const lockHtmlPath = path.join(__dirname, 'lock.html');
-    let htmlContent = fs.readFileSync(lockHtmlPath, 'utf8');
-
-    // 添加参数注入脚本 - 使用秒数
-    const paramScript = `
-    <script>
-        // 注入参数 - duration 单位是秒
-        window.__LOCK_PARAMS__ = {
-            duration: ${validDuration},
-            forceLock: ${forceLock}
-        };
-        console.log('[LOCK] Injected params - duration:', ${validDuration}, 'seconds, forceLock:', ${forceLock});
-    </script>
-    `;
-
-    // 在 body 开始处注入脚本，确保在其他脚本之前执行
-    htmlContent = htmlContent.replace('<body>', `<body>${paramScript}`);
-
-    const tempHtmlPath = path.join(__dirname, 'lock_temp.html');
-    fs.writeFileSync(tempHtmlPath, htmlContent, 'utf8');
-
     const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
-    // 创建全屏窗口 - 关键配置
+    // 创建全屏窗口
     lockWindow = new BrowserWindow({
         width: width,
         height: height,
         fullscreen: true,
-        fullscreenable: false,  // 禁止退出全屏
-        kiosk: true,            // 启用 kiosk 模式，实现真正的全屏效果
+        fullscreenable: false,
+        kiosk: true,
         alwaysOnTop: true,
         frame: false,
         transparent: false,
         resizable: false,
-        closable: false,        // 禁止用户关闭
+        closable: false,
         minimizable: false,
         maximizable: false,
         skipTaskbar: true,
         focusable: true,
+        autoHideMenuBar: true,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
         }
     });
 
-    lockWindow.loadFile('lock_temp.html');
+    // 通过 URL 参数传递数据，而不是创建临时文件
+    const lockHtmlPath = path.join(__dirname, 'lock.html');
+    lockWindow.loadFile('lock.html', {
+        query: {
+            duration: validDuration,
+            forceLock: forceLock ? 'true' : 'false'
+        }
+    });
 
-    // 确保窗口始终在最前
     lockWindow.setAlwaysOnTop(true, 'screen-saver');
-
-    // 锁定窗口位置和大小
     lockWindow.setMovable(false);
     lockWindow.setResizable(false);
 
+    // 注入参数到页面（备用方案）
     lockWindow.webContents.on('did-finish-load', () => {
         console.log('[MAIN] Lock window finished loading');
+        // 通过 executeJavaScript 注入参数
+        lockWindow.webContents.executeJavaScript(`
+            window.__LOCK_PARAMS__ = {
+                duration: ${validDuration},
+                forceLock: ${forceLock}
+            };
+            console.log('[LOCK] Injected params via executeJavaScript:', window.__LOCK_PARAMS__);
+        `);
         lockWindow.focus();
     });
 
     lockWindow.on('closed', () => {
         console.log('[MAIN] Lock window closed event');
-        try {
-            fs.unlinkSync(tempHtmlPath);
-        } catch (e) { }
         lockWindow = null;
         isLockWindowClosing = false;
         restoreMainWindow();
     });
 
-    // 备用定时器：根据秒数设置
+    // 备用定时器
     const timeoutMs = validDuration * 1000 + 3000;
     console.log('[MAIN] Setting fallback timer for', timeoutMs, 'ms');
     lockTimer = setTimeout(() => {
