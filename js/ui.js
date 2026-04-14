@@ -16,8 +16,12 @@ const UIModule = (function () {
             if (elements.startBtn) {
                 elements.startBtn.disabled = true;
                 elements.startBtn.style.opacity = '0.6';
+                elements.startBtn.style.cursor = 'not-allowed';
             }
             if (elements.stopBtn) {
+                elements.stopBtn.disabled = false;  // 确保停止按钮可用
+                elements.stopBtn.style.opacity = '1';
+                elements.stopBtn.style.cursor = 'pointer';
                 elements.stopBtn.style.background = '#ef4444';
             }
         } else {
@@ -28,9 +32,13 @@ const UIModule = (function () {
             if (elements.startBtn) {
                 elements.startBtn.disabled = false;
                 elements.startBtn.style.opacity = '1';
+                elements.startBtn.style.cursor = 'pointer';
             }
             if (elements.stopBtn) {
-                elements.stopBtn.style.background = '#ef4444';
+                elements.stopBtn.disabled = true;   // 未启动时停止按钮禁用
+                elements.stopBtn.style.opacity = '0.5';
+                elements.stopBtn.style.cursor = 'not-allowed';
+                elements.stopBtn.style.background = '#94a3b8';
             }
         }
     }
