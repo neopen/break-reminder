@@ -1,6 +1,6 @@
 {
-  "name": "health-clock-app",
-  "version": "1.0.0",
+  "name": "health-clock",
+  "version": "0.4.1",
   "description": "一款强制提醒活动的桌面应用，帮助久坐用户定时起身活动，支持锁屏强制提醒、桌面通知、每日打卡统计。",
   "main": "main.js",
   "directories": {
@@ -15,7 +15,7 @@
     "url": "git+https://github.com/neopen/health-clock-app.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "HiPeng",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
@@ -23,8 +23,8 @@
   },
   "homepage": "https://github.com/neopen/health-clock-app#readme",
   "build": {
-    "appId": "com.yourname.standupalarm",
-    "productName": "起来走走",
+    "appId": "com.neopen.standupalarm",
+    "productName": "别坐了",
     "directories": {
       "output": "dist"
     },

@@ -538,4 +538,16 @@
             e.returnValue = '闹铃正在运行，确定要离开吗？';
         }
     });
+
+    if (window.require) {
+        try {
+            const { ipcRenderer } = window.require('electron');
+            ipcRenderer.on('stop-sound', () => {
+                console.log('[APP] Received stop-sound from main process');
+                AudioModule.stopContinuous();
+            });
+        } catch (e) {
+            console.error('[APP] Failed to setup IPC listener:', e);
+        }
+    }
 })();

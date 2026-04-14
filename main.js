@@ -29,7 +29,6 @@ function createMainWindow() {
     });
 }
 
-// main.js 中的 createLockWindow 函数
 function createLockWindow(durationSeconds, forceLock) {
     console.log('[MAIN] createLockWindow called, durationSeconds:', durationSeconds, 'forceLock:', forceLock);
     console.log('[MAIN] Current state - isLockWindowClosing:', isLockWindowClosing, 'lockWindow exists:', !!lockWindow);
@@ -86,18 +85,21 @@ function createLockWindow(durationSeconds, forceLock) {
 
     const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
+    // 创建全屏窗口 - 关键配置
     lockWindow = new BrowserWindow({
         width: width,
         height: height,
         fullscreen: true,
+        fullscreenable: false,  // 禁止退出全屏
         alwaysOnTop: true,
         frame: false,
         transparent: false,
         resizable: false,
-        closable: false,
+        closable: false,        // 禁止用户关闭
         minimizable: false,
         maximizable: false,
         skipTaskbar: true,
+        focusable: true,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
@@ -106,8 +108,17 @@ function createLockWindow(durationSeconds, forceLock) {
 
     lockWindow.loadFile('lock_temp.html');
 
+    // 确保窗口始终在最前
+    lockWindow.setAlwaysOnTop(true, 'screen-saver');
+
+    // 锁定窗口位置和大小
+    lockWindow.setMovable(false);
+    lockWindow.setResizable(false);
+
     lockWindow.webContents.on('did-finish-load', () => {
         console.log('[MAIN] Lock window finished loading');
+        // 确保窗口获得焦点
+        lockWindow.focus();
     });
 
     lockWindow.on('closed', () => {
@@ -120,6 +131,7 @@ function createLockWindow(durationSeconds, forceLock) {
         restoreMainWindow();
     });
 
+    // 阻止所有关闭尝试
     lockWindow.on('close', (e) => {
         console.log('[MAIN] Lock window close event, _forceClose:', lockWindow._forceClose);
         if (!lockWindow._forceClose) {
@@ -140,6 +152,42 @@ function createLockWindow(durationSeconds, forceLock) {
     }, timeoutMs);
 
     console.log('[MAIN] Lock window created successfully');
+}
+
+// 强制关闭锁屏窗口（用于 Electron 全屏窗口）
+function forceCloseLockWindow() {
+    console.log('[MAIN] forceCloseLockWindow called');
+
+    if (lockTimer) {
+        clearTimeout(lockTimer);
+        lockTimer = null;
+    }
+
+    if (lockWindow && !lockWindow.isDestroyed()) {
+        try {
+            // 先退出全屏
+            if (lockWindow.isFullScreen()) {
+                lockWindow.setFullScreen(false);
+            }
+            // 设置强制关闭标志
+            lockWindow._forceClose = true;
+            // 尝试关闭
+            lockWindow.close();
+            // 如果关闭失败，强制销毁
+            if (!lockWindow.isDestroyed()) {
+                lockWindow.destroy();
+            }
+        } catch (e) {
+            console.error('[MAIN] Error force closing lock window:', e);
+            try {
+                lockWindow.destroy();
+            } catch (e2) { }
+        }
+        lockWindow = null;
+    }
+
+    isLockWindowClosing = false;
+    restoreMainWindow();
 }
 
 
@@ -167,20 +215,73 @@ function closeLockWindow() {
         lockTimer = null;
     }
 
+    // 通知主窗口停止声音
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        console.log('[MAIN] Notifying main window to stop sound');
+        mainWindow.webContents.send('stop-sound');
+    }
+
     try {
-        lockWindow._forceClose = true;
-        lockWindow.close();
+        // 先退出全屏模式
+        if (lockWindow.isFullScreen()) {
+            console.log('[MAIN] Exiting fullscreen mode');
+            lockWindow.setFullScreen(false);
+            setTimeout(() => {
+                try {
+                    lockWindow._forceClose = true;
+                    lockWindow.close();
+                    setTimeout(() => {
+                        if (lockWindow && !lockWindow.isDestroyed()) {
+                            console.log('[MAIN] Force destroying lock window');
+                            lockWindow.destroy();
+                            lockWindow = null;
+                            isLockWindowClosing = false;
+                            restoreMainWindow();
+                        }
+                    }, 500);
+                } catch (e) {
+                    console.error('[MAIN] Error closing after exit fullscreen:', e);
+                    if (lockWindow && !lockWindow.isDestroyed()) {
+                        lockWindow.destroy();
+                    }
+                    lockWindow = null;
+                    isLockWindowClosing = false;
+                    restoreMainWindow();
+                }
+            }, 200);
+        } else {
+            lockWindow._forceClose = true;
+            lockWindow.close();
+            setTimeout(() => {
+                if (lockWindow && !lockWindow.isDestroyed()) {
+                    console.log('[MAIN] Force destroying lock window');
+                    lockWindow.destroy();
+                    lockWindow = null;
+                    isLockWindowClosing = false;
+                    restoreMainWindow();
+                }
+            }, 500);
+        }
     } catch (e) {
         console.error('[MAIN] Error closing lock window:', e);
-        // 如果关闭失败，强制销毁
         try {
-            lockWindow.destroy();
+            if (lockWindow && !lockWindow.isDestroyed()) {
+                lockWindow.destroy();
+            }
         } catch (e2) { }
         lockWindow = null;
         isLockWindowClosing = false;
         restoreMainWindow();
     }
 }
+
+// 添加 IPC 监听停止声音
+ipcMain.on('stop-sound-request', () => {
+    console.log('[MAIN] IPC stop-sound-request received');
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('stop-sound');
+    }
+});
 
 function restoreMainWindow() {
     if (isRestoringMain) {
@@ -194,6 +295,9 @@ function restoreMainWindow() {
         console.log('[MAIN] Enabling and focusing main window');
         mainWindow.setEnabled(true);
         mainWindow.focus();
+        // 确保主窗口在最前
+        mainWindow.setAlwaysOnTop(false);
+        mainWindow.moveTop();
     } else {
         console.log('[MAIN] Main window not available for restore');
     }
@@ -210,6 +314,7 @@ ipcMain.on('show-lock', (event, duration, forceLock) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
         console.log('[MAIN] Disabling main window');
         mainWindow.setEnabled(false);
+        mainWindow.setAlwaysOnTop(false);
     }
     createLockWindow(duration, forceLock);
 });

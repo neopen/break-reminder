@@ -118,6 +118,12 @@ const ReminderModule = (function () {
     function closeLockScreen() {
         console.log('closeLockScreen called');
 
+        // 先停止声音！
+        if (AudioModule) {
+            console.log('[REMINDER] Stopping continuous sound');
+            AudioModule.stopContinuous();
+        }
+
         // 检测是否在 Electron 环境中
         if (typeof window !== 'undefined' && window.require) {
             try {
@@ -189,6 +195,10 @@ const ReminderModule = (function () {
                     console.log('[REMINDER] Lock complete event received');
                     isLocked = false;
                     isCreatingLock = false;
+                    // 确保声音停止
+                    if (AudioModule) {
+                        AudioModule.stopContinuous();
+                    }
                     if (onComplete) onComplete();
                     try {
                         ipcRenderer.removeListener('lock-complete', onCompleteHandler);
@@ -240,6 +250,7 @@ const ReminderModule = (function () {
             if (remaining <= 0) {
                 clearInterval(lockTimerInterval);
                 lockTimerInterval = null;
+                // 倒计时结束，关闭锁屏（会停止声音）
                 closeLockScreen();
                 if (onComplete) onComplete();
             } else if (unlockBtn) {
@@ -289,21 +300,27 @@ const ReminderModule = (function () {
         const forceLock = (config && config.forceLock) || false;
         const soundEnabled = (config && config.soundEnabled) !== undefined ? config.soundEnabled : true;
 
-        console.log('[REMINDER] Triggering lock screen with duration:', lockMins, 'forceLock:', forceLock, 'soundEnabled:', soundEnabled);
+        console.log('[REMINDER] Triggering lock screen with duration:', lockMins, 'minutes (', lockMins * 60, 'seconds)', 'forceLock:', forceLock, 'soundEnabled:', soundEnabled);
 
-        if (soundEnabled && AudioModule) {
-            AudioModule.playAlert();
-            AudioModule.startContinuous();
-        }
-
+        // 触发提醒回调（记录统计、发送通知）
         if (onReminderTrigger) onReminderTrigger();
 
         pendingLock = true;
 
+        // 先播放声音，再显示锁屏
+        if (soundEnabled && AudioModule) {
+            console.log('[REMINDER] Playing alert sound');
+            AudioModule.playAlert();
+            AudioModule.startContinuous();
+        }
+
         showLockScreen(lockMins, forceLock, () => {
             console.log('[REMINDER] Lock screen completed callback');
             pendingLock = false;
-            if (AudioModule) AudioModule.stopContinuous();
+            // 确保声音停止（二次保险）
+            if (AudioModule) {
+                AudioModule.stopContinuous();
+            }
             if (onLockClose) onLockClose();
         });
     }
@@ -324,6 +341,11 @@ const ReminderModule = (function () {
             checkInterval = null;
         }
 
+        // 停止声音
+        if (AudioModule) {
+            AudioModule.stopContinuous();
+        }
+
         if (isLocked) {
             console.log('[REMINDER] Lock active, sending hide-lock');
             if (typeof window !== 'undefined' && window.require) {
@@ -334,7 +356,6 @@ const ReminderModule = (function () {
                     console.error('[REMINDER] Failed to send hide-lock:', e);
                 }
             }
-            if (AudioModule) AudioModule.stopContinuous();
             isLocked = false;
             pendingLock = false;
         }
