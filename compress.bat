@@ -46,9 +46,9 @@ for %%f in (dist\*.exe) do (
 )
 echo 完成
 
-echo [4/4] 7z 极限压缩...
-%SEVENZIP% a -t7z -mx=9 -mfb=273 -ms=10g -mmt=4 -sdel dist\HealthClock_极限压缩.7z dist\*.exe
-echo 完成
+REM echo [4/4] 7z 极限压缩...
+REM %SEVENZIP% a -t7z -mx=9 -mfb=273 -ms=10g -mmt=4 -sdel dist\HealthClock_极限压缩.7z dist\*.exe
+REM echo 完成
 
 echo.
 dir dist\*.7z

@@ -70,14 +70,18 @@ function createLockWindow(durationSeconds, forceLock) {
 
     console.log('[MAIN] Using duration:', validDuration, 'seconds (', Math.floor(validDuration / 60), 'minutes)');
 
-    const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+    // 获取整个屏幕的大小，包括任务栏
+    const display = screen.getPrimaryDisplay();
+    const { width, height } = display.size;
 
-    // 创建全屏窗口
+    // 创建全屏窗口 - 使用最高级别的置顶和锁定
     lockWindow = new BrowserWindow({
         width: width,
         height: height,
+        x: 0,
+        y: 0,
         fullscreen: true,
-        fullscreenable: false,
+        fullscreenable: true, // 先允许全屏，然后强制设置
         kiosk: true,
         alwaysOnTop: true,
         frame: false,
@@ -89,14 +93,15 @@ function createLockWindow(durationSeconds, forceLock) {
         skipTaskbar: true,
         focusable: true,
         autoHideMenuBar: true,
+        show: false, // 先隐藏，设置好后再显示
         webPreferences: {
             nodeIntegration: true,
-            contextIsolation: false
+            contextIsolation: false,
+            webSecurity: false
         }
     });
 
     // 通过 URL 参数传递数据，而不是创建临时文件
-    const lockHtmlPath = path.join(__dirname, 'lock.html');
     lockWindow.loadFile('lock.html', {
         query: {
             duration: validDuration,
@@ -104,16 +109,30 @@ function createLockWindow(durationSeconds, forceLock) {
         }
     });
 
-    lockWindow.setFullScreen(true);
-    lockWindow.setAlwaysOnTop(true, 'pop-up-menu');
-    // lockWindow.setAlwaysOnTop(true, 'screen-saver');
-    lockWindow.setMovable(false);
-    lockWindow.setResizable(false);
-
-    // 注入参数到页面（备用方案）
-    lockWindow.webContents.on('did-finish-load', () => {
-        console.log('[MAIN] Lock window finished loading');
-        // 通过 executeJavaScript 注入参数
+    // 窗口准备好后再显示
+    lockWindow.once('ready-to-show', () => {
+        console.log('[MAIN] Lock window ready to show');
+        
+        // 设置最高级别的置顶，覆盖所有其他窗口，包括全屏应用
+        lockWindow.setFullScreen(true);
+        lockWindow.setAlwaysOnTop(true, 'screen-saver');
+        lockWindow.setMovable(false);
+        lockWindow.setResizable(false);
+        lockWindow.setOpacity(1.0); // 确保完全不透明
+        lockWindow.setIgnoreMouseEvents(false); // 确保捕获鼠标事件
+        
+        // 禁用所有键盘快捷键
+        lockWindow.webContents.on('before-input-event', (event, input) => {
+            console.log('[MAIN] Blocking keyboard input:', input.key);
+            event.preventDefault();
+        });
+        
+        // 禁用右键菜单
+        lockWindow.webContents.on('context-menu', (event) => {
+            event.preventDefault();
+        });
+        
+        // 注入参数到页面
         lockWindow.webContents.executeJavaScript(`
             window.__LOCK_PARAMS__ = {
                 duration: ${validDuration},
@@ -121,12 +140,14 @@ function createLockWindow(durationSeconds, forceLock) {
             };
             console.log('[LOCK] Injected params via executeJavaScript:', window.__LOCK_PARAMS__);
         `);
+        
+        // 确保窗口获得焦点
         lockWindow.focus();
-
-        // 再次确保全屏
-        if (process.platform === 'win32') {
-            lockWindow.setFullScreen(true);
-        }
+        lockWindow.moveTop();
+        
+        // 显示窗口
+        lockWindow.show();
+        console.log('[MAIN] Lock window shown');
     });
 
     lockWindow.on('closed', () => {
