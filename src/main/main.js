@@ -195,6 +195,8 @@ function createTray() {
     }
 }
 
+
+
 function createLockWindow(durationSeconds, forceLock) {
     console.log('[MAIN] createLockWindow called, durationSeconds:', durationSeconds, 'forceLock:', forceLock);
     console.log('[MAIN] Current state - isLockWindowClosing:', isLockWindowClosing, 'lockWindow exists:', !!lockWindow);
@@ -224,9 +226,13 @@ function createLockWindow(durationSeconds, forceLock) {
 
     console.log('[MAIN] Using duration:', validDuration, 'seconds (', Math.floor(validDuration / 60), 'minutes)');
 
-    // 获取整个屏幕的大小，包括任务栏
+    // 获取主显示器
     const display = screen.getPrimaryDisplay();
-    const { width, height } = display.size;
+    const { width, height } = display.bounds;  // 使用 bounds 而不是 size，包含任务栏区域
+    const { workArea } = display;  // 工作区域（不包含任务栏）
+
+    console.log('[MAIN] Display bounds:', width, 'x', height);
+    console.log('[MAIN] Work area:', workArea.width, 'x', workArea.height);
 
     // 创建全屏窗口 - 使用最高级别的置顶和锁定
     lockWindow = new BrowserWindow({
@@ -234,36 +240,78 @@ function createLockWindow(durationSeconds, forceLock) {
         height: height,
         x: 0,
         y: 0,
-        // 初始设置为全屏
+        // 全屏设置
         fullscreen: true,
         fullscreenable: true,
-        // 启用 kiosk 模式
+        // kiosk 模式
         kiosk: true,
-        // 初始设置为置顶
+        // 始终置顶 - 使用最高级别
         alwaysOnTop: true,
+        // 窗口样式
         frame: false,
         transparent: false,
+        // 禁止调整大小
         resizable: false,
+        // 禁止关闭、最小化、最大化
         closable: false,
         minimizable: false,
         maximizable: false,
-        // 跳过任务栏
+        // 关键：跳过任务栏
         skipTaskbar: true,
+        // 不显示在任务栏
+        showInTaskbar: false,  // 添加这一行
+        // 可聚焦
         focusable: true,
+        // 自动隐藏菜单栏
         autoHideMenuBar: true,
-        show: false, // 先隐藏，设置好后再显示
-        // 禁用所有默认菜单
+        // 先隐藏，设置好后再显示
+        show: false,
+        // 禁用菜单
         menuBarVisible: false,
-        // 启用无框模式
+        // 隐藏标题栏
         titleBarStyle: 'hidden',
-        // 禁用窗口动画
+        // 禁用光标自动隐藏
         disableAutoHideCursor: true,
+        // 厚框
+        thickFrame: false,
+        // 使用内容大小
+        useContentSize: true,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
-            webSecurity: false
+            webSecurity: false,
+            // 添加以下设置
+            enableRemoteModule: true,
+            spellcheck: false
         }
     });
+
+    // 在 Windows 上，设置窗口为工具窗口可以隐藏任务栏图标
+    if (process.platform === 'win32') {
+        // 设置窗口为工具窗口（不在任务栏显示）
+        lockWindow.setSkipTaskbar(true);
+        
+        // 设置窗口在所有桌面可见
+        lockWindow.setVisibleOnAllWorkspaces(true);
+        
+        // 尝试使用原生 Windows API 设置
+        try {
+            const win = lockWindow;
+            // 设置窗口扩展样式
+            const HWND = win.getNativeWindowHandle();
+            if (HWND) {
+                console.log('[MAIN] Native window handle obtained');
+            }
+        } catch (e) {
+            console.warn('[MAIN] Could not set native window properties:', e);
+        }
+    }
+
+    // macOS 特定设置
+    if (process.platform === 'darwin') {
+        lockWindow.setVisibleOnAllWorkspaces(true);
+        lockWindow.setFullScreenable(true);
+    }
 
     // 通过 URL 参数传递数据
     lockWindow.loadFile('src/renderer/lock.html', {
@@ -283,20 +331,31 @@ function createLockWindow(durationSeconds, forceLock) {
         // 确保全屏
         lockWindow.setFullScreen(true);
         
-        // 设置最高级别的置顶，覆盖所有其他窗口，包括全屏应用
-        // 使用 'screen-saver' 级别，这是最高级别
+        // 设置最高级别的置顶
         lockWindow.setAlwaysOnTop(true, 'screen-saver');
+        
+        // 在 Windows 上额外设置
+        if (process.platform === 'win32') {
+            // 确保不在任务栏显示
+            lockWindow.setSkipTaskbar(true);
+            // 在所有工作区可见
+            lockWindow.setVisibleOnAllWorkspaces(true);
+        }
         
         // 确保窗口属性
         lockWindow.setMovable(false);
         lockWindow.setResizable(false);
-        lockWindow.setOpacity(1.0); // 确保完全不透明
-        lockWindow.setIgnoreMouseEvents(false); // 确保捕获鼠标事件
+        lockWindow.setOpacity(1.0);
+        lockWindow.setIgnoreMouseEvents(false);
         
         // 禁用所有键盘快捷键
         lockWindow.webContents.on('before-input-event', (event, input) => {
-            console.log('[MAIN] Blocking keyboard input:', input.key);
-            event.preventDefault();
+            // 阻止所有键盘输入，除了必要的
+            const allowedKeys = []; // 不允许任何按键
+            if (!allowedKeys.includes(input.key)) {
+                console.log('[MAIN] Blocking keyboard input:', input.key);
+                event.preventDefault();
+            }
         });
         
         // 禁用右键菜单
@@ -318,39 +377,56 @@ function createLockWindow(durationSeconds, forceLock) {
         
         // 确保窗口获得焦点
         lockWindow.focus();
-        lockWindow.moveTop(); // 确保在最顶层
+        lockWindow.moveTop();
         
         // 显示窗口
         lockWindow.show();
+        
+        // 对于 Windows，使用 setContentProtection 防止被其他窗口覆盖
+        if (process.platform === 'win32') {
+            lockWindow.setContentProtection(true);
+        }
+        
         console.log('[MAIN] Lock window shown');
         
-        // 再次确认全屏状态
-        setTimeout(() => {
-            console.log('[MAIN] Reconfirming fullscreen state');
-            lockWindow.setKiosk(true);
-            lockWindow.setFullScreen(true);
-            lockWindow.setAlwaysOnTop(true, 'screen-saver');
-            lockWindow.focus();
-            lockWindow.moveTop();
-        }, 100);
-        
         // 持续确保全屏状态
-        setInterval(() => {
+        const fullscreenInterval = setInterval(() => {
             if (lockWindow && !lockWindow.isDestroyed()) {
                 lockWindow.setKiosk(true);
                 lockWindow.setFullScreen(true);
                 lockWindow.setAlwaysOnTop(true, 'screen-saver');
+                if (process.platform === 'win32') {
+                    lockWindow.setSkipTaskbar(true);
+                }
                 lockWindow.focus();
                 lockWindow.moveTop();
+            } else {
+                clearInterval(fullscreenInterval);
             }
-        }, 1000);
+        }, 500);  // 降低频率到 500ms，避免过度消耗
+        
+        // 保存 interval ID 以便清理
+        lockWindow._fullscreenInterval = fullscreenInterval;
     });
 
     lockWindow.on('closed', () => {
         console.log('[MAIN] Lock window closed event');
+        // 清理 interval
+        if (lockWindow && lockWindow._fullscreenInterval) {
+            clearInterval(lockWindow._fullscreenInterval);
+        }
         lockWindow = null;
         isLockWindowClosing = false;
         restoreMainWindow();
+    });
+    
+    // 窗口失去焦点时重新获取焦点
+    lockWindow.on('blur', () => {
+        if (lockWindow && !lockWindow.isDestroyed() && !isLockWindowClosing) {
+            console.log('[MAIN] Lock window lost focus, refocusing');
+            lockWindow.focus();
+            lockWindow.moveTop();
+        }
     });
 
     // 备用定时器
@@ -363,6 +439,7 @@ function createLockWindow(durationSeconds, forceLock) {
 
     console.log('[MAIN] Lock window created successfully');
 }
+
 
 // 强制关闭锁屏窗口 - 使用 destroy 方法
 function forceCloseLockWindow() {
