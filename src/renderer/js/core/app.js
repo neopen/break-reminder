@@ -1,5 +1,14 @@
 // 主入口
 (function () {
+
+    // 检查必需的模块是否已加载
+    // const requiredModules = ['Config', 'StatsModule', 'ReminderModule', 'UIModule', 'AudioModule', 'NotificationModule'];
+    // const missingModules = requiredModules.filter(m => typeof window[m] === 'undefined');
+
+    // if (missingModules.length > 0) {
+    //     console.error('Missing required modules:', missingModules);
+    //     alert('应用初始化失败，请刷新页面或联系开发者。\n缺失模块: ' + missingModules.join(', '));
+    // }
     
     // 创建日志实例
     const logger = Logger ? Logger.createLogger('App') : console;
