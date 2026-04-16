@@ -44,14 +44,18 @@ const FileSystemUtil = (function () {
         }
         
         try {
-            if (!_fs.existsSync(dirPath)) {
-                _fs.mkdirSync(dirPath, { recursive: true });
-            }
-            return true;
+            // 尝试读取目录信息，如果不存在会抛出异常
+            _fs.statSync(dirPath);
         } catch (e) {
-            console.warn('FileSystemUtil: Failed to ensure directory:', e);
-            return false;
+            // 目录不存在，创建目录
+            try {
+                _fs.mkdirSync(dirPath, { recursive: true });
+            } catch (mkdirError) {
+                console.warn('FileSystemUtil: Failed to create directory:', mkdirError);
+                return false;
+            }
         }
+        return true;
     }
     
     // 确保 HealthClock 根目录存在
@@ -77,13 +81,12 @@ const FileSystemUtil = (function () {
         }
         
         try {
-            if (_fs.existsSync(filePath)) {
-                return _fs.readFileSync(filePath, 'utf8');
-            }
+            // 直接尝试读取文件，如果不存在会抛出异常
+            return _fs.readFileSync(filePath, 'utf8');
         } catch (e) {
-            console.warn('FileSystemUtil: Failed to read file:', e);
+            // 文件不存在或读取失败，返回 null
+            return null;
         }
-        return null;
     }
     
     // 写入文件

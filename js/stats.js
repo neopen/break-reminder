@@ -30,8 +30,8 @@ const StatsModule = (function () {
                 FileSystemUtil.init();
                 const rootPath = FileSystemUtil.getRootPath();
                 if (rootPath) {
-                    _dataPath = require('path').join(rootPath, 'stat');
-                    FileSystemUtil.ensureSubDir('stat');
+                    _dataPath = require('path').join(rootPath, 'Stat');
+                    FileSystemUtil.ensureSubDir('Stat');
                     _useLocalFile = true;
                     return true;
                 }

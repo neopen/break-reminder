@@ -34,7 +34,11 @@ function scheduleLogFlush() {
 function initLogDir() {
     try {
         logDir = path.join(app.getPath('userData'), 'logs');
-        if (!fs.existsSync(logDir)) {
+        try {
+            // 尝试读取目录信息，如果不存在会抛出异常
+            fs.statSync(logDir);
+        } catch (e) {
+            // 目录不存在，创建目录
             fs.mkdirSync(logDir, { recursive: true });
         }
         logFile = path.join(logDir, `HealthClock_${new Date().toISOString().split('T')[0]}.log`);

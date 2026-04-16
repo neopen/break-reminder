@@ -30,22 +30,20 @@ class FaviconManager {
         for (const iconPath of iconPaths) {
             console.log('[FAVICON] Trying to load tray icon from:', iconPath);
             try {
-                if (fs.existsSync(iconPath)) {
-                    console.log('[FAVICON] Tray icon file found:', iconPath);
-                    // 检查文件大小，确保不是空文件
-                    const stats = fs.statSync(iconPath);
-                    console.log('[FAVICON] Icon file size:', stats.size, 'bytes');
-                    if (stats.size > 0) {
-                        trayIconPath = iconPath;
-                        break;
-                    } else {
-                        console.log('[FAVICON] Icon file is empty:', iconPath);
-                    }
+                // 尝试获取文件信息，替代 existsSync
+                const stats = fs.statSync(iconPath);
+                console.log('[FAVICON] Tray icon file found:', iconPath);
+                // 检查文件大小，确保不是空文件
+                console.log('[FAVICON] Icon file size:', stats.size, 'bytes');
+                if (stats.size > 0) {
+                    trayIconPath = iconPath;
+                    break;
                 } else {
-                    console.log('[FAVICON] Tray icon file not found:', iconPath);
+                    console.log('[FAVICON] Icon file is empty:', iconPath);
                 }
             } catch (e) {
-                console.error('[FAVICON] Error checking icon file:', e);
+                // 文件不存在或无法访问
+                console.log('[FAVICON] Tray icon file not found or inaccessible:', iconPath);
             }
         }
         
