@@ -304,7 +304,10 @@ const ReminderModule = (function () {
         console.log('[REMINDER] Triggering lock screen with duration:', lockMins, 'minutes (', lockMins * 60, 'seconds)', 'forceLock:', forceLock, 'soundEnabled:', soundEnabled);
 
         // 触发提醒回调（记录统计、发送通知）
-        if (onReminderTrigger) onReminderTrigger();
+        if (onReminderTrigger) {
+            console.log('[REMINDER] Calling onReminderTrigger');
+            onReminderTrigger();  // 这里会调用 NotificationModule.sendReminder()
+        }
 
         pendingLock = true;
 

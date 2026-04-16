@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, ipcMain, Menu } = require('electron');
+const { app, BrowserWindow, Notification, screen, ipcMain, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const FaviconManager = require('./utils/favicon.js');
@@ -562,6 +562,70 @@ ipcMain.on('show-lock', (event, duration, forceLock) => {
         mainWindow.setAlwaysOnTop(false);
     }
     createLockWindow(duration, forceLock);
+});
+
+// 请求通知权限（同步）
+ipcMain.on('request-notification-permission', (event) => {
+    console.log('[MAIN] request-notification-permission received');
+    
+    if (Notification.isSupported()) {
+        const granted = Notification.isSupported() && 
+            process.platform !== 'linux' ? true : false;  // Linux 可能需要额外处理
+        
+        console.log('[MAIN] Notification permission result:', granted);
+        event.returnValue = true;  // Electron 主进程默认有权限
+    } else {
+        console.log('[MAIN] Notifications not supported');
+        event.returnValue = false;
+    }
+});
+
+// 请求通知权限（异步）
+ipcMain.on('request-notification-permission-async', (event) => {
+    console.log('[MAIN] request-notification-permission-async received');
+    
+    if (Notification.isSupported()) {
+        event.reply('notification-permission-result', true);
+    } else {
+        event.reply('notification-permission-result', false);
+    }
+});
+
+// 显示通知
+ipcMain.on('show-notification', (event, options) => {
+    console.log('[MAIN] show-notification received:', options);
+    
+    if (!Notification.isSupported()) {
+        console.log('[MAIN] Notifications not supported');
+        event.returnValue = false;
+        return;
+    }
+    
+    try {
+        const notification = new Notification({
+            title: options.title || '提醒',
+            body: options.body || '',
+            icon: options.icon ? path.join(__dirname, '../../renderer', options.icon) : undefined,
+            silent: options.silent || false,
+            requireInteraction: options.requireInteraction || false,
+            timeoutType: options.requireInteraction ? 'never' : 'default'
+        });
+        
+        notification.on('click', () => {
+            console.log('[MAIN] Notification clicked');
+            if (mainWindow) {
+                mainWindow.show();
+                mainWindow.focus();
+            }
+        });
+        
+        notification.show();
+        console.log('[MAIN] Notification shown successfully');
+        event.returnValue = true;
+    } catch (e) {
+        console.error('[MAIN] Failed to show notification:', e);
+        event.returnValue = false;
+    }
 });
 
 

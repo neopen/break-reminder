@@ -445,6 +445,10 @@
         // 初始化音频和通知（非阻塞）
         await AudioModule.resume();
         NotificationModule.initWithoutWait();
+        // 确保通知开关状态同步
+        if (elements.notificationToggle) {
+            elements.notificationToggle.checked = Config.get('notificationEnabled');
+        }
 
         Config.save();
 
@@ -463,6 +467,23 @@
 
         UIModule.updateUI(true);
         UIModule.updateNextReminderDisplay(next.getTime());
+
+        // 检查通知权限
+        if (Config.get('notificationEnabled')) {
+            const granted = await NotificationModule.init();
+            if (!granted) {
+                const confirmed = await showConfirmDialog({
+                    title: '通知权限',
+                    message: '桌面通知未开启，您可能收不到提醒通知。是否继续启动？',
+                    confirmText: '继续启动',
+                    cancelText: '取消',
+                    confirmColor: '#f59e0b'
+                });
+                if (!confirmed) {
+                    return;
+                }
+            }
+        }
 
         // 显示启动成功提示
         showAutoCloseDialog({
