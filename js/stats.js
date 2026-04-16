@@ -1,6 +1,3 @@
-// 统计打卡模块
-const FileSystemUtil = require('./fs-util.js');
-
 const StatsModule = (function () {
     let _stats = null;
     let _listeners = [];
@@ -17,15 +14,16 @@ const StatsModule = (function () {
     const STANDARD_TARGET_PER_WEEK = STANDARD_TARGET_PER_DAY * WORKDAYS_PER_WEEK;
     
     // 数据文件路径
-    const DataFilePath = '/clock_stats.json';
+    const DataFilePath = 'clock_stats.json';
 
     function initFileSystem() {
         if (typeof window !== 'undefined' && window.pake) {
             _useLocalFile = true;
             _dataPath = './user-data/';
+            console.log('StatsModule: Running in PakePlus, using local file storage');
             return true;
         }
-        if (typeof process !== 'undefined' && process.versions && process.versions.electron) {
+        if (typeof process !== 'undefined' && process.versions && process.versions.electron && FileSystemUtil) {
             try {
                 FileSystemUtil.init();
                 const rootPath = FileSystemUtil.getRootPath();
@@ -36,30 +34,36 @@ const StatsModule = (function () {
                     return true;
                 }
             } catch (e) {
-                console.warn('File system not available in stats:', e);
+                console.error('StatsModule: File system not available in stats:', e);
             }
         }
         return false;
     }
 
     function loadFromFile() {
-        if (!_useLocalFile) return null;
+        if (!_useLocalFile || !FileSystemUtil) return null;
         try {
-            const filePath = _dataPath + DataFilePath;
+            const path = require('path');
+            const filePath = path.join(_dataPath, DataFilePath);
             const data = FileSystemUtil.readFile(filePath);
             if (data) {
                 return JSON.parse(data);
             }
-        } catch (e) { }
+        } catch (e) {
+            console.warn('Load from file failed in stats:', e);
+        }
         return null;
     }
 
     function saveToFile(data) {
-        if (!_useLocalFile) return false;
+        if (!_useLocalFile || !FileSystemUtil) return false;
         try {
-            const filePath = _dataPath + DataFilePath;
+            const path = require('path');
+            const filePath = path.join(_dataPath, DataFilePath);
             return FileSystemUtil.writeFile(filePath, JSON.stringify(data, null, 2));
-        } catch (e) { }
+        } catch (e) {
+            console.warn('Save to file failed in stats:', e);
+        }
         return false;
     }
 
@@ -289,6 +293,7 @@ const StatsModule = (function () {
 
     return {
         load,
+        save,
         recordActivity,
         getWeeklyRate,
         getWeeklyTarget,

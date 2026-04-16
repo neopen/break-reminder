@@ -649,6 +649,9 @@
 
     // 初始化
     Config.load();
+    Config.save(); // 保存配置，确保配置文件被创建
+    StatsModule.load(); // 加载统计数据
+    StatsModule.save(); // 保存统计数据，确保统计文件被创建
     fixValues();
     UIModule.initStatsSubscription();
     UIModule.updateUI(false);

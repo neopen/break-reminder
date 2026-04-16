@@ -51,5 +51,6 @@ REM %SEVENZIP% a -t7z -mx=9 -mfb=273 -ms=10g -mmt=4 -sdel dist\HealthClock_极�
 REM echo 完成
 
 echo.
-dir dist\*.7z
+REM dir dist\*.7z
+dir dist\*.exe
 pause

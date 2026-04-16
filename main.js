@@ -33,13 +33,16 @@ function scheduleLogFlush() {
 
 function initLogDir() {
     try {
-        logDir = path.join(app.getPath('userData'), 'logs');
+        logDir = path.join(app.getPath('userData'), 'Logs');
         try {
-            // 尝试读取目录信息，如果不存在会抛出异常
-            fs.statSync(logDir);
-        } catch (e) {
-            // 目录不存在，创建目录
+            // 直接尝试创建目录，如果目录已存在会抛出异常
             fs.mkdirSync(logDir, { recursive: true });
+        } catch (e) {
+            // 目录可能已存在，或者创建失败
+            // 检查错误代码，如果是目录已存在，则忽略
+            if (e.code !== 'EEXIST') {
+                console.error('[MAIN] Error creating log directory:', e);
+            }
         }
         logFile = path.join(logDir, `HealthClock_${new Date().toISOString().split('T')[0]}.log`);
     } catch (error) {

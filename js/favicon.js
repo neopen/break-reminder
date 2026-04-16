@@ -30,12 +30,10 @@ class FaviconManager {
         for (const iconPath of iconPaths) {
             console.log('[FAVICON] Trying to load tray icon from:', iconPath);
             try {
-                // 尝试获取文件信息，替代 existsSync
-                const stats = fs.statSync(iconPath);
-                console.log('[FAVICON] Tray icon file found:', iconPath);
-                // 检查文件大小，确保不是空文件
-                console.log('[FAVICON] Icon file size:', stats.size, 'bytes');
-                if (stats.size > 0) {
+                // 直接尝试使用 nativeImage 加载图标
+                const image = nativeImage.createFromPath(iconPath);
+                if (!image.isEmpty()) {
+                    console.log('[FAVICON] Tray icon file found and loaded successfully:', iconPath);
                     trayIconPath = iconPath;
                     break;
                 } else {

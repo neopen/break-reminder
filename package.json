@@ -49,6 +49,8 @@
       "!node_modules/.cache",
       "!dist",
       "!docs",
+      "!user-data",
+      "CNAME",
       "!imgs",
       "!lock_temp.html",
       "!*.md",
@@ -77,7 +79,7 @@
       "compression": "maximum"
     },
     "portable": {
-      "artifactName": "HealthClock_${version}_Portable.exe",
+      "artifactName": "HealthClock_${version}_x64_Portable.exe",
       "requestExecutionLevel": "user"
     },
     "nsis": {

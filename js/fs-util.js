@@ -32,7 +32,7 @@ const FileSystemUtil = (function () {
             const userDataPath = app ? app.getPath('userData') : (process.env.APPDATA || process.env.HOME);
             return path.join(userDataPath, 'HealthClock');
         } catch (e) {
-            console.warn('FileSystemUtil: Failed to get root path:', e);
+            console.error('FileSystemUtil: Failed to get root path:', e);
             return null;
         }
     }
@@ -40,18 +40,19 @@ const FileSystemUtil = (function () {
     // 确保目录存在
     function ensureDir(dirPath) {
         if (!_initialized && !init()) {
+            console.log('ensureDir: File system not initialized');
             return false;
         }
         
         try {
-            // 尝试读取目录信息，如果不存在会抛出异常
-            _fs.statSync(dirPath);
+            // 直接尝试创建目录，如果目录已存在会抛出异常
+            _fs.mkdirSync(dirPath, { recursive: true });
+            console.log('ensureDir: Directory created successfully:', dirPath);
         } catch (e) {
-            // 目录不存在，创建目录
-            try {
-                _fs.mkdirSync(dirPath, { recursive: true });
-            } catch (mkdirError) {
-                console.warn('FileSystemUtil: Failed to create directory:', mkdirError);
+            // 目录可能已存在，或者创建失败
+            // 检查错误代码，如果是目录已存在，则忽略
+            if (e.code !== 'EEXIST') {
+                console.warn('FileSystemUtil: Failed to ensure directory:', e);
                 return false;
             }
         }
@@ -116,3 +117,8 @@ const FileSystemUtil = (function () {
         writeFile
     };
 })();
+
+// 导出模块
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = FileSystemUtil;
+}

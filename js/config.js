@@ -1,5 +1,15 @@
 // 配置管理模块
-const FileSystemUtil = require('./fs-util.js');
+let FileSystemUtil = null;
+
+// 尝试在 Node.js 环境中加载文件系统工具
+if (typeof require === 'function') {
+    try {
+        FileSystemUtil = require('./fs-util.js');
+    } catch (e) {
+        console.warn('FileSystemUtil not available:', e);
+        FileSystemUtil = null;
+    }
+}
 
 const Config = (function () {
     let _config = null;
@@ -7,7 +17,7 @@ const Config = (function () {
     let _listeners = [];
     let _useLocalFile = false;
     let _dataPath = '';
-    let _configFileName = '/clock_config.json';
+    let _configFileName = 'user_clock_config.json';
 
     // 检测是否在 PakePlus 环境中
     function initFileSystem() {
@@ -20,7 +30,7 @@ const Config = (function () {
         }
 
         // 检测 Node.js 环境（Electron）
-        if (typeof process !== 'undefined' && process.versions && process.versions.electron) {
+        if (typeof process !== 'undefined' && process.versions && process.versions.electron && FileSystemUtil) {
             try {
                 FileSystemUtil.init();
                 const rootPath = FileSystemUtil.getRootPath();
@@ -32,7 +42,7 @@ const Config = (function () {
                     return true;
                 }
             } catch (e) {
-                console.warn('File system not available');
+                console.error('File system not available:', e);
             }
         }
 
@@ -41,9 +51,10 @@ const Config = (function () {
 
     // 从本地文件加载
     function loadFromFile() {
-        if (!_useLocalFile) return null;
+        if (!_useLocalFile || !FileSystemUtil) return null;
         try {
-            const filePath = _dataPath + _configFileName;
+            const path = require('path');
+            const filePath = path.join(_dataPath, _configFileName);
             const data = FileSystemUtil.readFile(filePath);
             if (data) {
                 const parsedData = JSON.parse(data);
@@ -58,9 +69,10 @@ const Config = (function () {
 
     // 保存到本地文件
     function saveToFile(data) {
-        if (!_useLocalFile) return false;
+        if (!_useLocalFile || !FileSystemUtil) return false;
         try {
-            const filePath = _dataPath + _configFileName;
+            const path = require('path');
+            const filePath = path.join(_dataPath, _configFileName);
             const result = FileSystemUtil.writeFile(filePath, JSON.stringify(data, null, 2));
             if (result) {
                 console.log('Config saved to file:', filePath);
@@ -78,6 +90,8 @@ const Config = (function () {
     }
 
     function load() {
+        initFileSystem();
+
         const defaults = {
             startTime: '08:00',
             endTime: '18:00',
