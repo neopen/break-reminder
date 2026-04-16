@@ -75,11 +75,11 @@
         }
       ],
       "icon": "icons/icon-256.png",
-      "artifactName": "HealthClock_${version}_x64_Setup.${ext}",
+      "artifactName": "HealthClock-${version}-x64-Setup.${ext}",
       "compression": "maximum"
     },
     "portable": {
-      "artifactName": "HealthClock_${version}_x64_Portable.exe",
+      "artifactName": "HealthClock-${version}-x64-Portable.exe",
       "requestExecutionLevel": "user"
     },
     "nsis": {
