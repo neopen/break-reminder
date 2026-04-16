@@ -2,96 +2,70 @@ const Config = (function () {
     let _config = null;
     let _elements = {};
     let _listeners = [];
-    let _useLocalFile = false;
-    let _dataPath = '';
-    let _configFileName = 'user_clock_config.json';
-    let _userDirName = 'User_Data';
-
-    // 检测是否在 PakePlus 或 Electron 环境中
-    function initFileSystem() {
-        // 检测是否在 PakePlus 环境中
-        if (typeof window !== 'undefined' && window.pake) {
-            _useLocalFile = true;
-            _dataPath = './user-data/';
-            console.log('Running in PakePlus, using local file storage');
-            return true;
-        }
-
-        // 检测 Node.js 环境（Electron）
-        if (typeof process !== 'undefined' && process.versions && process.versions.electron && FileSystemUtil) {
-            try {
-                FileSystemUtil.init();
-                const rootPath = FileSystemUtil.getRootPath();
-                if (rootPath) {
-                    const path = require('path');
-                    // 数据保存在 userData 目录下的 User_Data 子目录
-                    _dataPath = path.join(rootPath, _userDirName);
-                    // 确保 User_Data 目录存在
-                    const dirCreated = FileSystemUtil.ensureSubDir(_userDirName);
-                    console.log('Config: User_Data directory created:', dirCreated);
-                    console.log('Config: Data path:', _dataPath);
-                    _useLocalFile = true;
-                    return true;
-                }
-            } catch (e) {
-                console.error('File system not available:', e);
-            }
-        }
-
-        return false;
-    }
+    let _logger = Logger ? Logger.createLogger('Config') : console;
 
     // 从本地文件加载
     function loadFromFile() {
-        if (!_useLocalFile || !FileSystemUtil) return null;
-        try {
-            const path = require('path');
-            const filePath = path.join(_dataPath, _configFileName);
-            const data = FileSystemUtil.readFile(filePath);
+        if (!FileSystemManager || !FileSystemManager.isUsingLocalFile()) return null;
+        
+        return ErrorHandler.safeExecute(() => {
+            const fileSystemUtil = FileSystemManager.getFileSystemUtil();
+            if (!fileSystemUtil) return null;
+            
+            const filePath = FileSystemManager.buildFilePath(CONFIG.FILES.CONFIG);
+            if (!filePath) return null;
+            
+            const data = fileSystemUtil.readFile(filePath);
             if (data) {
                 const parsedData = JSON.parse(data);
-                console.log('Config loaded from file:', parsedData);
+                _logger.info('Config loaded from file:', parsedData);
                 return parsedData;
             }
-        } catch (e) {
-            console.warn('Load from file failed:', e);
-        }
-        return null;
+            return null;
+        }, 'Config.loadFromFile');
     }
 
     // 保存到本地文件
     function saveToFile(data) {
-        if (!_useLocalFile || !FileSystemUtil) return false;
-        try {
-            const path = require('path');
-            const filePath = path.join(_dataPath, _configFileName);
-            console.log('Config: Attempting to save to:', filePath);
-            const result = FileSystemUtil.writeFile(filePath, JSON.stringify(data, null, 2));
+        if (!FileSystemManager || !FileSystemManager.isUsingLocalFile()) return false;
+        
+        return ErrorHandler.safeExecute(() => {
+            const fileSystemUtil = FileSystemManager.getFileSystemUtil();
+            if (!fileSystemUtil) return false;
+            
+            const filePath = FileSystemManager.buildFilePath(CONFIG.FILES.CONFIG);
+            if (!filePath) return false;
+            
+            _logger.info('Config: Attempting to save to:', filePath);
+            const result = fileSystemUtil.writeFile(filePath, JSON.stringify(data, null, 2));
             if (result) {
-                console.log('Config saved to file:', filePath);
+                _logger.info('Config saved to file:', filePath);
             } else {
-                console.error('Config: Failed to save to file:', filePath);
+                _logger.error('Config: Failed to save to file:', filePath);
             }
             return result;
-        } catch (e) {
-            console.warn('Save to file failed:', e);
-            return false;
-        }
+        }, 'Config.saveToFile', false);
     }
 
     function setElements(elements) {
         _elements = elements;
-        initFileSystem();
+        // 初始化文件系统
+        if (FileSystemManager) {
+            FileSystemManager.init();
+        }
     }
 
     function load() {
-        initFileSystem();
+        // 初始化文件系统
+        if (FileSystemManager) {
+            FileSystemManager.init();
+        }
 
         const defaults = {
             startTime: '08:00',
             endTime: '18:00',
-            intervalMinutes: 40,
-            lockMinutes: 5,
+            intervalMinutes: CONFIG ? CONFIG.TIME.DEFAULT_INTERVAL : 40,
+            lockMinutes: CONFIG ? CONFIG.TIME.DEFAULT_LOCK : 5,
             forceLock: false,
             soundEnabled: true,
             notificationEnabled: true
@@ -100,7 +74,7 @@ const Config = (function () {
         let saved = null;
 
         // 优先从本地文件读取
-        if (_useLocalFile) {
+        if (FileSystemManager && FileSystemManager.isUsingLocalFile()) {
             saved = loadFromFile();
         }
 
@@ -110,7 +84,9 @@ const Config = (function () {
             if (localStorageData) {
                 try {
                     saved = JSON.parse(localStorageData);
-                } catch (e) { }
+                } catch (e) {
+                    _logger.warn('Failed to parse localStorage data:', e);
+                }
             }
         }
 
@@ -129,7 +105,7 @@ const Config = (function () {
         if (_elements.soundToggle) _elements.soundToggle.checked = _config.soundEnabled;
         if (_elements.notificationToggle) _elements.notificationToggle.checked = _config.notificationEnabled;
 
-        console.log('Config loaded:', _config);
+        _logger.info('Config loaded:', _config);
         return { ..._config };
     }
 
@@ -149,11 +125,11 @@ const Config = (function () {
         // 同时保存到 localStorage 和本地文件
         localStorage.setItem('healthAlarmConfig', JSON.stringify(_config));
 
-        if (_useLocalFile) {
+        if (FileSystemManager && FileSystemManager.isUsingLocalFile()) {
             saveToFile(_config);
         }
 
-        console.log('Config saved');
+        _logger.info('Config saved');
         _listeners.forEach(fn => fn({ ..._config }));
 
         return { ..._config };
@@ -179,27 +155,48 @@ const Config = (function () {
 
     function validateInterval(value, min, max) {
         const num = parseInt(value);
-        return !isNaN(num) && num >= min && num <= max;
+        const defaultMin = CONFIG ? CONFIG.TIME.MIN_INTERVAL : 1;
+        const defaultMax = CONFIG ? CONFIG.TIME.MAX_INTERVAL : 300;
+        const finalMin = min !== undefined ? min : defaultMin;
+        const finalMax = max !== undefined ? max : defaultMax;
+        return !isNaN(num) && num >= finalMin && num <= finalMax;
     }
 
     function validateLockMinutes(value, min, max) {
         const num = parseInt(value);
-        return !isNaN(num) && num >= min && num <= max;
+        const defaultMin = CONFIG ? CONFIG.TIME.MIN_LOCK : 1;
+        const defaultMax = CONFIG ? CONFIG.TIME.MAX_LOCK : 30;
+        const finalMin = min !== undefined ? min : defaultMin;
+        const finalMax = max !== undefined ? max : defaultMax;
+        return !isNaN(num) && num >= finalMin && num <= finalMax;
     }
 
     function fixIntervalValue(value, min, max, step) {
         let num = parseInt(value);
-        if (isNaN(num)) return 40;
-        if (num < min) return min;
-        if (num > max) return max;
-        return Math.round(num / step) * step;
+        const defaultMin = CONFIG ? CONFIG.TIME.MIN_INTERVAL : 1;
+        const defaultMax = CONFIG ? CONFIG.TIME.MAX_INTERVAL : 300;
+        const defaultInterval = CONFIG ? CONFIG.TIME.DEFAULT_INTERVAL : 40;
+        const finalMin = min !== undefined ? min : defaultMin;
+        const finalMax = max !== undefined ? max : defaultMax;
+        const finalStep = step !== undefined ? step : 1;
+        
+        if (isNaN(num)) return defaultInterval;
+        if (num < finalMin) return finalMin;
+        if (num > finalMax) return finalMax;
+        return Math.round(num / finalStep) * finalStep;
     }
 
     function fixLockValue(value, min, max) {
         let num = parseInt(value);
-        if (isNaN(num)) return 5;
-        if (num < min) return min;
-        if (num > max) return max;
+        const defaultMin = CONFIG ? CONFIG.TIME.MIN_LOCK : 1;
+        const defaultMax = CONFIG ? CONFIG.TIME.MAX_LOCK : 30;
+        const defaultLock = CONFIG ? CONFIG.TIME.DEFAULT_LOCK : 5;
+        const finalMin = min !== undefined ? min : defaultMin;
+        const finalMax = max !== undefined ? max : defaultMax;
+        
+        if (isNaN(num)) return defaultLock;
+        if (num < finalMin) return finalMin;
+        if (num > finalMax) return finalMax;
         return num;
     }
 

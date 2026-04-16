@@ -2,18 +2,18 @@
 const CACHE_NAME = 'health-alarm-v1.0.0';
 const urlsToCache = [
   './',
-  './index.html',
-  './manifest.json',
-  './css/base.css',
-  './css/components.css',
-  './css/lock.css',
-  './js/config.js',
-  './js/audio.js',
-  './js/notification.js',
-  './js/stats.js',
-  './js/reminder.js',
-  './js/ui.js',
-  './js/app.js'
+  '../index.html',
+  '/manifest.json',
+  '../../css/base.css',
+  '../../css/components.css',
+  '../../css/lock.css',
+  '../models/config.js',
+  '../models/audio.js',
+  '../models/notification.js',
+  '../models/stats.js',
+  '../models/reminder.js',
+  '../models/ui.js',
+  './app.js'
 ];
 
 // 安装 Service Worker
@@ -70,7 +70,7 @@ self.addEventListener('fetch', event => {
       })
       .catch(() => {
         // 网络请求失败，返回离线页面
-        return caches.match('./index.html');
+        return caches.match('src/renderer/index.html');
       })
   );
 });
@@ -82,8 +82,8 @@ self.addEventListener('sync', event => {
     event.waitUntil(
       self.registration.showNotification('🧘 别坐了', {
         body: '该活动啦！站起来走走吧！',
-        icon: './icons/icon-192.png',
-        badge: './icons/icon-96.png',
+        icon: '../../icons/icon-192.png',
+        badge: '../../icons/icon-96.png',
         vibrate: [200, 100, 200],
         tag: 'health-reminder',
         requireInteraction: true

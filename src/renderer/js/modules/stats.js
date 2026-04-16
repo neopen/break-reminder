@@ -1,92 +1,64 @@
+// 引入共享模块
 const StatsModule = (function () {
     let _stats = null;
     let _listeners = [];
-    let _useLocalFile = false;
-    let _dataPath = '';
-    
-    // 固定标准值：8:00-18:00，每1小时一次，每天8次
-    const STANDARD_TARGET_PER_DAY = 10 - 2;
-    
-    // 每周工作天数（周一至周五）
-    const WORKDAYS_PER_WEEK = 5;
-    
-    // 每周标准目标次数 = 8次/天 × 5天 = 40次
-    const STANDARD_TARGET_PER_WEEK = STANDARD_TARGET_PER_DAY * WORKDAYS_PER_WEEK;
-    
-    // 数据文件路径
-    const DataFileName = 'user_clock_stats.json';
-    const USER_DATA_DIR_NAME = 'User_Data';
+    let _logger = Logger ? Logger.createLogger('Stats') : console;
 
-
-    function initFileSystem() {
-        if (typeof window !== 'undefined' && window.pake) {
-            _useLocalFile = true;
-            _dataPath = './user-data/';
-            console.log('StatsModule: Running in PakePlus, using local file storage');
-            return true;
-        }
-        if (typeof process !== 'undefined' && process.versions && process.versions.electron && FileSystemUtil) {
-            try {
-                FileSystemUtil.init();
-                const rootPath = FileSystemUtil.getRootPath();
-                if (rootPath) {
-                    const path = require('path');
-                    // 数据保存在 userData 目录下的 User_Data 子目录
-                    _dataPath = path.join(rootPath, USER_DATA_DIR_NAME);
-                    // 确保 User_Data 目录存在
-                    const dirCreated = FileSystemUtil.ensureSubDir(USER_DATA_DIR_NAME);
-                    console.log('StatsModule: User_Data directory created:', dirCreated);
-                    console.log('StatsModule: Data path:', _dataPath);
-                    _useLocalFile = true;
-                    return true;
-                }
-            } catch (e) {
-                console.error('StatsModule: File system not available in stats:', e);
-            }
-        }
-        return false;
-    }
-
-
+    // 从本地文件加载
     function loadFromFile() {
-        if (!_useLocalFile || !FileSystemUtil) return null;
-        try {
-            const path = require('path');
-            const filePath = path.join(_dataPath, DataFileName);
-            const data = FileSystemUtil.readFile(filePath);
+        if (!FileSystemManager || !FileSystemManager.isUsingLocalFile()) return null;
+        
+        return ErrorHandler.safeExecute(() => {
+            const fileSystemUtil = FileSystemManager.getFileSystemUtil();
+            if (!fileSystemUtil) return null;
+            
+            const filePath = FileSystemManager.buildFilePath(CONFIG.FILES.STATS);
+            if (!filePath) return null;
+            
+            const data = fileSystemUtil.readFile(filePath);
             if (data) {
-                console.log('StatsModule: Loaded from file:', filePath);
+                _logger.info('Loaded from file:', filePath);
                 return JSON.parse(data);
             }
-        } catch (e) {
-            console.warn('Load from file failed in stats:', e);
-        }
-        return null;
+            return null;
+        }, 'Stats.loadFromFile');
     }
 
     function saveToFile(data) {
-        if (!_useLocalFile || !FileSystemUtil) return false;
-        try {
-            const path = require('path');
-            const filePath = path.join(_dataPath, DataFileName);
-            const result = FileSystemUtil.writeFile(filePath, JSON.stringify(data, null, 2));
+        if (!FileSystemManager || !FileSystemManager.isUsingLocalFile()) return false;
+        
+        return ErrorHandler.safeExecute(() => {
+            const fileSystemUtil = FileSystemManager.getFileSystemUtil();
+            if (!fileSystemUtil) return false;
+            
+            const filePath = FileSystemManager.buildFilePath(CONFIG.FILES.STATS);
+            if (!filePath) return false;
+            
+            const result = fileSystemUtil.writeFile(filePath, JSON.stringify(data, null, 2));
             if (result) {
-                console.log('StatsModule: Saved to file:', filePath);
+                _logger.info('Saved to file:', filePath);
             }
             return result;
-        } catch (e) {
-            console.warn('Save to file failed in stats:', e);
-        }
-        return false;
+        }, 'Stats.saveToFile', false);
+    }
+
+    // 获取昨天日期的辅助函数
+    function getYesterdayStr() {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        return `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
     }
 
     function load() {
-        initFileSystem();
+        // 初始化文件系统
+        if (FileSystemManager) {
+            FileSystemManager.init();
+        }
 
         let saved = null;
         
         // 优先从本地文件读取
-        if (_useLocalFile) {
+        if (FileSystemManager && FileSystemManager.isUsingLocalFile()) {
             saved = loadFromFile();
         }
         
@@ -96,8 +68,9 @@ const StatsModule = (function () {
             if (localStorageData) {
                 try {
                     saved = JSON.parse(localStorageData);
-                    console.log('StatsModule: Loaded from localStorage');
+                    _logger.info('Loaded from localStorage');
                 } catch (e) {
+                    _logger.warn('Failed to parse localStorage data:', e);
                     _stats = getDefaultStats();
                 }
             }
@@ -109,6 +82,7 @@ const StatsModule = (function () {
             try {
                 _stats = typeof saved === 'string' ? JSON.parse(saved) : saved;
             } catch (e) {
+                _logger.warn('Failed to parse saved data:', e);
                 _stats = getDefaultStats();
             }
         } else {
@@ -128,20 +102,83 @@ const StatsModule = (function () {
 
         // 检查是否需要重置今日计数（新的一天）
         if (_stats.lastActivityDate !== today) {
-            // 检查连续打卡
-            if (_stats.lastActivityDate && isConsecutive(_stats.lastActivityDate, today)) {
-                _stats.continuousDays++;
-            } else if (_stats.lastActivityDate && _stats.lastActivityDate !== today) {
+            _logger.info('New day detected - lastActivityDate:', _stats.lastActivityDate, 'today:', today);
+            
+            // 检查昨天是否有活动（连续打卡判断）
+            const yesterday = getYesterdayStr();
+            const hadActivityYesterday = (_stats.lastActivityDate === yesterday);
+            
+            if (!hadActivityYesterday && _stats.lastActivityDate !== null) {
+                // 昨天没有活动，重置连续打卡天数
+                _logger.info('No activity yesterday, resetting continuousDays from', _stats.continuousDays, 'to 0');
                 _stats.continuousDays = 0;
             }
+            
+            // 重置今日计数
             _stats.todayCount = 0;
             _stats.lastActivityDate = today;
             save();
         }
 
-        console.log('[Stats] Loaded stats:', _stats);
+        _logger.info('Loaded stats:', _stats);
         return { ..._stats };
     }
+
+    function recordActivity() {
+        const today = getTodayStr();
+        const week = getWeekNumber(today);
+        
+        _logger.info('========== RECORD ACTIVITY ==========');
+        _logger.info('Today:', today);
+        _logger.info('Week:', week);
+        _logger.info('Before - todayCount:', _stats.todayCount, 'continuousDays:', _stats.continuousDays);
+        _logger.info('Last activity date:', _stats.lastActivityDate);
+
+        if (_stats.lastActivityDate === today) {
+            // 同一天多次活动，只增加今日次数，不改变连续打卡
+            _stats.todayCount++;
+            _logger.info('Same day, increment todayCount to:', _stats.todayCount);
+        } else {
+            // 新的一天
+            const yesterday = getYesterdayStr();
+            const isConsecutiveDay = (_stats.lastActivityDate === yesterday);
+            
+            _logger.info('New day - yesterday:', yesterday, 'lastActivityDate:', _stats.lastActivityDate, 'isConsecutive:', isConsecutiveDay);
+            
+            // 重置今日计数
+            _stats.todayCount = 1;
+            
+            // 更新连续打卡天数
+            if (isConsecutiveDay) {
+                // 连续打卡，增加天数
+                _stats.continuousDays++;
+                _logger.info('Consecutive day! continuousDays increased to:', _stats.continuousDays);
+            } else {
+                // 不连续，重置为 1（今天算第一天）
+                _stats.continuousDays = 1;
+                _logger.info('Not consecutive, reset continuousDays to 1');
+            }
+            
+            _stats.lastActivityDate = today;
+        }
+
+        // 更新周记录
+        if (!_stats.weeklyRecords) {
+            _stats.weeklyRecords = {};
+        }
+        if (!_stats.weeklyRecords[week]) {
+            _stats.weeklyRecords[week] = 0;
+        }
+        _stats.weeklyRecords[week]++;
+
+        _logger.info('After - todayCount:', _stats.todayCount, 'continuousDays:', _stats.continuousDays);
+        _logger.info('Weekly record for', week, ':', _stats.weeklyRecords[week]);
+        _logger.info('=======================================');
+        
+        save();
+        return { ..._stats };
+    }
+
 
     function getDefaultStats() {
         return {
@@ -157,11 +194,11 @@ const StatsModule = (function () {
         localStorage.setItem('activeBreakClockStats', JSON.stringify(_stats));
         
         // 保存到本地文件
-        if (_useLocalFile) {
+        if (FileSystemManager && FileSystemManager.isUsingLocalFile()) {
             saveToFile(_stats);
         }
         
-        console.log('[Stats] Saved stats');
+        _logger.info('Saved stats');
         _listeners.forEach(fn => fn({ ..._stats }));
     }
 
@@ -206,52 +243,6 @@ const StatsModule = (function () {
         return `${year}-${weekStr}`;
     }
 
-    function recordActivity() {
-        const today = getTodayStr();
-        const week = getWeekNumber(today);
-        
-        console.log('[Stats] ========== RECORD ACTIVITY ==========');
-        console.log('[Stats] Today:', today);
-        console.log('[Stats] Week:', week);
-        console.log('[Stats] Before - todayCount:', _stats.todayCount, 'continuousDays:', _stats.continuousDays);
-
-        if (_stats.lastActivityDate === today) {
-            _stats.todayCount++;
-            console.log('[Stats] Same day, increment to:', _stats.todayCount);
-        } else {
-            console.log('[Stats] New day, lastActivityDate:', _stats.lastActivityDate);
-            
-            if (_stats.lastActivityDate && isConsecutive(_stats.lastActivityDate, today)) {
-                _stats.continuousDays++;
-                console.log('[Stats] Consecutive! continuousDays:', _stats.continuousDays);
-            } else if (_stats.lastActivityDate && _stats.lastActivityDate !== today) {
-                _stats.continuousDays = 1;
-                console.log('[Stats] Not consecutive, reset to 1');
-            } else if (!_stats.lastActivityDate) {
-                _stats.continuousDays = 1;
-                console.log('[Stats] First time, set to 1');
-            }
-            _stats.todayCount = 1;
-        }
-
-        _stats.lastActivityDate = today;
-
-        // 更新周记录
-        if (!_stats.weeklyRecords) {
-            _stats.weeklyRecords = {};
-        }
-        if (!_stats.weeklyRecords[week]) {
-            _stats.weeklyRecords[week] = 0;
-        }
-        _stats.weeklyRecords[week]++;
-
-        console.log('[Stats] After - todayCount:', _stats.todayCount, 'continuousDays:', _stats.continuousDays);
-        console.log('[Stats] Weekly record for', week, ':', _stats.weeklyRecords[week]);
-        console.log('[Stats] =======================================');
-        
-        save();
-        return { ..._stats };
-    }
 
     // 获取本周完成率（基于固定标准）
     function getWeeklyRate() {
@@ -263,26 +254,27 @@ const StatsModule = (function () {
         }
         
         const currentCount = _stats.weeklyRecords[week] || 0;
+        const weeklyTarget = CONFIG ? CONFIG.TARGETS.PER_WEEK : 40;
         
         // 基于固定标准计算完成率
         let rate = 0;
-        if (STANDARD_TARGET_PER_WEEK > 0) {
-            rate = Math.min(100, Math.round((currentCount / STANDARD_TARGET_PER_WEEK) * 100));
+        if (weeklyTarget > 0) {
+            rate = Math.min(100, Math.round((currentCount / weeklyTarget) * 100));
         }
         
-        console.log('[Stats] Weekly rate - week:', week, 'count:', currentCount, 'target:', STANDARD_TARGET_PER_WEEK, 'rate:', rate);
+        _logger.info('Weekly rate - week:', week, 'count:', currentCount, 'target:', weeklyTarget, 'rate:', rate);
         
         return rate;
     }
     
     // 获取本周目标次数
     function getWeeklyTarget() {
-        return STANDARD_TARGET_PER_WEEK;
+        return CONFIG ? CONFIG.TARGETS.PER_WEEK : 40;
     }
     
     // 获取每日目标次数
     function getDailyTarget() {
-        return STANDARD_TARGET_PER_DAY;
+        return CONFIG ? CONFIG.TARGETS.PER_DAY : 8;
     }
     
     // 获取本周已活动次数
@@ -314,9 +306,9 @@ const StatsModule = (function () {
             todayCount: _stats.todayCount,
             continuousDays: _stats.continuousDays,
             weeklyCount: getWeeklyCount(),
-            weeklyTarget: STANDARD_TARGET_PER_WEEK,
+            weeklyTarget: getWeeklyTarget(),
             weeklyRate: getWeeklyRate(),
-            dailyTarget: STANDARD_TARGET_PER_DAY
+            dailyTarget: getDailyTarget()
         };
     }
 

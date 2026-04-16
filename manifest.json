@@ -53,7 +53,7 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "icons/icon-256.png",
+      "icon": "src/renderer/icons/icon-256.png",
       "publisherName": "neopen",
       "verifyUpdateCodeSignature": false,
       "signAndEditExecutable": false
@@ -65,8 +65,8 @@
       "createStartMenuShortcut": true,
       "shortcutName": "别坐了",
       "perMachine": true,
-      "installerIcon": "icons/icon-256.ico",
-      "uninstallerIcon": "icons/icon-256.ico",
+      "installerIcon": "src/renderer/icons/icon-256.ico",
+      "uninstallerIcon": "src/renderer/icons/icon-256.ico",
       "license": "LICENSE"
     }
   },

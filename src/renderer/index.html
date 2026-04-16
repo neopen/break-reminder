@@ -36,12 +36,12 @@
     <meta name="twitter:image" content="https://clock.pengline.cn/icons/twitter-image.png">
 
     <!-- 图标 -->
-    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./icons/icon-32.png">
 
     <title>别坐了 - 起来走走 - 拒绝久坐</title>
-    <link rel="stylesheet" href="css/base.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/lock.css">
+    <link rel="stylesheet" href="./css/base.css">
+    <link rel="stylesheet" href="./css/components.css">
+    <link rel="stylesheet" href="./css/lock.css">
 </head>
 
 <body>
@@ -214,15 +214,19 @@
 		</div>
 	</div> -->
 
-    <script src="js/fs-util.js"></script>
-    <script src="js/config.js"></script>
-    <script src="js/audio.js"></script>
-    <script src="js/notification.js"></script>
-    <script src="js/stats.js"></script>
-    <script src="js/reminder.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/storage.js"></script>
-    <script src="js/app.js"></script>
+    <script src="./js/shared/fs-util.js"></script>
+    <script src="./js/modules/storage.js"></script>
+    <script src="./js/shared/constants.js"></script>
+    <script src="./js/shared/errorHandler.js"></script>
+    <script src="./js/shared/fileSystemManager.js"></script>
+    <script src="./js/shared/logger.js"></script>
+    <script src="./js/modules/config.js"></script>
+    <script src="./js/modules/audio.js"></script>
+    <script src="./js/modules/notification.js"></script>
+    <script src="./js/modules/stats.js"></script>
+    <script src="./js/modules/reminder.js"></script>
+    <script src="./js/modules/ui.js"></script>
+    <script src="./js/core/app.js"></script>
 </body>
 
 </html>

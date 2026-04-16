@@ -1,8 +1,24 @@
 // 主入口
 (function () {
+    // 引入共享模块
+    let Logger = null;
+    let ErrorHandler = null;
+    
+    // 尝试加载共享模块
+    if (typeof require === 'function') {
+        try {
+            Logger = require('./shared/logger.js');
+            ErrorHandler = require('./shared/errorHandler.js');
+        } catch (e) {
+            console.warn('Shared modules not available:', e);
+        }
+    }
+    
+    // 创建日志实例
+    const logger = Logger ? Logger.createLogger('App') : console;
     // 简化版确认弹框（不依赖 CSS 类）
     function showConfirmDialog(options) {
-        console.log('showConfirmDialog called', options);
+        logger.info('showConfirmDialog called', options);
         return new Promise((resolve) => {
             const { title, message, confirmText = '确定', cancelText = '取消', confirmColor = '#f59e0b' } = options;
 
@@ -78,20 +94,20 @@
             if (cancelBtn) cancelBtn.onclick = () => close(false);
             confirmBtn.onclick = () => close(true);
             
-            console.log('Dialog shown');
+            logger.info('Dialog shown');
         });
     }
 
     // 在锁屏弹框内部显示的确认弹框
     function showConfirmDialogInsideLock(options) {
-        console.log('showConfirmDialogInsideLock called');
+        logger.info('showConfirmDialogInsideLock called');
         return new Promise((resolve) => {
             const { title, message, confirmText = '确定', cancelText = '取消', confirmColor = '#f59e0b' } = options;
 
             // 获取锁屏弹框容器
             const lockOverlayEl = document.getElementById('lockOverlay');
             if (!lockOverlayEl) {
-                console.error('Lock overlay not found');
+                logger.error('Lock overlay not found');
                 resolve(false);
                 return;
             }
@@ -99,7 +115,7 @@
             // 找到 lock-card 元素
             const lockCard = lockOverlayEl.querySelector('.lock-card');
             if (!lockCard) {
-                console.error('Lock card not found');
+                logger.error('Lock card not found');
                 resolve(false);
                 return;
             }
@@ -658,7 +674,7 @@
     ReminderModule.closeLockScreen();
     NotificationModule.initWithoutWait();
 
-    console.log('App initialized');
+    logger.info('App initialized');
 
     // 页面关闭提醒
     window.addEventListener('beforeunload', (e) => {

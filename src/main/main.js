@@ -1,7 +1,7 @@
 const { app, BrowserWindow, screen, ipcMain, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const FaviconManager = require('./js/favicon.js');
+const FaviconManager = require('./utils/favicon.js');
 
 let logDir;
 let logFile;
@@ -103,7 +103,7 @@ function createMainWindow() {
     // 移除默认菜单（保留窗口控制按钮，但移除 File/Edit 等菜单）
     mainWindow.setMenu(null);
 
-    mainWindow.loadFile('index.html');
+    mainWindow.loadFile('src/renderer/index.html');
 
     // 加载完成后设置缩放
     mainWindow.webContents.on('did-finish-load', () => {
@@ -266,7 +266,7 @@ function createLockWindow(durationSeconds, forceLock) {
     });
 
     // 通过 URL 参数传递数据
-    lockWindow.loadFile('lock.html', {
+    lockWindow.loadFile('src/renderer/lock.html', {
         query: {
             duration: validDuration,
             forceLock: forceLock ? 'true' : 'false'
