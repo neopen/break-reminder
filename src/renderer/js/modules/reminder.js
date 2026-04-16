@@ -479,3 +479,8 @@ const ReminderModule = (function () {
         checkAndRemind
     };
 })();
+
+// 导出模块
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ReminderModule;
+}

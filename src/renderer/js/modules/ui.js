@@ -95,3 +95,8 @@ const UIModule = (function () {
         initStatsSubscription
     };
 })();
+
+// 导出模块
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = UIModule;
+}

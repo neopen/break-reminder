@@ -96,3 +96,8 @@ const NotificationModule = (function () {
         sendTest
     };
 })();
+
+// 导出模块
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = NotificationModule;
+}

@@ -18,12 +18,12 @@ class FaviconManager {
         // 尝试加载图标文件
         const iconPaths = [
             path.join(baseDir, 'favicon.ico'),
-            path.join(baseDir, 'src/renderer/icons', 'icon-32.ico'),
+            path.join(baseDir, '../../renderer/icons', 'icon-32.ico'),
             path.join(baseDir, 'icon.ico'),
-            path.join(baseDir, 'src/renderer/icons', 'icon.ico'),
+            path.join(baseDir, '../../renderer/icons', 'icon.ico'),
             // 额外的路径尝试
             path.join(process.cwd(), 'favicon.ico'),
-            path.join(process.cwd(), 'src/renderer/icons', 'icon-32.ico')
+            path.join(process.cwd(), '../../renderer/icons', 'icon-32.ico')
         ];
         
         let trayIconPath = null;

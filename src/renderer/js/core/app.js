@@ -1,18 +1,5 @@
 // 主入口
 (function () {
-    // 引入共享模块
-    let Logger = null;
-    let ErrorHandler = null;
-    
-    // 尝试加载共享模块
-    if (typeof require === 'function') {
-        try {
-            Logger = require('./shared/logger.js');
-            ErrorHandler = require('./shared/errorHandler.js');
-        } catch (e) {
-            console.warn('Shared modules not available:', e);
-        }
-    }
     
     // 创建日志实例
     const logger = Logger ? Logger.createLogger('App') : console;

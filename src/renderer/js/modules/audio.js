@@ -95,3 +95,8 @@ const AudioModule = (function () {
         resume
     };
 })();
+
+// 导出模块
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = AudioModule;
+}
