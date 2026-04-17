@@ -80,7 +80,7 @@ function initIpcHandlers() {
         event.reply('notification-permission-result', Notification.isSupported());
     });
 
-    // 显示通知（同步）
+    // 显示通知（同步）- 5秒后自动关闭
     ipcMain.on('show-notification', (event, options) => {
         console.log('[IPC] show-notification:', options?.title);
 
@@ -120,12 +120,15 @@ function initIpcHandlers() {
         if (!Notification.isSupported()) return;
 
         try {
+            // 设置默认 5 秒后自动关闭
+            const autoCloseDelay = 5000;
+
             const notification = new Notification({
                 title: options.title || '别坐了',
                 body: options.body || '',
                 silent: options.silent || false,
                 requireInteraction: options.requireInteraction || false,
-                timeoutType: options.requireInteraction ? 'never' : 'default',
+                timeoutType: 'default',  // 始终使用 default，让系统决定或手动关闭
                 urgency: 'normal'
             });
 
@@ -136,11 +139,69 @@ function initIpcHandlers() {
                     mainWindow.show();
                     mainWindow.focus();
                 }
+                notification.close();
             });
 
             notification.show();
+
+            // 设置 5 秒后自动关闭（无论 requireInteraction 是什么）
+            setTimeout(() => {
+                try {
+                    notification.close();
+                    console.log('[IPC] Notification auto-closed after 5 seconds');
+                } catch (e) {
+                    // 通知可能已经被关闭
+                }
+            }, autoCloseDelay);
+
         } catch (e) {
             console.error('[IPC] Async notification failed:', e);
+        }
+    });
+
+    // 同样修复同步通知
+    ipcMain.on('show-notification', (event, options) => {
+        console.log('[IPC] show-notification:', options?.title);
+
+        if (!Notification.isSupported()) {
+            event.returnValue = false;
+            return;
+        }
+
+        try {
+            const autoCloseDelay = 5000;
+
+            const notification = new Notification({
+                title: options.title || '别坐了',
+                body: options.body || '',
+                silent: options.silent || false,
+                requireInteraction: options.requireInteraction || false,
+                timeoutType: 'default',
+                urgency: 'normal'
+            });
+
+            notification.on('click', () => {
+                const mainWindow = windowManager.getMainWindow();
+                if (mainWindow) {
+                    mainWindow.show();
+                    mainWindow.focus();
+                }
+                notification.close();
+            });
+
+            notification.show();
+
+            // 5 秒后自动关闭
+            setTimeout(() => {
+                try {
+                    notification.close();
+                } catch (e) { }
+            }, autoCloseDelay);
+
+            event.returnValue = true;
+        } catch (e) {
+            console.error('[IPC] Notification failed:', e);
+            event.returnValue = false;
         }
     });
 
