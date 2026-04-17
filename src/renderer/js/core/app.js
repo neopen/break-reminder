@@ -97,6 +97,33 @@
             .catch(err => logger.error('Service Worker registration failed:', err));
     }
 
+    // 开机自启动开关
+    const autoLaunchToggle = document.getElementById('autoLaunchToggle');
+    if (autoLaunchToggle && window.require) {
+        const { ipcRenderer } = window.require('electron');
+
+        // 获取当前状态
+        const isAutoLaunch = ipcRenderer.sendSync('get-auto-launch');
+        autoLaunchToggle.checked = isAutoLaunch;
+
+        // 监听开关变化
+        autoLaunchToggle.addEventListener('change', async () => {
+            const result = ipcRenderer.sendSync('set-auto-launch', autoLaunchToggle.checked);
+            if (!result) {
+                autoLaunchToggle.checked = !autoLaunchToggle.checked;
+                // 可选：显示错误提示
+                if (typeof AutoCloseDialog !== 'undefined') {
+                    AutoCloseDialog.show({
+                        title: '设置失败',
+                        message: '无法设置开机自启动，请检查权限',
+                        autoClose: 2000,
+                        confirmColor: '#ef4444'
+                    });
+                }
+            }
+        });
+    }
+
     // 加载配置和统计数据
     Config.load();
     Config.save();

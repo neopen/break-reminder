@@ -40,8 +40,8 @@ function initLogDir() {
 
 // 重写 console 方法以写入日志
 const originalConsoleLog = console.log;
-console.log = function(...args) {
-    const message = `${new Date().toISOString()} - ${args.map(arg => 
+console.log = function (...args) {
+    const message = `${new Date().toISOString()} - ${args.map(arg =>
         typeof arg === 'object' ? JSON.stringify(arg) : arg
     ).join(' ')}\n`;
     originalConsoleLog(...args);
@@ -52,8 +52,8 @@ console.log = function(...args) {
 };
 
 const originalConsoleError = console.error;
-console.error = function(...args) {
-    const message = `${new Date().toISOString()} - ERROR - ${args.map(arg => 
+console.error = function (...args) {
+    const message = `${new Date().toISOString()} - ERROR - ${args.map(arg =>
         typeof arg === 'object' ? JSON.stringify(arg) : arg
     ).join(' ')}\n`;
     originalConsoleError(...args);
@@ -62,6 +62,33 @@ console.error = function(...args) {
         scheduleLogFlush();
     }
 };
+
+// 设置开机自启动
+function setAutoLaunch(enable) {
+    try {
+        app.setLoginItemSettings({
+            openAtLogin: enable,
+            openAsHidden: false,
+            path: process.execPath,
+            args: []
+        });
+        console.log('[MAIN] Auto launch set to:', enable);
+        return true;
+    } catch (e) {
+        console.error('[MAIN] Failed to set auto launch:', e);
+        return false;
+    }
+}
+
+// 获取开机自启动状态
+function getAutoLaunchState() {
+    try {
+        return app.getLoginItemSettings().openAtLogin;
+    } catch (e) {
+        console.error('[MAIN] Failed to get auto launch state:', e);
+        return false;
+    }
+}
 
 // ========== 应用生命周期 ==========
 
@@ -87,6 +114,10 @@ if (!gotTheLock) {
         initIpcHandlers();
         windowManager.createMainWindow();
         windowManager.createTray();
+
+        // 添加以下两行：获取并记录开机自启动状态
+        const isAutoLaunch = getAutoLaunchState();
+        console.log('[MAIN] Auto launch enabled:', isAutoLaunch);
     });
 }
 
