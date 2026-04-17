@@ -66,6 +66,36 @@ function initIpcHandlers() {
         }
     });
 
+
+
+    // ========== 开机启动 ==========
+    // 获取开机自启动状态
+    ipcMain.on('get-auto-launch', (event) => {
+        try {
+            const isEnabled = app.getLoginItemSettings().openAtLogin;
+            event.returnValue = isEnabled;
+        } catch (e) {
+            console.error('[IPC] Failed to get auto launch:', e);
+            event.returnValue = false;
+        }
+    });
+
+    // 设置开机自启动
+    ipcMain.on('set-auto-launch', (event, enable) => {
+        try {
+            app.setLoginItemSettings({
+                openAtLogin: enable,
+                openAsHidden: false
+            });
+            console.log('[IPC] Auto launch set to:', enable);
+            event.returnValue = true;
+        } catch (e) {
+            console.error('[IPC] Failed to set auto launch:', e);
+            event.returnValue = false;
+        }
+    });
+
+
     // ========== 通知相关 ==========
 
     // 请求通知权限（同步）
