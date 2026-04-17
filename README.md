@@ -45,7 +45,7 @@
 
 ### 主界面
 
-​<img src="./imgs/image-20260416211323719.png" alt="image-20260416211323719" style="zoom:60%;" />  <img src="./imgs/image-20260416211401340.png" alt="image-20260416211401340" style="zoom:60%;" />
+<img src="./imgs/image-20260416211323719.png" alt="image-20260416211323719" style="zoom:60%;" />  <img src="./imgs/image-20260416211401340.png" alt="image-20260416211401340" style="zoom:60%;" />
 
 
 
@@ -62,14 +62,10 @@
 访问 [定时提醒 - 拒绝久坐](https://clock.pengline.cn/)，直接用浏览器打开即可使用。
 
 > 💡 建议使用 Chrome/Edge/Safari 等现代浏览器，可获得最佳体验。
+>
+> 不支持【桌面通知】，弹窗也有限
 
-### 方式二：安装桌面应用
-
-下载安装 exe 软件：[GitHub Releases](https://github.com/neopen/active-break-clock/releases) 找最新版下载
-
-支持平台：Windows（测试通过）、macOS（尚未测试）、Linux（尚未测试）
-
-### 方式三：PWA 安装（推荐）
+### 方式二：PWA 安装
 
 1. 访问 [定时提醒 - 拒绝久坐](https://clock.pengline.cn/)，用 Chrome/Edge 打开网页
 
@@ -78,6 +74,14 @@
 3. 选择「安装」，即可像原生应用一样使用
 
    <img src="./imgs/image-20260413221538624.png" alt="image-20260413221538624" style="zoom:50%;" />
+
+### 方式三：安装桌面应用（推荐）
+
+下载安装 exe 软件：[GitHub Releases](https://github.com/neopen/active-break-clock/releases) 找最新版下载
+
+支持平台：Windows（测试通过）、macOS（尚未测试）、Linux（尚未测试）
+
+
 
 ## 📋 使用说明
 
