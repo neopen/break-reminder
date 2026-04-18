@@ -2,26 +2,33 @@ appId: com.neopen.activebreakclock
 productName: 别坐了
 copyright: Copyright © 2026 neopen
 
-# ✅ 仅保留中文语言包（合法数组语法）
+# 仅保留中文语言包（合法数组语法）
 electronLanguages:
   - zh-CN
 
 directories:
   output: release
 
-# ✅ 严格白名单（合法列表语法）
+# 严格白名单（合法列表语法）
 files:
-  - dist/**/*
-  - '!dist/**/*.map'
+  - '!**/*'                    # 排除所有
+  - 'dist/main/**/*'           # 只包含必要的
+  - 'dist/preload/**/*'
+  - 'dist/renderer/**/*'
+  - '!**/node_modules/**/*'
+  - '!**/*.map'
   - '!**/*.log'
   - '!**/*.md'
   - '!**/*.ts'
 
 win:
-  target: nsis
+  # target: nsis
+  target:
+    - nsis
+    - portable
   icon: src/renderer/icons/icon-256.png
   asar: true
-  # ✅ 压缩 app.asar（唯一合法的压缩配置）
+  # 压缩 app.asar（唯一合法的压缩配置）
   compression: maximum
   requestedExecutionLevel: asInvoker
 
@@ -35,3 +42,7 @@ nsis:
   runAfterFinish: true
   deleteAppDataOnUninstall: true
   artifactName: HealthClock-${version}-x64-Setup.${ext}
+
+portable:
+  artifactName: HealthClock-${version}-x64-Portable.${ext}
+  requestExecutionLevel: user
