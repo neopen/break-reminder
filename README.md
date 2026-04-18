@@ -45,13 +45,13 @@
 
 ### 主界面
 
-<img src="./imgs/image-20260416211323719.png" alt="image-20260416211323719" style="zoom:50%;" />  <img src="./imgs/image-20260416211401340.png" alt="image-20260416211401340" style="zoom:50%;" />
+<img src="./imgs/image-20260416211323719.png" alt="image-20260416211323719" style="zoom:40%;" />  <img src="./imgs/image-20260416211401340.png" alt="image-20260416211401340" style="zoom:40%;" />
 
 
 
 ### 锁屏提醒界面
 
-<img src="./imgs/image-20260416211602069.png" alt="image-20260416211602069" style="zoom:67%;" />
+<img src="./imgs/image-20260416211602069.png" alt="image-20260416211602069" style="zoom:50%;" />
 
 
 
@@ -73,7 +73,7 @@
 
 3. 选择「安装」，即可像原生应用一样使用
 
-   <img src="./imgs/image-20260413221538624.png" alt="image-20260413221538624" style="zoom:50%;" />
+   <img src="./imgs/image-20260413221538624.png" alt="image-20260413221538624" style="zoom:40%;" />
 
 ### 方式三：安装桌面应用（推荐）
 
