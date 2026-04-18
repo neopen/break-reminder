@@ -30,12 +30,16 @@ echo.
 echo [3/3] 清理锁文件...
 del /f /q package-lock.json 2>nul && echo 完成 || echo ⚠️ 文件不存在，跳过。
 echo.
+
+echo [4/3] 清理缓存...
+call npm run clean 2>nul && echo 完成 || echo ⚠️ 缓存不存在，跳过。
+echo.
 echo ========================================
 echo 清理完成！将重新安装依赖
 echo ========================================
 echo.
 
-echo [4/3] 重新安装依赖...
+echo [5/3] 重新安装依赖...
 call npm install || (echo ❌ 依赖安装失败！ & pause & exit /b 1)
 echo 完成
 echo.
