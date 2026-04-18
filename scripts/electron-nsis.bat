@@ -18,12 +18,12 @@ echo ========================================
 echo 📁 日志文件: %LOG_FILE%
 echo.
 
-echo [1/3] 清理旧文件...
+echo [1/4] 清理旧文件...
 rd /s /q dist release 2>nul
 echo ✅ 清理完成 >> "%LOG_FILE%" 2>&1
 echo.
 
-echo [2/3] 编译项目...
+echo [2/4] 编译项目...
 call npm run build >> "%LOG_FILE%" 2>&1
 if !errorlevel! neq 0 (
     echo ❌ 编译失败！详见: %LOG_FILE%
@@ -32,7 +32,7 @@ if !errorlevel! neq 0 (
 echo ✅ 编译完成 >> "%LOG_FILE%" 2>&1
 echo.
 
-echo [3/3] 打包 NSIS 安装版...
+echo [3/4] 打包 NSIS 安装版...
 call npx electron-builder --win --x64 --config.win.target=nsis >> "%LOG_FILE%" 2>&1
 if !errorlevel! neq 0 (
     echo ❌ 打包失败！详见: %LOG_FILE%
@@ -45,4 +45,10 @@ echo 🎉 打包完成！请查看 release 目录：
 dir /b release\*Setup*.exe 2>nul
 echo 📄 完整日志: %LOG_FILE%
 echo ========================================
+
+echo [4/4] 分析 app.asar 结构...
+call npx asar list release\win-unpacked\resources\app.asar >> "%LOG_FILE%" 2>&1
+echo.
+
+
 pause
