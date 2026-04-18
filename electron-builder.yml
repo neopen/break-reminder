@@ -11,15 +11,14 @@ directories:
 
 # 严格白名单（合法列表语法）
 files:
-  - '!**/*'                    # 排除所有
   - 'dist/main/**/*'           # 只包含必要的
   - 'dist/preload/**/*'
   - 'dist/renderer/**/*'
-  - '!**/node_modules/**/*'
-  - '!**/*.map'
+  - '!dist/**/*.map'
   - '!**/*.log'
   - '!**/*.md'
   - '!**/*.ts'
+  - '!**/node_modules/**/*'
 
 win:
   # target: nsis
