@@ -142,13 +142,16 @@ const ReminderModule = (function () {
         if (typeof Neutralino !== 'undefined') {
             (async () => {
                 try {
+                    // 清除关闭标志
+                    await Neutralino.storage.setData('lock_closed', 'false').catch(() => { });
+
                     const windowUrl = `/lock.html?duration=${totalSeconds}&forceLock=${forceLock}`;
 
                     await Neutralino.window.create(windowUrl, {
                         title: 'Rest Reminder',
                         width: 1920,
                         height: 1080,
-                        fullscreen: true,
+                        fullscreen: false,
                         alwaysOnTop: true,
                         resizable: false,
                         borderless: true,

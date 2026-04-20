@@ -141,38 +141,26 @@
          * 来源：锁屏窗口关闭时发送
          * 职责：停止声音、恢复主窗口、重置锁屏状态、调度下一次提醒
          */
-        Neutralino.events.on('stop-sound', async () => {
-            logger.info('[Event] stop-sound received - lock window is closing');
+        /**
+         * 事件：stop-sound
+         * 来源：锁屏窗口关闭时发送
+         */
+        Neutralino.events.on('stop-sound', (event) => {
+            logger.info('[Event] stop-sound received via broadcast');
+            logger.info('[Event] Event data:', event.detail);
 
             // 停止声音
             if (typeof AudioModule !== 'undefined') {
                 AudioModule.stopContinuous();
-                logger.info('[Event] Audio stopped');
             }
 
-            // 重置锁屏状态（清除 isLocked 等标志）
+            // 恢复主窗口
+            Neutralino.window.show();
+            Neutralino.window.focus();
+
+            // 重置状态
             if (typeof ReminderModule !== 'undefined') {
                 ReminderModule.resetLockStates();
-                logger.info('[Event] Lock states reset');
-            }
-
-            // 恢复主窗口显示
-            try {
-                await Neutralino.window.show();
-                await Neutralino.window.focus();
-                logger.info('[Event] Main window restored');
-            } catch (e) {
-                logger.error('[Event] Failed to restore main window:', e);
-            }
-
-            // 如果提醒仍在运行，调度下一次提醒
-            if (typeof ReminderModule !== 'undefined' && ReminderModule.isReminderRunning()) {
-                // 直接调用 onLockClose 回调来重新调度
-                const callbacks = ReminderModule.getCallbacks();
-                if (callbacks && callbacks.onLockClose) {
-                    logger.info('[Event] Triggering onLockClose to reschedule next reminder');
-                    await callbacks.onLockClose();
-                }
             }
         });
 
@@ -202,4 +190,68 @@
             e.returnValue = 'Reminder is running. Are you sure you want to leave?';
         }
     });
+
+    // ========== 锁屏状态轮询（Storage 方案） ==========
+    let lockPollingInterval = null;
+    let lastCheckTime = Date.now();
+
+    function startLockPolling() {
+        if (lockPollingInterval) clearInterval(lockPollingInterval);
+
+        logger.info('[Polling] Starting lock status polling...');
+
+        lockPollingInterval = setInterval(async () => {
+            try {
+                const lockClosed = await Neutralino.storage.getData('lock_closed');
+
+                // 添加调试日志
+                if (lockClosed) {
+                    logger.info('[Polling] Storage value:', lockClosed);
+                }
+
+                if (lockClosed === 'true' || lockClosed === true || lockClosed === '"true"') {
+                    logger.info('[Polling] ========== LOCK CLOSED DETECTED ==========');
+                    logger.info('[Polling] Raw value:', lockClosed);
+
+                    // 清除标志
+                    await Neutralino.storage.setData('lock_closed', 'false');
+
+                    // 停止声音
+                    if (typeof AudioModule !== 'undefined') {
+                        AudioModule.stopContinuous();
+                        logger.info('[Polling] Audio stopped');
+                    }
+
+                    // 重置锁屏状态
+                    if (typeof ReminderModule !== 'undefined') {
+                        ReminderModule.resetLockStates();
+                        logger.info('[Polling] Lock states reset');
+                    }
+
+                    // 恢复主窗口
+                    try {
+                        await Neutralino.window.show();
+                        await Neutralino.window.focus();
+                        logger.info('[Polling] Main window restored');
+                    } catch (e) {
+                        logger.error('[Polling] Failed to restore window:', e);
+                    }
+
+                    // 重新调度提醒
+                    if (typeof ReminderModule !== 'undefined' && ReminderModule.isReminderRunning()) {
+                        const callbacks = ReminderModule.getCallbacks();
+                        if (callbacks && callbacks.onLockClose) {
+                            await callbacks.onLockClose();
+                            logger.info('[Polling] Next reminder scheduled');
+                        }
+                    }
+                }
+            } catch (e) {
+                logger.error('[Polling] Error:', e.message);
+            }
+        }, 500);
+    }
+
+    // 启动轮询
+    startLockPolling();
 })();

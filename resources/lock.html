@@ -309,7 +309,8 @@
     </style>
 
     <!-- Neutralinojs Client - 使用官方推荐路径 -->
-    <script src="/neutralino.js"></script>
+    <!-- <script src="/neutralino.js"></script> -->
+    <script src="lib/neutralino.js"></script>
 </head>
 
 <body>
@@ -347,16 +348,10 @@
 
     <script>
         (function () {
-            // 初始化 Neutralino
-            if (typeof Neutralino !== 'undefined') {
-                Neutralino.init().then(() => {
-                    console.log('[LOCK] Neutralino initialized');
-                }).catch(e => {
-                    console.error('[LOCK] Neutralino init failed:', e);
-                });
-            }
-
             console.log('[LOCK] ========== LOCK PAGE INITIALIZED ==========');
+            if (typeof Neutralino === 'undefined') {
+                console.error('[LOCK] Neutralino not loaded! Check script path.');
+            }
 
             // 获取参数 - 优先从 URL 获取
             let remainingSeconds = 60;
@@ -468,28 +463,33 @@
                 if (isClosed) return;
                 isClosed = true;
 
+                console.log('[LOCK] ========== closeLockWindow START ==========');
+
                 if (timerInterval) {
                     clearInterval(timerInterval);
                     timerInterval = null;
                 }
 
-                // 发送停止声音事件
-                if (typeof Neutralino !== 'undefined' && Neutralino.events) {
+                // 使用 Storage 通知主窗口
+                if (typeof Neutralino !== 'undefined' && Neutralino.storage) {
                     try {
-                        await Neutralino.events.dispatch('stop-sound');
+                        console.log('[LOCK] Writing to storage: lock_closed = true');
+                        await Neutralino.storage.setData('lock_closed', 'true');
+                        console.log('[LOCK] Storage write successful');
                     } catch (e) {
-                        console.error('[LOCK] Failed to dispatch event:', e);
+                        console.error('[LOCK] Storage write failed:', e);
                     }
                 }
 
-                // 退出当前窗口进程
-                if (typeof Neutralino !== 'undefined' && Neutralino.app) {
-                    try {
-                        await Neutralino.app.exit(0);
-                    } catch (e) {
-                        console.error('[LOCK] Failed to exit:', e);
+                // 延迟退出
+                setTimeout(() => {
+                    console.log('[LOCK] Exiting now');
+                    if (typeof Neutralino !== 'undefined' && Neutralino.app) {
+                        Neutralino.app.exit(0).catch(e => console.error('[LOCK] Exit error:', e));
                     }
-                }
+                }, 300);
+
+                console.log('[LOCK] ========== closeLockWindow END ==========');
             }
 
             function updateDisplay() {
