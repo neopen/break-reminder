@@ -129,27 +129,16 @@ const ReminderModule = (function () {
     }
 
     function showLockScreen(minutes, forceLock, onComplete) {
-        logger.info('showLockScreen called, minutes:', minutes, 'isLocked:', isLocked);
+        logger.info('showLockScreen called, minutes:', minutes);
         if (isLocked || isCreatingLock) return;
 
         isCreatingLock = true;
         const totalSeconds = minutes * 60;
-        logger.info('[REMINDER] Lock duration:', totalSeconds, 'seconds');
 
-        // 直接使用渲染进程的窗口 API
         if (typeof Neutralino !== 'undefined') {
             (async () => {
                 try {
-                    // 清理可能存在的旧窗口
-                    try {
-                        await Neutralino.window.destroy('lockWindow');
-                        await new Promise(r => setTimeout(r, 100));
-                    } catch (e) { }
-
-                    // 创建锁屏窗口
-                    // 正确的方式：URL 作为第一个参数
                     const windowUrl = `/lock.html?duration=${totalSeconds}&forceLock=${forceLock}`;
-                    logger.info('[REMINDER] Creating window with URL:', windowUrl);
 
                     await Neutralino.window.create(windowUrl, {
                         title: 'Rest Reminder',
@@ -161,8 +150,7 @@ const ReminderModule = (function () {
                         borderless: true,
                         exitProcessOnClose: false,
                         enableInspector: false,
-                        maximizable: false,
-                        hidden: false
+                        maximizable: false
                     });
 
                     logger.info('[REMINDER] Lock window created');
@@ -170,7 +158,7 @@ const ReminderModule = (function () {
                     isCreatingLock = false;
 
                     // 隐藏主窗口
-                    await Neutralino.window.hide('main').catch(() => { });
+                    await Neutralino.window.hide().catch(() => { });
 
                     // 播放声音
                     if (AudioModule) {
@@ -178,50 +166,20 @@ const ReminderModule = (function () {
                         AudioModule.startContinuous();
                     }
 
-                    // 监听窗口关闭
-                    const checkClose = setInterval(async () => {
-                        try {
-                            const exists = await Neutralino.window.exists('lockWindow');
-                            if (!exists) {
-                                clearInterval(checkClose);
-                                logger.info('[REMINDER] Lock window closed');
-
-                                // 清理状态
-                                isLocked = false;
-                                isCreatingLock = false;
-                                pendingLock = false;
-
-                                // 停止声音
-                                if (AudioModule) AudioModule.stopContinuous();
-
-                                // 显示主窗口
-                                await Neutralino.window.show('main').catch(() => { });
-                                await Neutralino.window.focus('main').catch(() => { });
-
-                                // 执行回调
-                                if (onComplete) onComplete();
-                                else if (onLockClose) onLockClose();
-                            }
-                        } catch (e) {
-                            clearInterval(checkClose);
-                        }
-                    }, 500);
+                    // 注意：不主动轮询检查窗口，依赖事件系统
+                    // 锁屏窗口关闭时会发送 'stop-sound' 事件
 
                 } catch (err) {
-                    logger.error('[REMINDER] Failed to create lock window:', err);
+                    logger.error('[REMINDER] Failed:', err);
                     isLocked = false;
                     isCreatingLock = false;
-                    pendingLock = false;
                     if (AudioModule) AudioModule.stopContinuous();
-
-                    // 回退到内置锁屏
                     showBuiltinLockScreen(totalSeconds, forceLock, onComplete);
                 }
             })();
             return;
         }
 
-        // 非 Neutralino 环境的回退方案
         showBuiltinLockScreen(totalSeconds, forceLock, onComplete);
     }
 

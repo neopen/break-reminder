@@ -307,11 +307,6 @@
             font-weight: 700;
         }
     </style>
-
-    <!-- Neutralinojs Client -->
-    <!-- <script src="https://unpkg.com/@neutralinojs/lib@6.7.0"></script> -->
-    <!-- <script src="js/lib/neutralino.js"></script> -->
-    <script src="/neutralino.js"></script>
 </head>
 
 <body>
@@ -349,21 +344,13 @@
 
     <script>
         (function () {
-            // 首先初始化 Neutralino
-            if (typeof Neutralino !== 'undefined') {
-                Neutralino.init().then(() => {
-                    console.log('[LOCK] Neutralino initialized');
-                }).catch(e => {
-                    console.error('[LOCK] Neutralino init failed:', e);
-                });
-            }
-
             console.log('[LOCK] ========== LOCK PAGE INITIALIZED ==========');
 
-            // 获取参数
+            // 获取参数 - 优先从 URL 获取
             let remainingSeconds = 60;
             let forceLock = false;
 
+            // URL 参数（主要方式）
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('duration')) {
                 const urlDuration = parseInt(urlParams.get('duration'));
@@ -371,7 +358,14 @@
                     remainingSeconds = urlDuration;
                 }
                 forceLock = urlParams.get('forceLock') === 'true';
-                console.log('[LOCK] Params:', { remainingSeconds, forceLock });
+                console.log('[LOCK] Params from URL:', { remainingSeconds, forceLock });
+            }
+
+            // 备用：从 __LOCK_PARAMS__ 获取
+            if (typeof window.__LOCK_PARAMS__ !== 'undefined' && window.__LOCK_PARAMS__) {
+                remainingSeconds = window.__LOCK_PARAMS__.duration || remainingSeconds;
+                forceLock = window.__LOCK_PARAMS__.forceLock || forceLock;
+                console.log('[LOCK] Params from __LOCK_PARAMS__:', { remainingSeconds, forceLock });
             }
 
             // 确保有默认值
@@ -379,7 +373,7 @@
                 remainingSeconds = 60;
             }
 
-            console.log('[LOCK] Starting countdown:', remainingSeconds, 'seconds');
+            console.log('[LOCK] Final - duration:', remainingSeconds, 'seconds, forceLock:', forceLock);
 
             // DOM 元素
             const countdownSpan = document.getElementById('countdownSeconds');
@@ -398,7 +392,6 @@
             let currentSeconds = remainingSeconds;
             const totalSeconds = remainingSeconds;
 
-            // 创建进度环
             function createProgressCircle() {
                 if (!progressCircle && timerRing) {
                     progressCircle = document.createElement('div');
@@ -410,7 +403,6 @@
                 }
             }
 
-            // 更新进度环
             function updateProgressCircle(remaining, total) {
                 createProgressCircle();
                 if (progressCircle) {
@@ -420,7 +412,74 @@
                 }
             }
 
-            // 更新显示
+            function showConfirmDialog(options) {
+                return new Promise((resolve) => {
+                    const { title, message, confirmText = '提前结束', cancelText = '继续活动', confirmColor = '#f59e0b' } = options;
+
+                    const overlay = document.createElement('div');
+                    overlay.className = 'custom-dialog-overlay';
+
+                    const dialog = document.createElement('div');
+                    dialog.className = 'custom-dialog';
+
+                    dialog.innerHTML = `
+                        <div class="dialog-icon">⚠️</div>
+                        <div class="dialog-title">${title}</div>
+                        <div class="dialog-message">${message}</div>
+                        <div class="dialog-buttons">
+                            ${cancelText ? `<button class="dialog-btn dialog-btn-cancel">${cancelText}</button>` : ''}
+                            <button class="dialog-btn dialog-btn-confirm" style="color: ${confirmColor}">${confirmText}</button>
+                        </div>
+                    `;
+
+                    overlay.appendChild(dialog);
+                    document.body.appendChild(overlay);
+
+                    const cancelBtn = cancelText ? dialog.querySelector('.dialog-btn-cancel') : null;
+                    const confirmBtn = dialog.querySelector('.dialog-btn-confirm');
+
+                    const close = (result) => {
+                        overlay.style.animation = 'fadeOut 0.2s ease';
+                        setTimeout(() => {
+                            overlay.remove();
+                            resolve(result);
+                        }, 200);
+                    };
+
+                    if (cancelBtn) cancelBtn.onclick = () => close(false);
+                    confirmBtn.onclick = () => close(true);
+                });
+            }
+
+
+            async function closeLockWindow() {
+                if (isClosed) return;
+                isClosed = true;
+
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+
+                // 发送停止声音事件
+                if (typeof Neutralino !== 'undefined' && Neutralino.events) {
+                    try {
+                        await Neutralino.events.dispatch('stop-sound');
+                    } catch (e) {
+                        console.error('[LOCK] Failed to dispatch event:', e);
+                    }
+                }
+
+                // 退出当前窗口进程
+                if (typeof Neutralino !== 'undefined' && Neutralino.app) {
+                    try {
+                        await Neutralino.app.exit(0);
+                    } catch (e) {
+                        console.error('[LOCK] Failed to exit:', e);
+                    }
+                }
+            }
+
             function updateDisplay() {
                 if (countdownSpan) {
                     countdownSpan.innerText = currentSeconds;
@@ -429,67 +488,39 @@
 
                 if (unlockBtn) {
                     if (forceLock) {
-                        unlockBtn.innerText = `请等待 ${currentSeconds} 秒`;
+                        unlockBtn.innerText = `⏳ 请等待 ${currentSeconds} 秒`;
                         unlockBtn.classList.add('disabled');
                         unlockBtn.disabled = true;
                     } else {
-                        unlockBtn.innerText = `请活动 ${currentSeconds} 秒`;
+                        unlockBtn.innerText = `⏳ 请活动 ${currentSeconds} 秒`;
                         unlockBtn.classList.remove('disabled');
                         unlockBtn.disabled = false;
                     }
                 }
             }
 
-            // 关闭窗口
-            async function closeLockWindow() {
-                if (isClosed) return;
-                isClosed = true;
-
-                console.log('[LOCK] Closing window');
-
-                if (timerInterval) {
-                    clearInterval(timerInterval);
-                    timerInterval = null;
-                }
-
-                if (typeof Neutralino !== 'undefined') {
-                    try {
-                        await Neutralino.events.dispatch('stop-sound');
-                        await Neutralino.window.close();
-                    } catch (e) {
-                        console.error('[LOCK] Failed to close:', e);
-                    }
-                }
-            }
-
-            // 提前解锁
-            async function onEarlyUnlock() {
-                if (isClosed) return;
-                if (forceLock) return;
-
-                if (currentSeconds > 0) {
-                    const confirmed = confirm('活动时间还没到，确定要提前结束吗？');
-                    if (confirmed) {
-                        closeLockWindow();
-                    }
-                } else {
-                    closeLockWindow();
-                }
-            }
-
-            // 开始倒计时
             function startCountdown() {
+                console.log('[LOCK] Starting countdown from', currentSeconds, 'seconds');
+
+                // 立即更新显示
                 updateDisplay();
 
                 timerInterval = setInterval(() => {
                     if (isClosed) {
-                        clearInterval(timerInterval);
+                        if (timerInterval) {
+                            clearInterval(timerInterval);
+                            timerInterval = null;
+                        }
                         return;
                     }
 
                     if (currentSeconds <= 1) {
-                        clearInterval(timerInterval);
-                        countdownSpan.innerText = '0';
+                        console.log('[LOCK] Countdown finished, closing lock window');
+                        if (timerInterval) {
+                            clearInterval(timerInterval);
+                            timerInterval = null;
+                        }
+                        if (countdownSpan) countdownSpan.innerText = '0';
                         closeLockWindow();
                     } else {
                         currentSeconds--;
@@ -498,27 +529,70 @@
                 }, 1000);
             }
 
-            // 阻止键盘操作
+            async function onEarlyUnlock() {
+                console.log('[LOCK] onEarlyUnlock called, forceLock:', forceLock, 'currentSeconds:', currentSeconds);
+
+                if (isClosed) return;
+
+                if (forceLock) {
+                    console.log('[LOCK] Force lock enabled, cannot early unlock');
+                    return;
+                }
+
+                if (currentSeconds > 0) {
+                    const confirmed = await showConfirmDialog({
+                        title: '提前结束提醒',
+                        message: '活动时间还没到，提前结束可能会影响健康习惯。<br>确定要提前结束吗？',
+                        confirmText: '提前结束',
+                        cancelText: '继续活动',
+                        confirmColor: '#f59e0b'
+                    });
+
+                    if (confirmed) {
+                        closeLockWindow();
+                    }
+                } else {
+                    closeLockWindow();
+                }
+            }
+
+            // 初始化显示
+            if (countdownSpan) {
+                countdownSpan.innerText = currentSeconds;
+            }
+            updateProgressCircle(currentSeconds, totalSeconds);
+
+            if (unlockBtn) {
+                if (forceLock) {
+                    unlockBtn.innerText = `⏳ 请等待 ${currentSeconds} 秒`;
+                    unlockBtn.classList.add('disabled');
+                    unlockBtn.disabled = true;
+                } else {
+                    unlockBtn.innerText = `⏳ 请活动 ${currentSeconds} 秒`;
+                    unlockBtn.classList.remove('disabled');
+                    unlockBtn.disabled = false;
+                }
+                unlockBtn.addEventListener('click', onEarlyUnlock);
+            }
+
+            // 开始倒计时
+            startCountdown();
+
+            // 阻止键盘关闭
             document.addEventListener('keydown', (e) => {
-                const blockedKeys = ['Escape', 'F11', 'F5', 'F12', 'Alt', 'Control', 'Meta'];
+                const blockedKeys = ['Escape', 'F11', 'F5', 'F12', 'Alt', 'Control', 'Meta', 'AltGraph'];
                 if (blockedKeys.includes(e.key) ||
                     (e.ctrlKey && e.key === 'w') ||
+                    (e.metaKey && e.key === 'w') ||
+                    (e.ctrlKey && e.key === 'r') ||
                     (e.altKey && e.key === 'F4')) {
+                    console.log('[LOCK] Prevented key:', e.key);
                     e.preventDefault();
                     return false;
                 }
             });
 
-            // 绑定事件
-            unlockBtn.addEventListener('click', onEarlyUnlock);
-
-            // 初始化显示
-            countdownSpan.innerText = currentSeconds;
-
-            // 开始
-            startCountdown();
-
-            console.log('[LOCK] Ready');
+            console.log('[LOCK] Lock screen ready, will close after', currentSeconds, 'seconds');
         })();
     </script>
 </body>

@@ -132,40 +132,34 @@
 
     // 8. 注册 Neutralino 全局事件监听
     if (typeof Neutralino !== 'undefined') {
-        // 监听停止声音事件（从锁屏窗口发送）
-        // 在 Neutralino 事件监听部分添加
-        Neutralino.events.on('stop-sound', () => {
-            logger.info('Received stop-sound event');
+        // 统一的锁屏关闭处理
+        Neutralino.events.on('stop-sound', async () => {
+            logger.info('Lock window closed, restoring main window');
+
+            // 停止声音
             if (typeof AudioModule !== 'undefined') {
                 AudioModule.stopContinuous();
             }
 
-            // 确保主窗口显示
-            setTimeout(async () => {
-                try {
-                    await Neutralino.window.show('main');
-                    await Neutralino.window.focus('main');
-                    logger.info('Main window restored');
-                } catch (e) {
-                    logger.error('Failed to restore main window:', e);
-                }
-            }, 200);
-        });
-
-        // 监听锁屏窗口关闭后的状态重置
-        Neutralino.events.on('lock-closed', () => {
-            if (typeof ReminderModule !== 'undefined') ReminderModule.resetLockStates();
-            logger.info('Lock states reset via lock-closed event');
-        });
-
-        // 监听锁屏完成事件
-        Neutralino.events.on('lock-complete', () => {
-            logger.info('Lock complete event received');
-            if (typeof AudioModule !== 'undefined') {
-                AudioModule.stopContinuous();
-            }
+            // 重置锁屏状态
             if (typeof ReminderModule !== 'undefined') {
                 ReminderModule.resetLockStates();
+            }
+
+            // 恢复主窗口
+            try {
+                await Neutralino.window.show();
+                await Neutralino.window.focus();
+            } catch (e) {
+                logger.error('Failed to restore main window:', e);
+            }
+
+            // 重新调度下一次提醒
+            if (typeof ReminderModule !== 'undefined' && ReminderModule.isReminderRunning()) {
+                const callbacks = ReminderModule.getCallbacks();
+                if (callbacks.onLockClose) {
+                    callbacks.onLockClose();
+                }
             }
         });
     }
