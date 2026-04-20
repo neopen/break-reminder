@@ -2,15 +2,14 @@
 const UIModule = (function () {
     let elements = {};
     let statsUnsubscribe = null;
+    const _logger = typeof Logger !== 'undefined' ? Logger.createLogger('UI') : console;
 
-    function setElements(e) {
-        elements = e;
-    }
+    function setElements(e) { elements = e; }
 
     function updateUI(isRunning) {
         if (isRunning) {
             if (elements.statusBadge) {
-                elements.statusBadge.innerHTML = '🟢 闹铃运行中 · 将在时间段内自动提醒';
+                elements.statusBadge.innerHTML = '[运行中] 闹铃运行中 · 将在时间段内自动提醒';
                 elements.statusBadge.className = 'status-badge status-active';
             }
             if (elements.startBtn) {
@@ -26,7 +25,7 @@ const UIModule = (function () {
             }
         } else {
             if (elements.statusBadge) {
-                elements.statusBadge.innerHTML = '⚪ 闹铃未启动';
+                elements.statusBadge.innerHTML = '[未启动] 闹铃未启动';
                 elements.statusBadge.className = 'status-badge status-inactive';
             }
             if (elements.startBtn) {
@@ -55,19 +54,19 @@ const UIModule = (function () {
     }
 
     function updateStatsDisplay(stats) {
-        console.log('[UI] updateStatsDisplay called with:', stats);
+        _logger.info('[UI] updateStatsDisplay called with:', stats);
         if (elements.todayCount) {
             elements.todayCount.innerText = stats.todayCount;
-            console.log('[UI] todayCount updated to:', stats.todayCount);
+            _logger.info('[UI] todayCount updated to:', stats.todayCount);
         }
         if (elements.continuousDays) {
             elements.continuousDays.innerText = stats.continuousDays;
-            console.log('[UI] continuousDays updated to:', stats.continuousDays);
+            _logger.info('[UI] continuousDays updated to:', stats.continuousDays);
         }
         if (elements.weeklyRate) {
-            const rate = StatsModule.getWeeklyRate();
+            const rate = typeof StatsModule !== 'undefined' ? StatsModule.getWeeklyRate() : 0;
             elements.weeklyRate.innerText = `${rate}%`;
-            console.log('[UI] weeklyRate updated to:', rate);
+            _logger.info('[UI] weeklyRate updated to:', rate);
         }
     }
 
@@ -88,23 +87,16 @@ const UIModule = (function () {
 
     function initStatsSubscription() {
         if (statsUnsubscribe) statsUnsubscribe();
+        // 订阅数据变化，自动更新 UI
         statsUnsubscribe = StatsModule.subscribe((stats) => {
             updateStatsDisplay(stats);
         });
-        updateStatsDisplay(StatsModule.load());
+        // 初始化时立即显示当前缓存值（不再调用 load()）
+        updateStatsDisplay(StatsModule.getSummary());
     }
 
-    return {
-        setElements,
-        updateUI,
-        updateNextReminderDisplay,
-        updateStatsDisplay,
-        showError,
-        initStatsSubscription
-    };
+    return { setElements, updateUI, updateNextReminderDisplay, updateStatsDisplay, showError, initStatsSubscription };
 })();
 
-// 导出模块
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = UIModule;
-}
+if (typeof module !== 'undefined' && module.exports) module.exports = UIModule;
+if (typeof window !== 'undefined') window.UIModule = UIModule;

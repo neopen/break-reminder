@@ -1,5 +1,8 @@
 // 音频模块
 const AudioModule = (function () {
+    const logger = (typeof window !== 'undefined' && window.Logger && window.Logger.createLogger)
+        ? window.Logger.createLogger('Audio')
+        : console;
     let audioContext = null;
     let isEnabled = true;
     let currentSoundInterval = null;
@@ -11,7 +14,7 @@ const AudioModule = (function () {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             return audioContext;
         } catch (e) {
-            console.warn('Web Audio API not supported');
+            logger.warn('Web Audio API not supported');
             return null;
         }
     }
@@ -27,11 +30,9 @@ const AudioModule = (function () {
 
     function playBeep(frequency = 880, duration = 0.3, type = 'sine') {
         if (!isEnabled) return;
-
         try {
             const ctx = init();
             if (!ctx) return;
-
             if (ctx.state === 'suspended') ctx.resume();
 
             const now = ctx.currentTime;
@@ -40,17 +41,15 @@ const AudioModule = (function () {
 
             oscillator.connect(gainNode);
             gainNode.connect(ctx.destination);
-
             oscillator.frequency.value = frequency;
             oscillator.type = type;
-
             gainNode.gain.setValueAtTime(0.3, now);
             gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
             oscillator.start();
             oscillator.stop(now + duration);
         } catch (e) {
-            console.warn('Cannot play sound:', e);
+            logger.warn('Cannot play sound:', e);
         }
     }
 
@@ -96,7 +95,5 @@ const AudioModule = (function () {
     };
 })();
 
-// 导出模块
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = AudioModule;
-}
+if (typeof module !== 'undefined' && module.exports) module.exports = AudioModule;
+if (typeof window !== 'undefined') window.AudioModule = AudioModule;

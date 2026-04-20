@@ -1,72 +1,51 @@
 const Config = (function () {
+    const logger = (typeof window !== 'undefined' && window.Logger && window.Logger.createLogger)
+        ? window.Logger.createLogger('Config')
+        : console;
     let _config = null;
     let _elements = {};
     let _listeners = [];
-    let _logger = Logger ? Logger.createLogger('Config') : console;
 
-    function isNeutralino() {
-        return typeof Neutralino !== 'undefined' && Neutralino.init;
-    }
-
-    function setElements(elements) {
-        _elements = elements;
-    }
+    function isNeutralino() { return typeof Neutralino !== 'undefined' && Neutralino.init; }
+    function setElements(elements) { _elements = elements; }
 
     async function load() {
+        // 安全默认值（避免 CONFIG 未定义时报错）
         const defaults = {
-            startTime: '08:00',
-            endTime: '18:00',
-            intervalMinutes: CONFIG ? CONFIG.TIME.DEFAULT_INTERVAL : 40,
-            lockMinutes: CONFIG ? CONFIG.TIME.DEFAULT_LOCK : 5,
-            forceLock: false,
-            soundEnabled: true,
-            notificationType: CONFIG ? CONFIG.NOTIFICATION_TYPE.DESKTOP : 'desktop',
+            startTime: '08:00', endTime: '18:00',
+            intervalMinutes: (typeof CONFIG !== 'undefined' ? CONFIG.TIME.DEFAULT_INTERVAL : 40),
+            lockMinutes: (typeof CONFIG !== 'undefined' ? CONFIG.TIME.DEFAULT_LOCK : 5),
+            forceLock: false, soundEnabled: true,
+            notificationType: (typeof CONFIG !== 'undefined' ? CONFIG.NOTIFICATION_TYPE.DESKTOP : 'desktop'),
             doNotDisturb: {
                 enabled: false,
                 lunchBreak: {
-                    start: CONFIG ? CONFIG.DO_NOT_DISTURB.DEFAULT_LUNCH_START : '12:00',
-                    end: CONFIG ? CONFIG.DO_NOT_DISTURB.DEFAULT_LUNCH_END : '14:00'
+                    start: (typeof CONFIG !== 'undefined' ? CONFIG.DO_NOT_DISTURB.DEFAULT_LUNCH_START : '12:00'),
+                    end: (typeof CONFIG !== 'undefined' ? CONFIG.DO_NOT_DISTURB.DEFAULT_LUNCH_END : '14:00')
                 },
                 customBreaks: []
             }
         };
 
         let saved = null;
-
-        // Neutralino 环境：从 storage 读取
         if (isNeutralino()) {
             try {
                 const data = await Neutralino.storage.getData('config');
-                if (data) {
-                    saved = JSON.parse(data);
-                    _logger.info('Config loaded from Neutralino storage');
-                }
-            } catch (e) {
-                if (e.code !== 'NE_ST_NOSTKEX') {
-                    _logger.warn('Failed to load from Neutralino storage:', e);
-                }
-            }
+                if (data) { saved = JSON.parse(data); logger.info('Config loaded from Neutralino storage'); }
+            } catch (e) { if (e.code !== 'NE_ST_NOSTKEX') logger.warn('Failed to load from Neutralino storage:', e); }
         }
-
-        // 回退到 localStorage
         if (!saved) {
             const localStorageData = localStorage.getItem('healthAlarmConfig');
             if (localStorageData) {
-                try {
-                    saved = JSON.parse(localStorageData);
-                    _logger.info('Config loaded from localStorage');
-                } catch (e) {
-                    _logger.warn('Failed to parse localStorage data:', e);
-                }
+                try { saved = JSON.parse(localStorageData); logger.info('Config loaded from localStorage'); }
+                catch (e) { logger.warn('Failed to parse localStorage data:', e); }
             }
         }
 
         if (saved) {
             _config = { ...defaults, ...saved };
             if (_config.notificationEnabled !== undefined) {
-                if (!_config.notificationType) {
-                    _config.notificationType = _config.notificationEnabled ? 'desktop' : 'lock';
-                }
+                if (!_config.notificationType) _config.notificationType = _config.notificationEnabled ? 'desktop' : 'lock';
                 delete _config.notificationEnabled;
             }
         } else {
@@ -80,90 +59,60 @@ const Config = (function () {
         if (_elements.lockMinutes) _elements.lockMinutes.value = _config.lockMinutes;
         if (_elements.forceLockToggle) _elements.forceLockToggle.checked = _config.forceLock;
         if (_elements.soundToggle) _elements.soundToggle.checked = _config.soundEnabled;
-
         if (_elements.desktopNotification && _elements.lockNotification) {
             _elements.desktopNotification.checked = (_config.notificationType === 'desktop');
             _elements.lockNotification.checked = (_config.notificationType === 'lock');
             updateNotificationHint(_config.notificationType);
-            if (typeof window.toggleLockSettings === 'function') {
-                window.toggleLockSettings(_config.notificationType);
-            }
+            if (typeof window.toggleLockSettings === 'function') window.toggleLockSettings(_config.notificationType);
         }
-
-        _logger.info('Config loaded:', _config);
+        logger.info('Config loaded:', _config);
         return { ..._config };
     }
 
     async function save() {
-        if (!_config) {
-            _config = {};
-        }
-
+        if (!_config) _config = {};
         if (_elements.startTime) _config.startTime = _elements.startTime.value;
         if (_elements.endTime) _config.endTime = _elements.endTime.value;
-        if (_elements.intervalMinutes) _config.intervalMinutes = parseInt(_elements.intervalMinutes.value);
-        if (_elements.lockMinutes) _config.lockMinutes = parseInt(_elements.lockMinutes.value);
+        if (_elements.intervalMinutes) _config.intervalMinutes = parseInt(_elements.intervalMinutes.value) || 40;
+        if (_elements.lockMinutes) _config.lockMinutes = parseInt(_elements.lockMinutes.value) || 5;
         if (_elements.forceLockToggle) _config.forceLock = _elements.forceLockToggle.checked;
         if (_elements.soundToggle) _config.soundEnabled = _elements.soundToggle.checked;
+        if (_elements.desktopNotification && _elements.desktopNotification.checked) _config.notificationType = 'desktop';
+        else if (_elements.lockNotification && _elements.lockNotification.checked) _config.notificationType = 'lock';
 
-        if (_elements.desktopNotification && _elements.desktopNotification.checked) {
-            _config.notificationType = 'desktop';
-        } else if (_elements.lockNotification && _elements.lockNotification.checked) {
-            _config.notificationType = 'lock';
-        }
-
-        // 保存到 localStorage
         localStorage.setItem('healthAlarmConfig', JSON.stringify(_config));
-
-        // Neutralino 环境：同步到 storage
         if (isNeutralino()) {
             try {
                 await Neutralino.storage.setData('config', JSON.stringify(_config));
-                _logger.info('Config saved to Neutralino storage');
-            } catch (e) {
-                _logger.error('Failed to save to Neutralino storage:', e);
-            }
+                logger.info('Config saved to Neutralino storage');
+            } catch (e) { logger.error('Failed to save to Neutralino storage:', e); }
         }
-
-        _logger.info('Config saved');
+        logger.info('Config saved');
         _listeners.forEach(fn => fn({ ..._config }));
-
         return { ..._config };
     }
 
     function updateNotificationHint(type) {
         const hintEl = document.getElementById('notificationHint');
         if (hintEl) {
-            if (type === 'desktop') {
-                hintEl.innerHTML = '💡 桌面通知：仅弹窗提醒，不锁屏（需开启系统通知权限）';
-            } else {
-                hintEl.innerHTML = '💡 锁屏通知：全屏锁屏，强制休息';
-            }
+            // 移除图标，使用纯文本
+            hintEl.innerHTML = type === 'desktop'
+                ? '提示：桌面通知模式，仅弹窗提醒（需开启系统通知权限）'
+                : '提示：锁屏通知模式，全屏锁屏，强制休息';
         }
     }
 
-    function get(key) {
-        return _config ? _config[key] : null;
-    }
-
-    function set(key, value) {
-        if (_config) {
-            _config[key] = value;
-            save();
-        }
-    }
-
+    function get(key) { return _config ? _config[key] : null; }
+    function set(key, value) { if (_config) { _config[key] = value; save(); } }
     function subscribe(listener) {
         _listeners.push(listener);
-        return () => {
-            _listeners = _listeners.filter(l => l !== listener);
-        };
+        return () => { _listeners = _listeners.filter(l => l !== listener); };
     }
 
     function validateInterval(value, min, max) {
         const num = parseInt(value);
-        const defaultMin = CONFIG ? CONFIG.TIME.MIN_INTERVAL : 10;
-        const defaultMax = CONFIG ? CONFIG.TIME.MAX_INTERVAL : 300;
+        const defaultMin = typeof CONFIG !== 'undefined' ? CONFIG.TIME.MIN_INTERVAL : 10;
+        const defaultMax = typeof CONFIG !== 'undefined' ? CONFIG.TIME.MAX_INTERVAL : 300;
         const finalMin = min !== undefined ? min : defaultMin;
         const finalMax = max !== undefined ? max : defaultMax;
         return !isNaN(num) && num >= finalMin && num <= finalMax;
@@ -171,8 +120,8 @@ const Config = (function () {
 
     function validateLockMinutes(value, min, max) {
         const num = parseInt(value);
-        const defaultMin = CONFIG ? CONFIG.TIME.MIN_LOCK : 1;
-        const defaultMax = CONFIG ? CONFIG.TIME.MAX_LOCK : 30;
+        const defaultMin = typeof CONFIG !== 'undefined' ? CONFIG.TIME.MIN_LOCK : 1;
+        const defaultMax = typeof CONFIG !== 'undefined' ? CONFIG.TIME.MAX_LOCK : 30;
         const finalMin = min !== undefined ? min : defaultMin;
         const finalMax = max !== undefined ? max : defaultMax;
         return !isNaN(num) && num >= finalMin && num <= finalMax;
@@ -180,13 +129,12 @@ const Config = (function () {
 
     function fixIntervalValue(value, min, max, step) {
         let num = parseInt(value);
-        const defaultMin = CONFIG ? CONFIG.TIME.MIN_INTERVAL : 10;
-        const defaultMax = CONFIG ? CONFIG.TIME.MAX_INTERVAL : 300;
-        const defaultInterval = CONFIG ? CONFIG.TIME.DEFAULT_INTERVAL : 40;
+        const defaultMin = typeof CONFIG !== 'undefined' ? CONFIG.TIME.MIN_INTERVAL : 10;
+        const defaultMax = typeof CONFIG !== 'undefined' ? CONFIG.TIME.MAX_INTERVAL : 300;
+        const defaultInterval = typeof CONFIG !== 'undefined' ? CONFIG.TIME.DEFAULT_INTERVAL : 40;
         const finalMin = min !== undefined ? min : defaultMin;
         const finalMax = max !== undefined ? max : defaultMax;
         const finalStep = step !== undefined ? step : 5;
-
         if (isNaN(num)) return defaultInterval;
         if (num < finalMin) return finalMin;
         if (num > finalMax) return finalMax;
@@ -195,36 +143,19 @@ const Config = (function () {
 
     function fixLockValue(value, min, max) {
         let num = parseInt(value);
-        const defaultMin = CONFIG ? CONFIG.TIME.MIN_LOCK : 1;
-        const defaultMax = CONFIG ? CONFIG.TIME.MAX_LOCK : 30;
-        const defaultLock = CONFIG ? CONFIG.TIME.DEFAULT_LOCK : 5;
+        const defaultMin = typeof CONFIG !== 'undefined' ? CONFIG.TIME.MIN_LOCK : 1;
+        const defaultMax = typeof CONFIG !== 'undefined' ? CONFIG.TIME.MAX_LOCK : 30;
+        const defaultLock = typeof CONFIG !== 'undefined' ? CONFIG.TIME.DEFAULT_LOCK : 5;
         const finalMin = min !== undefined ? min : defaultMin;
         const finalMax = max !== undefined ? max : defaultMax;
-
         if (isNaN(num)) return defaultLock;
         if (num < finalMin) return finalMin;
         if (num > finalMax) return finalMax;
         return num;
     }
 
-    return {
-        setElements,
-        load,
-        save,
-        get,
-        set,
-        subscribe,
-        validateInterval,
-        validateLockMinutes,
-        fixIntervalValue,
-        fixLockValue,
-        updateNotificationHint
-    };
+    return { setElements, load, save, get, set, subscribe, validateInterval, validateLockMinutes, fixIntervalValue, fixLockValue, updateNotificationHint };
 })();
 
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = Config;
-}
-if (typeof window !== 'undefined') {
-    window.Config = Config;
-}
+if (typeof module !== 'undefined' && module.exports) module.exports = Config;
+if (typeof window !== 'undefined') window.Config = Config;

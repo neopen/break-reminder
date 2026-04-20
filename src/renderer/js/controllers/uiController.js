@@ -1,29 +1,34 @@
 /**
- * UI 控制器 - 处理用户交互和事件绑定
+ * UI 控制器 (UIController)
+ * 功能：处理用户交互、表单验证、DOM 更新与事件绑定
+ * 兼容：Neutralino / 浏览器
+ * 优化：修复 Config.load() 同步调用异常，全面改用缓存读取与异步保存
  */
 const UIController = (function () {
+    // 安全初始化日志实例，降级到 console
     const logger = typeof Logger !== 'undefined' ? Logger.createLogger('UIController') : console;
-
     let _elements = {};
     let _isInitialized = false;
 
-    // 切换锁屏设置显示/隐藏
+    /**
+     * 切换锁屏设置区域的显示/隐藏状态
+     * @param {string} notificationType - 'desktop' 或 'lock'
+     */
     function toggleLockSettings(notificationType) {
         const titleEl = _elements.lockSettingsTitle;
         const contentEl = _elements.lockSettingsContent;
-
         if (titleEl && contentEl) {
-            if (notificationType === 'desktop') {
-                titleEl.style.display = 'none';
-                contentEl.style.display = 'none';
-            } else {
-                titleEl.style.display = 'block';
-                contentEl.style.display = 'block';
-            }
+            const isVisible = notificationType === 'lock';
+            titleEl.style.display = isVisible ? 'block' : 'none';
+            contentEl.style.display = isVisible ? 'block' : 'none';
+            logger.info('Lock settings visibility set to:', isVisible);
         }
     }
 
-    // 校验并显示错误
+    /**
+     * 校验输入值并显示错误提示
+     * @returns {boolean} 校验是否通过
+     */
     function validateAndShowErrors() {
         let isValid = true;
         const intervalValue = _elements.intervalMinutes?.value || 40;
@@ -33,24 +38,29 @@ const UIController = (function () {
         const lockMin = parseInt(_elements.lockMinutes?.min) || 1;
         const lockMax = parseInt(_elements.lockMinutes?.max) || 30;
 
-        if (!Config.validateInterval(intervalValue, intervalMin, intervalMax)) {
-            UIModule.showError('intervalError', '提醒频率范围：10 ~ 300 分钟', true);
-            isValid = false;
-        } else {
-            UIModule.showError('intervalError', '', false);
+        if (typeof Config !== 'undefined' && Config.validateInterval) {
+            if (!Config.validateInterval(intervalValue, intervalMin, intervalMax)) {
+                if (typeof UIModule !== 'undefined') UIModule.showError('intervalError', '提醒频率范围：10 ~ 300 分钟', true);
+                isValid = false;
+            } else {
+                if (typeof UIModule !== 'undefined') UIModule.showError('intervalError', '', false);
+            }
         }
 
-        if (!Config.validateLockMinutes(lockValue, lockMin, lockMax)) {
-            UIModule.showError('lockError', '锁屏时长范围：1 ~ 30 分钟', true);
-            isValid = false;
-        } else {
-            UIModule.showError('lockError', '', false);
+        if (typeof Config !== 'undefined' && Config.validateLockMinutes) {
+            if (!Config.validateLockMinutes(lockValue, lockMin, lockMax)) {
+                if (typeof UIModule !== 'undefined') UIModule.showError('lockError', '锁屏时长范围：1 ~ 30 分钟', true);
+                isValid = false;
+            } else {
+                if (typeof UIModule !== 'undefined') UIModule.showError('lockError', '', false);
+            }
         }
-
         return isValid;
     }
 
-    // 修正输入值
+    /**
+     * 修正输入框中的非法值（越界/非整数）
+     */
     function fixValues() {
         const intervalValue = _elements.intervalMinutes?.value || 40;
         const intervalMin = parseInt(_elements.intervalMinutes?.min) || 10;
@@ -60,239 +70,190 @@ const UIController = (function () {
         const lockMin = parseInt(_elements.lockMinutes?.min) || 1;
         const lockMax = parseInt(_elements.lockMinutes?.max) || 30;
 
-        const fixedInterval = Config.fixIntervalValue(intervalValue, intervalMin, intervalMax, intervalStep);
-        const fixedLock = Config.fixLockValue(lockValue, lockMin, lockMax);
-
-        if (_elements.intervalMinutes) _elements.intervalMinutes.value = fixedInterval;
-        if (_elements.lockMinutes) _elements.lockMinutes.value = fixedLock;
-
+        if (typeof Config !== 'undefined') {
+            const fixedInterval = Config.fixIntervalValue(intervalValue, intervalMin, intervalMax, intervalStep);
+            const fixedLock = Config.fixLockValue(lockValue, lockMin, lockMax);
+            if (_elements.intervalMinutes) _elements.intervalMinutes.value = fixedInterval;
+            if (_elements.lockMinutes) _elements.lockMinutes.value = fixedLock;
+        }
         validateAndShowErrors();
     }
 
-    // 更新下次提醒显示
+    /**
+     * 配置变更后重新计算下次提醒时间
+     */
     function updateNextReminderAfterConfigChange() {
-        if (ReminderModule.isReminderRunning()) {
-            const now = new Date();
-            const config = Config.load();
-            const next = ReminderModule.calculateNextReminder(now, config);
-            ReminderModule.setNextReminderTime(next.getTime());
-            UIModule.updateNextReminderDisplay(next.getTime());
-        }
+        if (typeof ReminderModule === 'undefined' || !ReminderModule.isReminderRunning()) return;
+
+        // 使用同步缓存读取，避免阻塞 UI 线程
+        const cachedConfig = typeof Config !== 'undefined' ? (Config.get('_config') || Config.get('config')) : {};
+        if (!cachedConfig) return;
+
+        const now = new Date();
+        const next = ReminderModule.calculateNextReminder(now, cachedConfig);
+        ReminderModule.setNextReminderTime(next.getTime());
+        if (typeof UIModule !== 'undefined') UIModule.updateNextReminderDisplay(next.getTime());
+        logger.info('Next reminder recalculated:', next.toLocaleTimeString());
     }
 
-    // 绑定事件
+    /**
+     * 绑定所有 UI 交互事件
+     */
     function bindEvents() {
-        // 提醒间隔
+        // 提醒间隔输入框失焦校验
         _elements.intervalMinutes?.addEventListener('blur', () => {
             fixValues();
             updateNextReminderAfterConfigChange();
         });
 
-        // 锁屏时长
+        // 锁屏时长输入框失焦校验
         _elements.lockMinutes?.addEventListener('blur', fixValues);
 
-        // 开始时间
-        _elements.startTime?.addEventListener('change', () => {
-            Config.save();
+        // 时间段设置变更
+        _elements.startTime?.addEventListener('change', async () => {
+            if (typeof Config !== 'undefined') await Config.save();
+            updateNextReminderAfterConfigChange();
+        });
+        _elements.endTime?.addEventListener('change', async () => {
+            if (typeof Config !== 'undefined') await Config.save();
             updateNextReminderAfterConfigChange();
         });
 
-        // 结束时间
-        _elements.endTime?.addEventListener('change', () => {
-            Config.save();
-            updateNextReminderAfterConfigChange();
+        // 声音开关变更
+        _elements.soundToggle?.addEventListener('change', async () => {
+            if (typeof Config !== 'undefined') await Config.save();
+            if (typeof AudioModule !== 'undefined') {
+                AudioModule.setEnabled(_elements.soundToggle.checked);
+                logger.info('Sound module enabled state updated:', _elements.soundToggle.checked);
+            }
         });
 
-        // 声音开关
-        _elements.soundToggle?.addEventListener('change', () => {
-            Config.save();
-            AudioModule.setEnabled(_elements.soundToggle.checked);
+        // 强制锁屏开关变更
+        _elements.forceLockToggle?.addEventListener('change', async () => {
+            if (typeof Config !== 'undefined') await Config.save();
         });
-
-        // 强制锁屏
-        _elements.forceLockToggle?.addEventListener('change', () => Config.save());
 
         // 通知类型切换
         if (_elements.desktopNotification && _elements.lockNotification) {
-            _elements.desktopNotification.addEventListener('change', (e) => {
-                if (e.target.checked) {
+            _elements.desktopNotification.addEventListener('change', async (e) => {
+                if (e.target.checked && typeof Config !== 'undefined') {
                     Config.updateNotificationHint('desktop');
                     toggleLockSettings('desktop');
-                    Config.save();
+                    await Config.save();
                 }
             });
 
-            _elements.lockNotification.addEventListener('change', (e) => {
-                if (e.target.checked) {
+            _elements.lockNotification.addEventListener('change', async (e) => {
+                if (e.target.checked && typeof Config !== 'undefined') {
                     Config.updateNotificationHint('lock');
                     toggleLockSettings('lock');
-                    Config.save();
+                    await Config.save();
                 }
             });
         }
 
-        logger.info('Events bound');
+        logger.info('UI event binding completed');
     }
 
-    // 初始化免打扰设置
-    function initDoNotDisturb() {
+    /**
+     * 初始化免打扰设置模块
+     */
+    async function initDoNotDisturb() {
+        logger.info('Initializing Do-Not-Disturb settings...');
         const dndToggle = document.getElementById('dndToggle');
-        const lunchBreakToggle = document.getElementById('lunchBreakToggle');
         const lunchStart = document.getElementById('lunchStart');
         const lunchEnd = document.getElementById('lunchEnd');
         const addBreakBtn = document.getElementById('addBreakBtn');
         const customBreaksList = document.getElementById('customBreaksList');
 
-        // 加载配置
-        const config = Config.load();
-        const dnd = config.doNotDisturb || { enabled: false, lunchBreak: { enabled: true, start: '12:00', end: '13:00' }, customBreaks: [] };
-
-        if (dndToggle) dndToggle.checked = dnd.enabled;
-        if (lunchBreakToggle) lunchBreakToggle.checked = dnd.lunchBreak?.enabled !== false;
-        if (lunchStart) lunchStart.value = dnd.lunchBreak?.start || '12:00';
-        if (lunchEnd) lunchEnd.value = dnd.lunchBreak?.end || '13:00';
-
-        // 渲染自定义时段列表
-        renderCustomBreaks(dnd.customBreaks || []);
-
-        // 事件监听
-        if (dndToggle) {
-            dndToggle.addEventListener('change', () => {
-                const newConfig = Config.load();
-                if (!newConfig.doNotDisturb) newConfig.doNotDisturb = { enabled: false, lunchBreak: {}, customBreaks: [] };
-                newConfig.doNotDisturb.enabled = dndToggle.checked;
-                Config.save();
-            });
-        }
-
-        if (lunchBreakToggle) {
-            lunchBreakToggle.addEventListener('change', () => {
-                const newConfig = Config.load();
-                if (!newConfig.doNotDisturb) newConfig.doNotDisturb = { enabled: false, lunchBreak: {}, customBreaks: [] };
-                newConfig.doNotDisturb.lunchBreak = {
-                    enabled: lunchBreakToggle.checked,
-                    start: lunchStart?.value || '12:00',
-                    end: lunchEnd?.value || '13:00'
-                };
-                Config.save();
-            });
-        }
-
-        if (lunchStart) {
-            lunchStart.addEventListener('change', () => {
-                const newConfig = Config.load();
-                if (!newConfig.doNotDisturb) newConfig.doNotDisturb = { enabled: false, lunchBreak: {}, customBreaks: [] };
-                if (!newConfig.doNotDisturb.lunchBreak) newConfig.doNotDisturb.lunchBreak = { enabled: true, start: '12:00', end: '13:00' };
-                newConfig.doNotDisturb.lunchBreak.start = lunchStart.value;
-                Config.save();
-            });
-        }
-
-        if (lunchEnd) {
-            lunchEnd.addEventListener('change', () => {
-                const newConfig = Config.load();
-                if (!newConfig.doNotDisturb) newConfig.doNotDisturb = { enabled: false, lunchBreak: {}, customBreaks: [] };
-                if (!newConfig.doNotDisturb.lunchBreak) newConfig.doNotDisturb.lunchBreak = { enabled: true, start: '12:00', end: '13:00' };
-                newConfig.doNotDisturb.lunchBreak.end = lunchEnd.value;
-                Config.save();
-            });
-        }
-
-        if (addBreakBtn) {
-            addBreakBtn.addEventListener('click', () => {
-                const newConfig = Config.load();
-                if (!newConfig.doNotDisturb) newConfig.doNotDisturb = { enabled: false, lunchBreak: {}, customBreaks: [] };
-                if (!newConfig.doNotDisturb.customBreaks) newConfig.doNotDisturb.customBreaks = [];
-                newConfig.doNotDisturb.customBreaks.push({ start: '14:00', end: '15:00', name: '新时段' });
-                Config.save();
-                renderCustomBreaks(newConfig.doNotDisturb.customBreaks);
-            });
-        }
-    }
-
-    function renderCustomBreaks(breaks) {
-        const container = document.getElementById('customBreaksList');
-        if (!container) return;
-
-        if (!breaks || breaks.length === 0) {
-            container.innerHTML = '<div class="break-empty" style="color:#94a3b8; font-size:12px; text-align:center; padding:8px;">暂无自定义时段，点击 + 添加</div>';
+        if (!dndToggle) {
+            logger.warn('dndToggle DOM element not found, DND init skipped');
             return;
         }
 
-        container.innerHTML = breaks.map((breakItem, index) => `
-        <div class="break-item" data-index="${index}">
-            <input type="text" class="break-name" value="${breakItem.name || '时段'}" placeholder="名称" data-field="name">
-            <input type="time" class="break-start" value="${breakItem.start}" data-field="start">
-            <span>—</span>
-            <input type="time" class="break-end" value="${breakItem.end}" data-field="end">
-            <button class="remove-break" data-index="${index}">✕</button>
-        </div>
-    `).join('');
+        // 安全读取配置缓存
+        const dnd = typeof Config !== 'undefined' ? (Config.get('doNotDisturb') || { enabled: false, lunchBreak: { start: '12:00', end: '14:00' }, customBreaks: [] }) : { enabled: false };
+        dndToggle.checked = dnd.enabled === true;
+        if (lunchStart) lunchStart.value = dnd.lunchBreak?.start || '12:00';
+        if (lunchEnd) lunchEnd.value = dnd.lunchBreak?.end || '14:00';
 
-        // 绑定事件
-        container.querySelectorAll('.break-name, .break-start, .break-end').forEach(input => {
-            input.addEventListener('change', function () {
-                const breakItemDiv = this.closest('.break-item');
-                const index = parseInt(breakItemDiv.dataset.index);
-                const newConfig = Config.load();
-                if (!newConfig.doNotDisturb) newConfig.doNotDisturb = { enabled: false, lunchBreak: {}, customBreaks: [] };
-                if (newConfig.doNotDisturb.customBreaks[index]) {
-                    const field = this.dataset.field;
-                    newConfig.doNotDisturb.customBreaks[index][field] = this.value;
-                    Config.save();
-                }
-            });
+        if (typeof DNDController !== 'undefined') DNDController.renderCustomBreaks(dnd.customBreaks || []);
+
+        // 绑定免打扰总开关
+        dndToggle.addEventListener('change', async () => {
+            const newConfig = typeof Config !== 'undefined' ? (Config.get('_config') || {}) : {};
+            newConfig.doNotDisturb = newConfig.doNotDisturb || { enabled: false, lunchBreak: {}, customBreaks: [] };
+            newConfig.doNotDisturb.enabled = dndToggle.checked;
+            if (typeof DNDController !== 'undefined') DNDController.toggleDndSettings(dndToggle.checked);
+            if (typeof Config !== 'undefined') await Config.save();
+            logger.info('DND toggle changed to:', dndToggle.checked);
         });
 
-        container.querySelectorAll('.remove-break').forEach(btn => {
-            btn.addEventListener('click', function () {
-                const index = parseInt(this.dataset.index);
-                const newConfig = Config.load();
-                if (!newConfig.doNotDisturb) newConfig.doNotDisturb = { enabled: false, lunchBreak: {}, customBreaks: [] };
-                newConfig.doNotDisturb.customBreaks.splice(index, 1);
-                Config.save();
-                renderCustomBreaks(newConfig.doNotDisturb.customBreaks);
+        // 绑定午休时间
+        if (lunchStart) {
+            lunchStart.addEventListener('change', async () => {
+                const cfg = typeof Config !== 'undefined' ? (Config.get('_config') || {}) : {};
+                cfg.doNotDisturb = cfg.doNotDisturb || {};
+                cfg.doNotDisturb.lunchBreak = cfg.doNotDisturb.lunchBreak || {};
+                cfg.doNotDisturb.lunchBreak.start = lunchStart.value;
+                if (typeof Config !== 'undefined') await Config.save();
+                logger.info('Lunch start time updated:', lunchStart.value);
             });
-        });
+        }
+        if (lunchEnd) {
+            lunchEnd.addEventListener('change', async () => {
+                const cfg = typeof Config !== 'undefined' ? (Config.get('_config') || {}) : {};
+                cfg.doNotDisturb = cfg.doNotDisturb || {};
+                cfg.doNotDisturb.lunchBreak = cfg.doNotDisturb.lunchBreak || {};
+                cfg.doNotDisturb.lunchBreak.end = lunchEnd.value;
+                if (typeof Config !== 'undefined') await Config.save();
+                logger.info('Lunch end time updated:', lunchEnd.value);
+            });
+        }
+
+        // 绑定添加自定义时段
+        if (addBreakBtn) {
+            addBreakBtn.addEventListener('click', async () => {
+                const cfg = typeof Config !== 'undefined' ? (Config.get('_config') || {}) : {};
+                cfg.doNotDisturb = cfg.doNotDisturb || {};
+                cfg.doNotDisturb.customBreaks = cfg.doNotDisturb.customBreaks || [];
+                cfg.doNotDisturb.customBreaks.push({ start: '14:00', end: '15:00', name: '新时段' });
+                if (typeof Config !== 'undefined') await Config.save();
+                if (typeof DNDController !== 'undefined') DNDController.renderCustomBreaks(cfg.doNotDisturb.customBreaks);
+                logger.info('New custom break added');
+            });
+        }
+
+        logger.info('Do-Not-Disturb settings initialized successfully');
     }
 
-    // 初始化
+    /**
+     * 初始化控制器入口
+     * @param {Object} elements - DOM 元素集合
+     */
     function init(elements) {
         if (_isInitialized) {
-            logger.warn('Already initialized');
+            logger.warn('UIController already initialized');
             return;
         }
-
         _elements = elements;
-
-        // 挂载到 window 供 config.js 调用
+        // 挂载到全局供 config.js 调用
         window.toggleLockSettings = toggleLockSettings;
-
         bindEvents();
-
         _isInitialized = true;
         logger.info('UIController initialized');
     }
 
-    // 获取元素
-    function getElements() {
-        return _elements;
-    }
-
     return {
         init,
-        getElements,
         toggleLockSettings,
         validateAndShowErrors,
         fixValues,
-        updateNextReminderAfterConfigChange
+        updateNextReminderAfterConfigChange,
+        initDoNotDisturb
     };
 })();
 
-// 导出
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = UIController;
-}
-if (typeof window !== 'undefined') {
-    window.UIController = UIController;
-}
+// UMD 导出
+if (typeof module !== 'undefined' && module.exports) module.exports = UIController;
+if (typeof window !== 'undefined') window.UIController = UIController;

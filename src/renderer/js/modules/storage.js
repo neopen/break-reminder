@@ -2,6 +2,7 @@
 const StorageModule = (function () {
     let autoBackupInterval = null;
     let isEnabled = true;
+    const _logger = typeof Logger !== 'undefined' ? Logger.createLogger('Storage') : console;
 
     // 导出数据到 JSON 文件
     function exportData() {
@@ -25,10 +26,10 @@ const StorageModule = (function () {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
-            console.log('Data exported successfully');
+            _logger.info('Data exported successfully');
             return true;
         } catch (e) {
-            console.error('Export failed:', e);
+            _logger.error('Export failed:', e);
             return false;
         }
     }
@@ -40,15 +41,13 @@ const StorageModule = (function () {
             reader.onload = (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
-
                     if (data.config) {
                         localStorage.setItem('healthAlarmConfig', JSON.stringify(data.config));
                     }
                     if (data.stats) {
                         localStorage.setItem('healthAlarmStats', JSON.stringify(data.stats));
                     }
-
-                    console.log('Data imported successfully');
+                    _logger.info('Data imported successfully');
                     resolve(true);
                 } catch (err) {
                     reject(err);
@@ -67,18 +66,14 @@ const StorageModule = (function () {
     // 启动自动备份（每天备份一次）
     function startAutoBackup(intervalHours = 24) {
         stopAutoBackup();
-
-        // 立即执行一次备份
         if (isEnabled) {
             exportData();
         }
-
-        // 定时备份
         const intervalMs = intervalHours * 60 * 60 * 1000;
         autoBackupInterval = setInterval(() => {
             if (isEnabled) {
                 exportData();
-                console.log('Auto backup executed');
+                _logger.info('Auto backup executed');
             }
         }, intervalMs);
     }
@@ -103,7 +98,7 @@ const StorageModule = (function () {
     function clearAllData() {
         localStorage.removeItem('healthAlarmConfig');
         localStorage.removeItem('healthAlarmStats');
-        console.log('All data cleared');
+        _logger.info('All data cleared');
     }
 
     // 获取数据大小
@@ -128,3 +123,10 @@ const StorageModule = (function () {
         getDataSize
     };
 })();
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = StorageModule;
+}
+if (typeof window !== 'undefined') {
+    window.StorageModule = StorageModule;
+}

@@ -1,93 +1,107 @@
 /**
- * 闹铃控制器 - 处理启动/停止闹铃逻辑
+ * 闹铃控制器 (AlarmController)
+ * 功能：处理闹铃的启动与停止逻辑，协调配置、提醒、音频与 UI 模块
+ * 兼容：Neutralino / Electron / 浏览器
+ * 注意：启动音频需依赖用户交互，故使用 async 包装
  */
-const AlarmController = (function() {
+const AlarmController = (function () {
+    // 安全初始化日志实例，降级到 console
     const logger = typeof Logger !== 'undefined' ? Logger.createLogger('AlarmController') : console;
-    
+
     /**
      * 启动闹铃
+     * 流程：验证输入 -> 保存配置 -> 计算下次时间 -> 启动核心循环 -> 更新 UI
      */
     async function start() {
-        logger.info('Starting alarm');
-        
-        if (!UIController.validateAndShowErrors()) {
-            await ConfirmDialog.show({
-                title: '配置无效',
-                message: '请先修正上面的错误设置后再启动闹铃。',
-                confirmText: '知道了',
-                cancelText: '',
-                confirmColor: '#667eea'
-            });
-            return;
+        logger.info('尝试启动闹铃...');
+
+        // 1. 验证 UI 输入合法性
+        if (typeof UIController !== 'undefined' && UIController.validateAndShowErrors) {
+            if (!UIController.validateAndShowErrors()) {
+                logger.warn('配置验证失败，中止启动流程');
+                if (typeof ConfirmDialog !== 'undefined') {
+                    await ConfirmDialog.show({ title: '配置无效', message: '请修正错误设置后再启动闹铃。', confirmText: '知道了', confirmColor: '#667eea' });
+                }
+                return;
+            }
         }
-        
+
+        // 2. 防重复启动
         if (ReminderModule.isReminderRunning()) {
-            logger.info('Already running');
+            logger.info('闹铃已在运行中，忽略重复触发');
             return;
         }
-        
-        const notificationType = Config.get('notificationType');
-        logger.info('Notification type:', notificationType);
-        
-        // 桌面通知模式：初始化通知模块
-        if (notificationType === 'desktop') {
-            NotificationModule.initWithoutWait();
-            logger.info('Notification module initialized');
+
+        const notificationType = typeof Config !== 'undefined' ? Config.get('notificationType') : 'desktop';
+        logger.info('当前通知模式:', notificationType);
+
+        // 3. 初始化音频上下文（浏览器策略要求必须由用户手势触发）
+        if (typeof AudioModule !== 'undefined') {
+            await AudioModule.resume();
         }
-        
-        // 初始化音频
-        await AudioModule.resume();
-        
-        Config.save();
-        
+
+        // 4. 将 UI 表单值同步至 Config 缓存并持久化
+        if (typeof Config !== 'undefined') {
+            await Config.save();
+        }
+
+        // 5. 计算下次提醒时间并启动核心模块
         const now = new Date();
-        const config = Config.load();
-        logger.info('Config loaded:', config);
-        
+        // 优先读取缓存配置，若未加载则异步拉取
+        const config = typeof Config !== 'undefined' ? (Config.get('_config') || await Config.load()) : {};
         const next = ReminderModule.calculateNextReminder(now, config);
         ReminderModule.setNextReminderTime(next.getTime());
-        
+
         ReminderModule.start(config);
         ReminderModule.startCheckLoop();
-        
-        UIModule.updateUI(true);
-        UIModule.updateNextReminderDisplay(next.getTime());
-        
+
+        // 6. 更新 UI 状态
+        if (typeof UIModule !== 'undefined') {
+            UIModule.updateUI(true);
+            UIModule.updateNextReminderDisplay(next.getTime());
+        }
+
         const modeText = notificationType === 'desktop' ? '桌面通知' : '锁屏通知';
-        AutoCloseDialog.show({
-            title: '启动成功',
-            message: `闹铃已启动（${modeText}模式），将在 ${next.toLocaleTimeString()} 开始提醒`,
-            autoClose: 3000,
-            confirmColor: '#22c55e'
-        });
-        
-        logger.info('Alarm started, next reminder at:', new Date(next.getTime()));
+        logger.info('闹铃启动成功，下次提醒时间:', next.toLocaleTimeString());
+
+        // 7. 显示成功提示（安全降级）
+        if (typeof AutoCloseDialog !== 'undefined') {
+            AutoCloseDialog.show({
+                title: '启动成功',
+                message: `闹铃已启动（${modeText}模式）<br> 将在 ${next.toLocaleTimeString()} 开始提醒`,
+                autoClose: 3000,
+                confirmColor: '#22c55e'
+            });
+        }
     }
-    
+
     /**
      * 停止闹铃
+     * 流程：清理定时器与声音 -> 重置 UI -> 显示提示
      */
     function stop() {
-        logger.info('Stopping alarm');
-        ReminderModule.stop(AudioModule);
-        UIModule.updateUI(false);
-        UIModule.updateNextReminderDisplay(null);
-        
-        AutoCloseDialog.show({
-            title: '闹铃已停止',
-            message: '闹铃已关闭，记得定时起来活动哦！',
-            autoClose: 2000,
-            confirmColor: '#64748b'
-        });
+        logger.info('尝试停止闹铃...');
+        // 修复：原代码传递了 AudioModule 参数，但 stop() 无参
+        ReminderModule.stop();
+
+        if (typeof UIModule !== 'undefined') {
+            UIModule.updateUI(false);
+            UIModule.updateNextReminderDisplay(null);
+        }
+
+        logger.info('闹铃已停止');
+        if (typeof AutoCloseDialog !== 'undefined') {
+            AutoCloseDialog.show({
+                title: '闹铃已停止',
+                message: '闹铃已关闭，请保持定时活动习惯。',
+                autoClose: 2000,
+                confirmColor: '#64748b'
+            });
+        }
     }
-    
+
     return { start, stop };
 })();
 
-// 导出
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = AlarmController;
-}
-if (typeof window !== 'undefined') {
-    window.AlarmController = AlarmController;
-}
+if (typeof module !== 'undefined' && module.exports) module.exports = AlarmController;
+if (typeof window !== 'undefined') window.AlarmController = AlarmController;
