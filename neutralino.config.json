@@ -27,10 +27,10 @@
   "modes": {
     "window": {
       "title": "起来走走 - 拒绝久坐",
-      "width": 500,
-      "height": 750,
-      "minWidth": 400,
-      "minHeight": 600,
+      "width": 800,
+      "height": 1000,
+      "minWidth": 600,
+      "minHeight": 800,
       "fullScreen": false,
       "alwaysOnTop": false,
       "center": true,
@@ -90,12 +90,14 @@
     "binaryName": "HealthClock",
     "resourcesPath": "/src/renderer/",
     "extensionsPath": "/extensions/",
-    "clientLibrary": "/neutralino.js",
+    "clientLibrary": "src/renderer/js/lib/neutralino.js",
     "preserveWatchOutput": false,
     "disableAutoLoad": false,
     "secure": false,
     "nativeLogger": true,
-    "singleInstance": true
+    "singleInstance": true,
+    "binaryVersion": "6.7.0",
+    "clientVersion": "6.7.0"
   },
   "extensions": []
 }
