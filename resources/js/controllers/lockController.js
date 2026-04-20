@@ -1,19 +1,22 @@
 /**
  * 锁屏控制器 (LockController)
- * 功能：处理锁屏界面的交互逻辑（提前解锁/强制锁屏/倒计时结束）
+ * 功能：处理内置锁屏界面的交互逻辑（提前解锁/强制锁屏/倒计时结束）
+ * 注意：此控制器仅用于内置锁屏模式（lockOverlay），独立窗口模式由 lock.html 自行处理
  * 兼容：Neutralino / 浏览器
- * 优化：修复异步对话框阻塞问题，增加安全状态检查
+ * 架构：事件驱动 - 通过 ReminderModule 统一管理锁屏状态
  */
 const LockController = (function () {
     const logger = typeof Logger !== 'undefined' ? Logger.createLogger('LockController') : console;
 
     /**
-     * 处理用户点击解锁按钮
+     * 处理用户点击解锁按钮（仅内置锁屏模式）
      * 逻辑：检查锁定状态 -> 判断是否强制锁屏 -> 弹出确认或直接关闭
      */
     async function unlock() {
         logger.info('收到解锁请求...');
-        if (!ReminderModule.isCurrentlyLocked()) {
+
+        // 检查是否处于锁屏状态
+        if (typeof ReminderModule === 'undefined' || !ReminderModule.isCurrentlyLocked()) {
             logger.info('当前未处于锁屏状态，忽略请求');
             return;
         }
@@ -21,7 +24,7 @@ const LockController = (function () {
         const forceLock = typeof Config !== 'undefined' ? Config.get('forceLock') : false;
         logger.info('强制锁屏状态:', forceLock);
 
-        // 尝试常规解锁
+        // 尝试常规解锁（检查倒计时是否已到期）
         const unlocked = ReminderModule.unlock(forceLock);
         logger.info('模块解锁返回值:', unlocked);
 
@@ -30,10 +33,23 @@ const LockController = (function () {
             logger.info('显示提前结束确认对话框');
             const lockOverlayEl = document.getElementById('lockOverlay');
             const confirmed = typeof LockConfirmDialog !== 'undefined' && lockOverlayEl && !lockOverlayEl.classList.contains('hidden')
-                ? await LockConfirmDialog.show({ title: '提前结束提醒', message: '活动时间未到，提前结束可能影响健康习惯。确定要继续吗？', confirmText: '提前结束', cancelText: '继续活动', confirmColor: '#f59e0b' })
-                : await (ConfirmDialog?.show({ title: '提前结束提醒', message: '活动时间未到，提前结束可能影响健康习惯。确定要继续吗？', confirmText: '提前结束', cancelText: '继续活动', confirmColor: '#f59e0b' }) || Promise.resolve(false));
+                ? await LockConfirmDialog.show({
+                    title: '提前结束提醒',
+                    message: '活动时间未到，提前结束可能影响健康习惯。确定要继续吗？',
+                    confirmText: '提前结束',
+                    cancelText: '继续活动',
+                    confirmColor: '#f59e0b'
+                })
+                : await (ConfirmDialog?.show({
+                    title: '提前结束提醒',
+                    message: '活动时间未到，提前结束可能影响健康习惯。确定要继续吗？',
+                    confirmText: '提前结束',
+                    cancelText: '继续活动',
+                    confirmColor: '#f59e0b'
+                }) || Promise.resolve(false));
 
             if (confirmed) {
+                // 关闭内置锁屏
                 ReminderModule.closeLockScreen();
                 if (typeof AudioModule !== 'undefined') AudioModule.stopContinuous();
                 logger.info('用户确认提前结束，已关闭锁屏');

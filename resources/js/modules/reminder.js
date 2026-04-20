@@ -94,23 +94,22 @@ const ReminderModule = (function () {
         }
     }
 
+    /**
+     * 关闭锁屏（内置锁屏模式使用）
+     * 发送 hide-lock 事件通知主窗口
+     */
     function closeLockScreen() {
         logger.info('closeLockScreen called');
         if (AudioModule) {
             logger.info('[REMINDER] Stopping continuous sound');
             AudioModule.stopContinuous();
         }
+        // 通过事件系统通知主窗口
         if (typeof Neutralino !== 'undefined') {
             try {
-                logger.info('[REMINDER] Sending hide-lock via Neutralino events');
+                logger.info('[REMINDER] Dispatching hide-lock event');
                 Neutralino.events.dispatch('hide-lock');
-            } catch (e) { logger.error('[REMINDER] Failed to send hide-lock via Neutralino:', e); }
-        } else if (typeof window !== 'undefined' && window.require) {
-            try {
-                const { ipcRenderer } = window.require('electron');
-                logger.info('[REMINDER] Sending hide-lock to main process');
-                ipcRenderer.send('hide-lock');
-            } catch (e) { logger.error('[REMINDER] Failed to send hide-lock:', e); }
+            } catch (e) { logger.error('[REMINDER] Failed to dispatch hide-lock:', e); }
         }
         if (lockTimerInterval) { clearInterval(lockTimerInterval); lockTimerInterval = null; }
         document.body.classList.remove('lock-active');
@@ -128,6 +127,11 @@ const ReminderModule = (function () {
         }
     }
 
+    /**
+     * 显示锁屏窗口（独立窗口模式）
+     * 通过 Neutralino.window.create 创建新窗口
+     * 完全依赖事件系统处理窗口关闭后的恢复
+     */
     function showLockScreen(minutes, forceLock, onComplete) {
         logger.info('showLockScreen called, minutes:', minutes);
         if (isLocked || isCreatingLock) return;
@@ -166,11 +170,11 @@ const ReminderModule = (function () {
                         AudioModule.startContinuous();
                     }
 
-                    // 注意：不主动轮询检查窗口，依赖事件系统
-                    // 锁屏窗口关闭时会发送 'stop-sound' 事件
+                    // 注意：不主动轮询检查窗口，完全依赖事件系统
+                    // 锁屏窗口关闭时会发送 'stop-sound' 事件，由 app.js 统一处理
 
                 } catch (err) {
-                    logger.error('[REMINDER] Failed:', err);
+                    logger.error('[REMINDER] Failed to create lock window:', err);
                     isLocked = false;
                     isCreatingLock = false;
                     if (AudioModule) AudioModule.stopContinuous();
@@ -248,7 +252,6 @@ const ReminderModule = (function () {
             return;
         }
 
-        // 强制从 Config 模块重新获取最新配置
         let freshConfig = config;
         if (ConfigModule) {
             const freshLockMinutes = ConfigModule.get('lockMinutes');
@@ -293,7 +296,6 @@ const ReminderModule = (function () {
             return;
         }
 
-        // 锁屏模式
         logger.info('[REMINDER] Lock screen mode, showing lock with duration:', lockMins, 'minutes');
         pendingLock = true;
         if (soundEnabled && AudioModule) {
@@ -319,9 +321,6 @@ const ReminderModule = (function () {
         if (AudioModule) AudioModule.stopContinuous();
         if (isLocked) {
             if (typeof Neutralino !== 'undefined') Neutralino.events.dispatch('hide-lock');
-            else if (typeof window !== 'undefined' && window.require) {
-                try { window.require('electron').ipcRenderer.send('hide-lock'); } catch (e) { }
-            }
             isLocked = false; pendingLock = false; isCreatingLock = false;
         }
     }

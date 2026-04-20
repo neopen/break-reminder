@@ -2,10 +2,9 @@
  * UI 控制器 (UIController)
  * 功能：处理用户交互、表单验证、DOM 更新与事件绑定
  * 兼容：Neutralino / 浏览器
- * 优化：修复 Config.load() 同步调用异常，全面改用缓存读取与异步保存
+ * 架构：事件驱动 - 配置变更后通过事件通知其他模块
  */
 const UIController = (function () {
-    // 安全初始化日志实例，降级到 console
     const logger = typeof Logger !== 'undefined' ? Logger.createLogger('UIController') : console;
     let _elements = {};
     let _isInitialized = false;
@@ -81,11 +80,11 @@ const UIController = (function () {
 
     /**
      * 配置变更后重新计算下次提醒时间
+     * 通过事件系统通知提醒模块
      */
     function updateNextReminderAfterConfigChange() {
         if (typeof ReminderModule === 'undefined' || !ReminderModule.isReminderRunning()) return;
 
-        // 使用同步缓存读取，避免阻塞 UI 线程
         const cachedConfig = typeof Config !== 'undefined' ? (Config.get('_config') || Config.get('config')) : {};
         if (!cachedConfig) return;
 
@@ -152,79 +151,25 @@ const UIController = (function () {
             });
         }
 
+        // 开机自启动开关
+        const autoLaunchToggle = document.getElementById('autoLaunchToggle');
+        if (autoLaunchToggle) {
+            // 初始化状态
+            (async () => {
+                if (typeof AutoLaunchModule !== 'undefined') {
+                    const status = await AutoLaunchModule.getStatus();
+                    autoLaunchToggle.checked = status;
+                }
+            })();
+
+            autoLaunchToggle.addEventListener('change', async () => {
+                if (typeof AutoLaunchModule !== 'undefined') {
+                    await AutoLaunchModule.setEnabled(autoLaunchToggle.checked);
+                }
+            });
+        }
+
         logger.info('UI event binding completed');
-    }
-
-    /**
-     * 初始化免打扰设置模块
-     */
-    async function initDoNotDisturb() {
-        logger.info('Initializing Do-Not-Disturb settings...');
-        const dndToggle = document.getElementById('dndToggle');
-        const lunchStart = document.getElementById('lunchStart');
-        const lunchEnd = document.getElementById('lunchEnd');
-        const addBreakBtn = document.getElementById('addBreakBtn');
-        const customBreaksList = document.getElementById('customBreaksList');
-
-        if (!dndToggle) {
-            logger.warn('dndToggle DOM element not found, DND init skipped');
-            return;
-        }
-
-        // 安全读取配置缓存
-        const dnd = typeof Config !== 'undefined' ? (Config.get('doNotDisturb') || { enabled: false, lunchBreak: { start: '12:00', end: '14:00' }, customBreaks: [] }) : { enabled: false };
-        dndToggle.checked = dnd.enabled === true;
-        if (lunchStart) lunchStart.value = dnd.lunchBreak?.start || '12:00';
-        if (lunchEnd) lunchEnd.value = dnd.lunchBreak?.end || '14:00';
-
-        if (typeof DNDController !== 'undefined') DNDController.renderCustomBreaks(dnd.customBreaks || []);
-
-        // 绑定免打扰总开关
-        dndToggle.addEventListener('change', async () => {
-            const newConfig = typeof Config !== 'undefined' ? (Config.get('_config') || {}) : {};
-            newConfig.doNotDisturb = newConfig.doNotDisturb || { enabled: false, lunchBreak: {}, customBreaks: [] };
-            newConfig.doNotDisturb.enabled = dndToggle.checked;
-            if (typeof DNDController !== 'undefined') DNDController.toggleDndSettings(dndToggle.checked);
-            if (typeof Config !== 'undefined') await Config.save();
-            logger.info('DND toggle changed to:', dndToggle.checked);
-        });
-
-        // 绑定午休时间
-        if (lunchStart) {
-            lunchStart.addEventListener('change', async () => {
-                const cfg = typeof Config !== 'undefined' ? (Config.get('_config') || {}) : {};
-                cfg.doNotDisturb = cfg.doNotDisturb || {};
-                cfg.doNotDisturb.lunchBreak = cfg.doNotDisturb.lunchBreak || {};
-                cfg.doNotDisturb.lunchBreak.start = lunchStart.value;
-                if (typeof Config !== 'undefined') await Config.save();
-                logger.info('Lunch start time updated:', lunchStart.value);
-            });
-        }
-        if (lunchEnd) {
-            lunchEnd.addEventListener('change', async () => {
-                const cfg = typeof Config !== 'undefined' ? (Config.get('_config') || {}) : {};
-                cfg.doNotDisturb = cfg.doNotDisturb || {};
-                cfg.doNotDisturb.lunchBreak = cfg.doNotDisturb.lunchBreak || {};
-                cfg.doNotDisturb.lunchBreak.end = lunchEnd.value;
-                if (typeof Config !== 'undefined') await Config.save();
-                logger.info('Lunch end time updated:', lunchEnd.value);
-            });
-        }
-
-        // 绑定添加自定义时段
-        if (addBreakBtn) {
-            addBreakBtn.addEventListener('click', async () => {
-                const cfg = typeof Config !== 'undefined' ? (Config.get('_config') || {}) : {};
-                cfg.doNotDisturb = cfg.doNotDisturb || {};
-                cfg.doNotDisturb.customBreaks = cfg.doNotDisturb.customBreaks || [];
-                cfg.doNotDisturb.customBreaks.push({ start: '14:00', end: '15:00', name: '新时段' });
-                if (typeof Config !== 'undefined') await Config.save();
-                if (typeof DNDController !== 'undefined') DNDController.renderCustomBreaks(cfg.doNotDisturb.customBreaks);
-                logger.info('New custom break added');
-            });
-        }
-
-        logger.info('Do-Not-Disturb settings initialized successfully');
     }
 
     /**
@@ -249,8 +194,7 @@ const UIController = (function () {
         toggleLockSettings,
         validateAndShowErrors,
         fixValues,
-        updateNextReminderAfterConfigChange,
-        initDoNotDisturb
+        updateNextReminderAfterConfigChange
     };
 })();
 

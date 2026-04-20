@@ -1,6 +1,7 @@
 /**
  * 应用主入口 (Renderer)
  * 职责：模块初始化协调、DOM 事件绑定、Neutralino 事件监听、状态同步
+ * 架构：完全基于事件驱动，所有跨模块通信通过 Neutralino.events
  * 注意：日志统一使用 Logger.createLogger()
  */
 (function () {
@@ -130,36 +131,66 @@
         }
     })();
 
-    // 8. 注册 Neutralino 全局事件监听
+    /**
+     * 8. 注册 Neutralino 全局事件监听
+     * 事件驱动架构核心：所有跨窗口通信通过此处统一处理
+     */
     if (typeof Neutralino !== 'undefined') {
-        // 统一的锁屏关闭处理
+        /**
+         * 事件：stop-sound
+         * 来源：锁屏窗口关闭时发送
+         * 职责：停止声音、恢复主窗口、重置锁屏状态、调度下一次提醒
+         */
         Neutralino.events.on('stop-sound', async () => {
-            logger.info('Lock window closed, restoring main window');
+            logger.info('[Event] stop-sound received - lock window is closing');
 
             // 停止声音
             if (typeof AudioModule !== 'undefined') {
                 AudioModule.stopContinuous();
+                logger.info('[Event] Audio stopped');
             }
 
-            // 重置锁屏状态
+            // 重置锁屏状态（清除 isLocked 等标志）
             if (typeof ReminderModule !== 'undefined') {
                 ReminderModule.resetLockStates();
+                logger.info('[Event] Lock states reset');
             }
 
-            // 恢复主窗口
+            // 恢复主窗口显示
+            try {
+                await Neutralino.window.show();
+                await Neutralino.window.focus();
+                logger.info('[Event] Main window restored');
+            } catch (e) {
+                logger.error('[Event] Failed to restore main window:', e);
+            }
+
+            // 如果提醒仍在运行，调度下一次提醒
+            if (typeof ReminderModule !== 'undefined' && ReminderModule.isReminderRunning()) {
+                // 直接调用 onLockClose 回调来重新调度
+                const callbacks = ReminderModule.getCallbacks();
+                if (callbacks && callbacks.onLockClose) {
+                    logger.info('[Event] Triggering onLockClose to reschedule next reminder');
+                    await callbacks.onLockClose();
+                }
+            }
+        });
+
+        /**
+         * 事件：hide-lock
+         * 来源：手动停止闹铃或强制关闭锁屏时
+         * 职责：与 stop-sound 类似，但用于非正常关闭场景
+         */
+        Neutralino.events.on('hide-lock', async () => {
+            logger.info('[Event] hide-lock received');
+            // 直接复用 stop-sound 的处理逻辑
+            if (typeof AudioModule !== 'undefined') AudioModule.stopContinuous();
+            if (typeof ReminderModule !== 'undefined') ReminderModule.resetLockStates();
             try {
                 await Neutralino.window.show();
                 await Neutralino.window.focus();
             } catch (e) {
-                logger.error('Failed to restore main window:', e);
-            }
-
-            // 重新调度下一次提醒
-            if (typeof ReminderModule !== 'undefined' && ReminderModule.isReminderRunning()) {
-                const callbacks = ReminderModule.getCallbacks();
-                if (callbacks.onLockClose) {
-                    callbacks.onLockClose();
-                }
+                logger.error('[Event] Failed to restore main window:', e);
             }
         });
     }
