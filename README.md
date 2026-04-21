@@ -46,13 +46,13 @@
 
 ### 主界面
 
-<img src="./imgs/image-20260416211323719.png" alt="image-20260416211323719" style="zoom:40%;" />  <img src="./imgs/image-20260416211401340.png" alt="image-20260416211401340" style="zoom:40%;" />
+<img src="./imgs/image-20260416211323719.png" alt="image-20260416211323719" style="zoom:30%;" />  <img src="./imgs/image-20260416211401340.png" alt="image-20260416211401340" style="zoom:30%;" />
 
 
 
 ### 锁屏提醒界面
 
-<img src="./imgs/image-20260416211602069.png" alt="image-20260416211602069" style="zoom:50%;" />
+<img src="./imgs/image-20260416211602069.png" alt="image-20260416211602069" style="zoom:40%;" />
 
 
 
@@ -78,7 +78,7 @@
 
 ### 方式三：安装桌面应用（推荐）
 
-下载安装 exe 软件：[GitHub Releases](https://github.com/neopen/active-break-clock/releases) 找最新版下载
+下载安装 exe 软件：[GitHub Releases](https://github.com/neopen/break-reminder/releases) 找最新版下载
 
 支持平台：Windows（测试通过）、macOS（尚未测试）、Linux（尚未测试）
 
