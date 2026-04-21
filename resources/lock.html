@@ -470,24 +470,18 @@
                     timerInterval = null;
                 }
 
-                // 使用 Storage 通知主窗口
-                if (typeof Neutralino !== 'undefined' && Neutralino.storage) {
+                // 关键：使用 broadcast 而不是 dispatch
+                if (typeof Neutralino !== 'undefined' && Neutralino.events) {
                     try {
-                        console.log('[LOCK] Writing to storage: lock_closed = true');
-                        await Neutralino.storage.setData('lock_closed', 'true');
-                        console.log('[LOCK] Storage write successful');
-                    } catch (e) {
-                        console.error('[LOCK] Storage write failed:', e);
+                        // 1. 向主进程发送停止音频指令
+                        await Neutralino.events.dispatch('stop-sound', {});
+                        // 2. 向主进程发送锁屏关闭指令
+                        await Neutralino.events.dispatch('lock-complete', {});
+                        console.log('[Lock] Events dispatched successfully');
+                    } catch (err) {
+                        console.error('[Lock] Event dispatch failed:', err);
                     }
                 }
-
-                // 延迟退出
-                setTimeout(() => {
-                    console.log('[LOCK] Exiting now');
-                    if (typeof Neutralino !== 'undefined' && Neutralino.app) {
-                        Neutralino.app.exit(0).catch(e => console.error('[LOCK] Exit error:', e));
-                    }
-                }, 300);
 
                 console.log('[LOCK] ========== closeLockWindow END ==========');
             }
