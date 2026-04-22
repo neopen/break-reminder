@@ -39,7 +39,8 @@ function createMainWindow() {
     mainWindow.on('close', (event) => {
         console.log('[WindowManager] Main window close, quitting:', app.quitting);
         if (app.quitting) {
-            mainWindow = null;
+            // 真正退出应用，让窗口关闭
+            // mainWindow.destroy();
         } else {
             event.preventDefault();
             mainWindow.hide();
