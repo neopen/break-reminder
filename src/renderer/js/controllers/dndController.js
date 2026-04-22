@@ -125,11 +125,27 @@ const DNDController = (function () {
         elements.customBreaksList = document.getElementById('customBreaksList');
 
         // 获取自定义时段区域的外层容器
-        const customSection = document.querySelector('#customBreaksList')?.closest('div[style*="margin-top"]');
+        let customSection = null;
+        const customBreaksList = document.getElementById('customBreaksList');
+        if (customBreaksList) {
+            // 找到包含添加按钮和列表的整个区块
+            let parent = customBreaksList.parentElement;
+            while (parent && parent !== document.body) {
+                // 检查是否包含添加按钮
+                if (parent.querySelector('#addBreakBtn')) {
+                    customSection = parent;
+                    break;
+                }
+                parent = parent.parentElement;
+            }
+            // 如果没找到，就用直接父元素
+            if (!customSection) {
+                customSection = customBreaksList.parentElement;
+            }
+        }
+        
         if (customSection) {
             elements.customSection = customSection;
-        } else if (elements.customBreaksList) {
-            elements.customSection = elements.customBreaksList.parentElement;
         }
 
         // 检查必要元素是否存在
@@ -198,6 +214,51 @@ const DNDController = (function () {
             Config.save();
         });
 
+        // 校验午休时间
+        function validateLunchTime(startTime, endTime) {
+            // 解析时间为分钟数
+            const parseTime = (timeStr) => {
+                const [hours, minutes] = timeStr.split(':').map(Number);
+                return hours * 60 + minutes;
+            };
+            
+            const startMinutes = parseTime(startTime);
+            const endMinutes = parseTime(endTime);
+            
+            // 检查结束时间是否大于开始时间
+            if (endMinutes <= startMinutes) {
+                return { valid: false, message: '结束时间必须大于开始时间' };
+            }
+            
+            // 计算时间间隔（分钟）
+            const duration = endMinutes - startMinutes;
+            
+            // 检查时间间隔
+            if (duration < 10) {
+                return { valid: false, message: '午休时间至少需要10分钟' };
+            }
+            
+            if (duration > 600) { // 10小时 = 600分钟
+                return { valid: false, message: '午休时间不能超过10小时' };
+            }
+            
+            return { valid: true, message: '' };
+        }
+
+        // 显示错误提示
+        function showError(message) {
+            if (typeof AutoCloseDialog !== 'undefined') {
+                AutoCloseDialog.show({
+                    title: '提示',
+                    message: message,
+                    autoClose: 2000,
+                    confirmColor: '#f59e0b'
+                });
+            } else {
+                alert(message);
+            }
+        }
+
         // 午休开始时间
         if (elements.lunchStart) {
             elements.lunchStart.addEventListener('change', () => {
@@ -209,7 +270,20 @@ const DNDController = (function () {
                 if (!newConfig.doNotDisturb.lunchBreak) {
                     newConfig.doNotDisturb.lunchBreak = { start: '12:00', end: '14:00' };
                 }
-                newConfig.doNotDisturb.lunchBreak.start = elements.lunchStart.value;
+                
+                // 验证时间
+                const startTime = elements.lunchStart.value;
+                const endTime = elements.lunchEnd?.value || newConfig.doNotDisturb.lunchBreak.end || '14:00';
+                
+                const validation = validateLunchTime(startTime, endTime);
+                if (!validation.valid) {
+                    // 恢复之前的值
+                    elements.lunchStart.value = newConfig.doNotDisturb.lunchBreak.start || '12:00';
+                    showError(validation.message);
+                    return;
+                }
+                
+                newConfig.doNotDisturb.lunchBreak.start = startTime;
                 Config.save();
             });
         }
@@ -225,7 +299,20 @@ const DNDController = (function () {
                 if (!newConfig.doNotDisturb.lunchBreak) {
                     newConfig.doNotDisturb.lunchBreak = { start: '12:00', end: '14:00' };
                 }
-                newConfig.doNotDisturb.lunchBreak.end = elements.lunchEnd.value;
+                
+                // 验证时间
+                const endTime = elements.lunchEnd.value;
+                const startTime = elements.lunchStart?.value || newConfig.doNotDisturb.lunchBreak.start || '12:00';
+                
+                const validation = validateLunchTime(startTime, endTime);
+                if (!validation.valid) {
+                    // 恢复之前的值
+                    elements.lunchEnd.value = newConfig.doNotDisturb.lunchBreak.end || '14:00';
+                    showError(validation.message);
+                    return;
+                }
+                
+                newConfig.doNotDisturb.lunchBreak.end = endTime;
                 Config.save();
             });
         }
@@ -241,6 +328,22 @@ const DNDController = (function () {
                 if (!newConfig.doNotDisturb.customBreaks) {
                     newConfig.doNotDisturb.customBreaks = [];
                 }
+                
+                // 限制最多5个自定义时段
+                if (newConfig.doNotDisturb.customBreaks.length >= 5) {
+                    if (typeof AutoCloseDialog !== 'undefined') {
+                        AutoCloseDialog.show({
+                            title: '提示',
+                            message: '最多只能添加5个自定义时段',
+                            autoClose: 2000,
+                            confirmColor: '#f59e0b'
+                        });
+                    } else {
+                        alert('最多只能添加5个自定义时段');
+                    }
+                    return;
+                }
+                
                 newConfig.doNotDisturb.customBreaks.push({
                     start: '14:00',
                     end: '15:00',
