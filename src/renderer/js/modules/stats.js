@@ -159,23 +159,11 @@ const StatsModule = (function () {
             _logger.info('Yesterday:', yesterday);
             _logger.info('Before - continuousDays:', _stats.continuousDays, 'todayCount:', _stats.todayCount);
 
-            // 判断是否是连续打卡
-            const isConsecutive = (_stats.lastActivityDate === yesterday);
-
-            if (_stats.lastActivityDate === null) {
-                // 首次使用，不做任何重置
-                _logger.info('First time use, no reset needed');
-            } else if (isConsecutive) {
-                // 连续打卡：保持 continuousDays 不变
-                _logger.info('Consecutive day! Keeping continuousDays at:', _stats.continuousDays);
-            } else {
-                // 中断打卡：重置连续天数
-                _logger.info('Chain broken! Resetting continuousDays from', _stats.continuousDays, 'to 0');
-                _stats.continuousDays = 0;
-            }
-
             // 重置今日计数（因为新的一天还没有活动）
             _stats.todayCount = 0;
+            
+            // 只有当没有活动时才重置连续天数
+            // 连续天数的更新应该在 recordActivity() 中处理
             _stats.lastActivityDate = today;
 
             _logger.info('After - continuousDays:', _stats.continuousDays, 'todayCount:', _stats.todayCount);
