@@ -4,6 +4,8 @@ const AudioModule = (function () {
     let isEnabled = true;
     let currentSoundInterval = null;
     let isLockedGetter = null;
+    let soundCounter = 0;
+    const MAX_SOUND_PLAYS = 3;
 
     function init() {
         if (audioContext) return audioContext;
@@ -70,11 +72,19 @@ const AudioModule = (function () {
 
     function startContinuous() {
         if (!isEnabled) return;
+        // 重置声音计数器
+        soundCounter = 0;
         playAlert();
+        soundCounter++;
         stopContinuous();
         currentSoundInterval = setInterval(() => {
-            if (isLockedGetter && isLockedGetter() && isEnabled) {
+            if (isLockedGetter && isLockedGetter() && isEnabled && soundCounter < MAX_SOUND_PLAYS) {
                 playAlert();
+                soundCounter++;
+                // 如果达到最大次数，停止连续播放
+                if (soundCounter >= MAX_SOUND_PLAYS) {
+                    stopContinuous();
+                }
             }
         }, 3000);
     }
