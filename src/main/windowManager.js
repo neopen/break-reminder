@@ -1,5 +1,6 @@
 const { BrowserWindow, screen, Menu, Tray, app } = require('electron');
 const path = require('path');
+const { execSync } = require('child_process');
 const FaviconManager = require('./utils/favicon.js');
 
 // 窗口引用
@@ -10,6 +11,31 @@ let tray = null;
 let isLockWindowClosing = false;
 let isRestoringMain = false;
 let wasMainWindowVisible = true; // 保存主窗口的可见状态
+
+// 调用系统锁屏
+function lockSystem() {
+    try {
+        console.log('[WindowManager] Locking system');
+        
+        switch (process.platform) {
+            case 'win32': // Windows
+                execSync('rundll32.exe user32.dll,LockWorkStation');
+                break;
+            case 'darwin': // macOS
+                execSync('pmset displaysleepnow');
+                break;
+            case 'linux': // Linux (GNOME)
+                execSync('gnome-screensaver-command -l');
+                break;
+            default:
+                console.log('[WindowManager] System lock not supported on this platform:', process.platform);
+        }
+        
+        console.log('[WindowManager] System locked successfully');
+    } catch (error) {
+        console.error('[WindowManager] Failed to lock system:', error.message);
+    }
+}
 
 // 创建主窗口
 function createMainWindow() {
@@ -261,6 +287,9 @@ function forceCloseLockWindow() {
         lockTimer = null;
     }
 
+    // 备用定时器触发，属于自动关闭，需要系统锁屏
+    lockSystem();
+
     if (lockWindow && !lockWindow.isDestroyed()) {
         lockWindow.destroy();
         lockWindow = null;
@@ -271,7 +300,8 @@ function forceCloseLockWindow() {
 }
 
 // 关闭锁屏窗口
-function closeLockWindow() {
+// autoClose: 是否是自动关闭（倒计时完成）
+function closeLockWindow(autoClose = true) {
     if (isLockWindowClosing || !lockWindow || lockWindow.isDestroyed()) {
         restoreMainWindow();
         return;
@@ -282,6 +312,12 @@ function closeLockWindow() {
     if (lockTimer) {
         clearTimeout(lockTimer);
         lockTimer = null;
+    }
+
+    // 只有自动关闭时才调用系统锁屏
+    if (autoClose) {
+        // 倒计时完成后调用系统锁屏
+        lockSystem();
     }
 
     restoreMainWindow();
