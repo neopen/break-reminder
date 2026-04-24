@@ -464,6 +464,23 @@ const ReminderModule = (function () {
         console.log('[REMINDER] Lock states reset:', { isLocked, pendingLock, isCreatingLock });
     }
 
+    // 检查系统是否处于锁屏状态
+    function isSystemLocked() {
+        // 在 Electron 环境中，我们可以通过 powerMonitor 或系统 API 检查
+        if (typeof window !== 'undefined' && window.require) {
+            try {
+                const { powerMonitor } = window.require('electron');
+                // 检查系统是否处于空闲状态（通常表示锁屏）
+                const systemIdleState = powerMonitor.getSystemIdleState(60); // 60秒空闲
+                return systemIdleState === 'locked';
+            } catch (e) {
+                console.error('[REMINDER] Failed to check system lock state:', e);
+                return false;
+            }
+        }
+        return false;
+    }
+
     // 主检查循环
     function checkAndRemind() {
         if (!isRunning) {
@@ -476,6 +493,10 @@ const ReminderModule = (function () {
         }
         if (pendingLock) {
             console.log('[REMINDER] Check skipped: pending lock');
+            return;
+        }
+        if (isSystemLocked()) {
+            console.log('[REMINDER] Check skipped: system is locked');
             return;
         }
 

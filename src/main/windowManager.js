@@ -133,6 +133,14 @@ function createTray() {
 function createLockWindow(durationSeconds, forceLock) {
     console.log('[WindowManager] Creating lock window:', durationSeconds, 's, forceLock:', forceLock);
 
+    // 检查系统是否处于锁屏状态
+    const { powerMonitor } = require('electron');
+    const systemIdleState = powerMonitor.getSystemIdleState(60); // 60秒空闲
+    if (systemIdleState === 'locked') {
+        console.log('[WindowManager] System is locked, skipping lock window creation');
+        return;
+    }
+
     isLockWindowClosing = false;
 
     // 保存主窗口的可见状态
