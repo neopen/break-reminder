@@ -216,7 +216,7 @@ const Config = (function () {
     function validateLockMinutes(value, min, max) {
         const num = parseInt(value);
         const defaultMin = CONFIG ? CONFIG.TIME.MIN_LOCK : 1;
-        const defaultMax = CONFIG ? CONFIG.TIME.MAX_LOCK : 30;
+        const defaultMax = CONFIG ? CONFIG.TIME.MAX_LOCK : 120;
         const finalMin = min !== undefined ? min : defaultMin;
         const finalMax = max !== undefined ? max : defaultMax;
         return !isNaN(num) && num >= finalMin && num <= finalMax;
@@ -240,7 +240,7 @@ const Config = (function () {
     function fixLockValue(value, min, max) {
         let num = parseInt(value);
         const defaultMin = CONFIG ? CONFIG.TIME.MIN_LOCK : 1;
-        const defaultMax = CONFIG ? CONFIG.TIME.MAX_LOCK : 30;
+        const defaultMax = CONFIG ? CONFIG.TIME.MAX_LOCK : 120;
         const defaultLock = CONFIG ? CONFIG.TIME.DEFAULT_LOCK : 5;
         const finalMin = min !== undefined ? min : defaultMin;
         const finalMax = max !== undefined ? max : defaultMax;
