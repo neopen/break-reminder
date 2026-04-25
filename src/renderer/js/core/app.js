@@ -22,6 +22,7 @@
         soundToggle: document.getElementById('soundToggle'),
         desktopNotification: document.getElementById('desktopNotification'),
         lockNotification: document.getElementById('lockNotification'),
+        systemLockToggle: document.getElementById('systemLockToggle'),
         lockSettingsContent: document.getElementById('lockSettingsContent'),
         startBtn: document.getElementById('startBtn'),
         stopBtn: document.getElementById('stopBtn'),

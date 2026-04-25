@@ -195,12 +195,13 @@ const ReminderModule = (function () {
         if (typeof window !== 'undefined' && window.require) {
             try {
                 const { ipcRenderer } = window.require('electron');
+                const systemLock = Config.get('systemLock');
 
                 console.log('[REMINDER] Setting isLocked to true');
                 isLocked = true;
-                // 传递秒数给主进程
-                console.log('[REMINDER] Sending show-lock to main process, durationSeconds:', totalSeconds, 'forceLock:', forceLock);
-                ipcRenderer.send('show-lock', totalSeconds, forceLock);
+                // 传递秒数、强制锁屏和系统锁屏设置给主进程
+                console.log('[REMINDER] Sending show-lock to main process, durationSeconds:', totalSeconds, 'forceLock:', forceLock, 'systemLock:', systemLock);
+                ipcRenderer.send('show-lock', totalSeconds, forceLock, systemLock);
 
                 // 注意：在 Electron 环境中，我们不在这里监听事件
                 // 而是在 app.js 中通过 ipcRenderer.on('lock-closed') 来处理
