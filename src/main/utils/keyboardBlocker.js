@@ -46,9 +46,12 @@ async function initWindowsBlocker() {
         console.log('[KeyboardBlocker] Windows global blocker initialized');
         return true;
     } catch (error) {
-        console.error('[KeyboardBlocker] Failed to initialize Windows blocker:', error);
-        console.log('[KeyboardBlocker] Falling back to native Windows API');
-        return initWindowsNativeBlocker();
+        // console.error('[KeyboardBlocker] Failed to initialize Windows blocker:', error);
+        // console.log('[KeyboardBlocker] Falling back to native Windows API');
+        // return initWindowsNativeBlocker();
+
+        console.log('[KeyboardBlocker] Native key listener not available, using fallback');
+        return false;
     }
 }
 
@@ -104,11 +107,11 @@ function initMacOSBlocker() {
             });
             return true;
         } catch (error) {
-            console.error('[KeyboardBlocker] Native macOS module not available:', error);
+            console.log('[KeyboardBlocker] Native macOS module not available, using fallback');
             return false;
         }
     } catch (error) {
-        console.error('[KeyboardBlocker] Failed to initialize macOS blocker:', error);
+        console.log('[KeyboardBlocker] macOS blocker initialization failed, using fallback');
         return false;
     }
 }
@@ -148,13 +151,13 @@ function initLinuxBlocker() {
         if (sessionType === 'x11') {
             return initLinuxX11Blocker();
         } else if (sessionType === 'wayland') {
-            console.warn('[KeyboardBlocker] Wayland not fully supported');
+            console.warn('[KeyboardBlocker] Wayland not fully supported, using fallback');
             return false;
         }
 
         return false;
     } catch (error) {
-        console.error('[KeyboardBlocker] Failed to initialize Linux blocker:', error);
+        console.log('[KeyboardBlocker] Linux blocker initialization failed, using fallback');
         return false;
     }
 }
@@ -165,7 +168,7 @@ function initLinuxX11Blocker() {
 
         x11.createClient((err, display) => {
             if (err) {
-                console.error('[KeyboardBlocker] X11 connection failed:', err);
+                console.log('[KeyboardBlocker] X11 not available, using fallback');
                 return;
             }
 
@@ -175,7 +178,7 @@ function initLinuxX11Blocker() {
             // 注册键盘事件捕获
             X.core.GrabKeyboard(root, true, X.eventMask.KeyPress | X.eventMask.KeyRelease, X.GrabModeAsync, X.GrabModeAsync, X.currentTime, (err, reply) => {
                 if (err) {
-                    console.error('[KeyboardBlocker] Keyboard grab failed:', err);
+                    console.log('[KeyboardBlocker] Keyboard grab failed, using fallback');
                     return;
                 }
 
@@ -205,7 +208,7 @@ function initLinuxX11Blocker() {
 
         return true;
     } catch (error) {
-        console.error('[KeyboardBlocker] Linux X11 blocker failed:', error);
+        console.log('[KeyboardBlocker] Linux X11 blocker failed, using fallback');
         return false;
     }
 }
