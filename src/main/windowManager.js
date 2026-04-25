@@ -1,4 +1,4 @@
-const { BrowserWindow, screen, Menu, Tray, app } = require('electron');
+const { BrowserWindow, screen, Menu, Tray, app, powerMonitor } = require('electron');
 const path = require('path');
 const { execSync } = require('child_process');
 const FaviconManager = require('./utils/favicon.js');
@@ -129,12 +129,86 @@ function createTray() {
     }
 }
 
+// 初始化电源管理事件
+function initPowerManagement() {
+    console.log('[WindowManager] Initializing power management');
+
+    // 系统即将休眠
+    powerMonitor.on('suspend', () => {
+        console.log('[WindowManager] System is suspending');
+        // 清理资源
+        if (lockTimer) {
+            clearTimeout(lockTimer);
+            lockTimer = null;
+        }
+        // 停止键盘拦截
+        if (keyboardBlocker.isActive()) {
+            keyboardBlocker.stopBlocking();
+        }
+    });
+
+    // 系统从休眠中唤醒
+    powerMonitor.on('resume', () => {
+        console.log('[WindowManager] System is resuming');
+        // 检查是否有锁屏窗口
+        if (lockWindow && !lockWindow.isDestroyed()) {
+            console.log('[WindowManager] Lock window exists, destroying it');
+            try {
+                lockWindow.destroy();
+                lockWindow = null;
+            } catch (error) {
+                console.error('[WindowManager] Error destroying lock window on resume:', error);
+            }
+        }
+        // 确保键盘拦截已停止
+        if (keyboardBlocker.isActive()) {
+            keyboardBlocker.stopBlocking();
+        }
+        // 重置状态
+        isLockWindowClosing = false;
+        if (lockTimer) {
+            clearTimeout(lockTimer);
+            lockTimer = null;
+        }
+    });
+
+    // 系统锁屏
+    powerMonitor.on('lock-screen', () => {
+        console.log('[WindowManager] System screen locked');
+        // 清理锁屏相关资源
+        if (lockWindow && !lockWindow.isDestroyed()) {
+            console.log('[WindowManager] Destroying lock window on system lock');
+            try {
+                lockWindow.destroy();
+                lockWindow = null;
+            } catch (error) {
+                console.error('[WindowManager] Error destroying lock window on system lock:', error);
+            }
+        }
+        if (lockTimer) {
+            clearTimeout(lockTimer);
+            lockTimer = null;
+        }
+        if (keyboardBlocker.isActive()) {
+            keyboardBlocker.stopBlocking();
+        }
+    });
+
+    // 系统解锁
+    powerMonitor.on('unlock-screen', () => {
+        console.log('[WindowManager] System screen unlocked');
+        // 通知渲染进程重置锁状态
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('lock-skipped');
+        }
+    });
+}
+
 // 创建锁屏窗口
 function createLockWindow(durationSeconds, forceLock) {
     console.log('[WindowManager] Creating lock window:', durationSeconds, 's, forceLock:', forceLock);
 
     // 检查系统是否处于锁屏状态
-    const { powerMonitor } = require('electron');
     const systemIdleState = powerMonitor.getSystemIdleState(60); // 60秒空闲
     if (systemIdleState === 'locked') {
         console.log('[WindowManager] System is locked, skipping lock window creation');
@@ -427,6 +501,7 @@ module.exports = {
     forceCloseLockWindow,
     closeLockWindow,
     restoreMainWindow,
+    initPowerManagement,
     getMainWindow,
     getLockWindow,
     getTray,

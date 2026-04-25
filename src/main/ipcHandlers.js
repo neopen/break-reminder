@@ -1,4 +1,4 @@
-const { ipcMain, app, Notification } = require('electron');
+const { ipcMain, app, Notification, powerMonitor } = require('electron');
 const path = require('path');
 const windowManager = require('./windowManager');
 
@@ -9,6 +9,23 @@ function initIpcHandlers() {
 
     ipcMain.on('show-lock', (event, duration, forceLock) => {
         console.log('[IPC] show-lock:', duration, forceLock);
+
+        // 检查系统是否已锁定
+        try {
+            const systemIdleState = powerMonitor.getSystemIdleState(60);
+            if (systemIdleState === 'locked') {
+                console.log('[IPC] System is locked, skipping lock and notifying renderer');
+                const mainWindow = windowManager.getMainWindow();
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.setEnabled(true);
+                    mainWindow.webContents.send('lock-skipped');
+                }
+                return;
+            }
+        } catch (e) {
+            console.error('[IPC] Failed to check system lock state:', e);
+        }
+
         const mainWindow = windowManager.getMainWindow();
         if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.setEnabled(false);

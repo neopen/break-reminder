@@ -267,6 +267,20 @@
                 ReminderModule.startCheckLoop();
                 AudioModule.stopContinuous();
             });
+            // 系统已锁定，跳过锁屏的处理
+            ipcRenderer.on('lock-skipped', () => {
+                console.log('[APP] Lock skipped due to system lock');
+                ReminderModule.resetLockStates();
+                if (ReminderModule.isReminderRunning()) {
+                    const now = new Date();
+                    const config = Config.load();
+                    const next = ReminderModule.calculateNextReminder(now, config);
+                    ReminderModule.setNextReminderTime(next.getTime());
+                    UIModule.updateNextReminderDisplay(next.getTime());
+                }
+                ReminderModule.startCheckLoop();
+                AudioModule.stopContinuous();
+            });
         } catch (e) {
             logger.error('Failed to setup IPC listener:', e);
         }
