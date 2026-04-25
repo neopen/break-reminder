@@ -118,6 +118,7 @@ if (!gotTheLock) {
         initIpcHandlers();
         windowManager.createMainWindow();
         windowManager.createTray();
+        windowManager.initPowerManagement();
 
         // 添加以下两行：获取并记录开机自启动状态
         const isAutoLaunch = getAutoLaunchState();

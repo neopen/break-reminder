@@ -1,7 +1,8 @@
-const { BrowserWindow, screen, Menu, Tray, app } = require('electron');
+const { BrowserWindow, screen, Menu, Tray, app, powerMonitor } = require('electron');
 const path = require('path');
 const { execSync } = require('child_process');
 const FaviconManager = require('./utils/favicon.js');
+const keyboardBlocker = require('./utils/keyboardBlocker');
 
 // 窗口引用
 let mainWindow = null;
@@ -11,9 +12,16 @@ let tray = null;
 let isLockWindowClosing = false;
 let isRestoringMain = false;
 let wasMainWindowVisible = true; // 保存主窗口的可见状态
+let systemLockEnabled = false; // 系统锁屏设置
 
 // 调用系统锁屏
 function lockSystem() {
+    // 只有当系统锁屏功能启用时才执行
+    if (!systemLockEnabled) {
+        console.log('[WindowManager] System lock disabled, skipping');
+        return;
+    }
+    
     try {
         console.log('[WindowManager] Locking system');
 
@@ -128,9 +136,94 @@ function createTray() {
     }
 }
 
+// 初始化电源管理事件
+function initPowerManagement() {
+    console.log('[WindowManager] Initializing power management');
+
+    // 系统即将休眠
+    powerMonitor.on('suspend', () => {
+        console.log('[WindowManager] System is suspending');
+        // 清理资源
+        if (lockTimer) {
+            clearTimeout(lockTimer);
+            lockTimer = null;
+        }
+        // 停止键盘拦截
+        if (keyboardBlocker.isActive()) {
+            keyboardBlocker.stopBlocking();
+        }
+    });
+
+    // 系统从休眠中唤醒
+    powerMonitor.on('resume', () => {
+        console.log('[WindowManager] System is resuming');
+        // 检查是否有锁屏窗口
+        if (lockWindow && !lockWindow.isDestroyed()) {
+            console.log('[WindowManager] Lock window exists, destroying it');
+            try {
+                lockWindow.destroy();
+                lockWindow = null;
+            } catch (error) {
+                console.error('[WindowManager] Error destroying lock window on resume:', error);
+            }
+        }
+        // 确保键盘拦截已停止
+        if (keyboardBlocker.isActive()) {
+            keyboardBlocker.stopBlocking();
+        }
+        // 重置状态
+        isLockWindowClosing = false;
+        if (lockTimer) {
+            clearTimeout(lockTimer);
+            lockTimer = null;
+        }
+    });
+
+    // 系统锁屏
+    powerMonitor.on('lock-screen', () => {
+        console.log('[WindowManager] System screen locked');
+        // 清理锁屏相关资源
+        if (lockWindow && !lockWindow.isDestroyed()) {
+            console.log('[WindowManager] Destroying lock window on system lock');
+            try {
+                lockWindow.destroy();
+                lockWindow = null;
+            } catch (error) {
+                console.error('[WindowManager] Error destroying lock window on system lock:', error);
+            }
+        }
+        if (lockTimer) {
+            clearTimeout(lockTimer);
+            lockTimer = null;
+        }
+        if (keyboardBlocker.isActive()) {
+            keyboardBlocker.stopBlocking();
+        }
+    });
+
+    // 系统解锁
+    powerMonitor.on('unlock-screen', () => {
+        console.log('[WindowManager] System screen unlocked');
+        // 通知渲染进程重置锁状态
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('lock-skipped');
+        }
+    });
+}
+
 // 创建锁屏窗口
-function createLockWindow(durationSeconds, forceLock) {
-    console.log('[WindowManager] Creating lock window:', durationSeconds, 's, forceLock:', forceLock);
+function createLockWindow(durationSeconds, forceLock, systemLock) {
+    console.log('[WindowManager] Creating lock window:', durationSeconds, 's, forceLock:', forceLock, 'systemLock:', systemLock);
+
+    // 存储系统锁屏设置
+    systemLockEnabled = systemLock || false;
+
+    // 检查系统是否处于锁屏状态
+    const systemIdleState = powerMonitor.getSystemIdleState(60); // 60秒空闲
+    if (systemIdleState === 'locked') {
+        console.log('[WindowManager] System is locked, skipping lock window creation');
+        return;
+    }
 
     isLockWindowClosing = false;
 
@@ -151,6 +244,9 @@ function createLockWindow(durationSeconds, forceLock) {
         clearTimeout(lockTimer);
         lockTimer = null;
     }
+
+    // ========== 启动全局键盘拦截 ==========
+    keyboardBlocker.startBlocking();
 
     let validDuration = parseInt(durationSeconds);
     if (isNaN(validDuration) || validDuration < 10) {
@@ -222,80 +318,33 @@ function createLockWindow(durationSeconds, forceLock) {
         lockWindow.setIgnoreMouseEvents(false);
         lockWindow.setMenu(null);
 
-        // ========== 优化的键盘拦截逻辑 ==========
-        // 音量键列表（注意：这些键在 Windows/macOS 上可能无法被捕获）
-        const volumeKeys = [
-            'VolumeUp', 'VolumeDown', 'VolumeMute',
-            'AudioVolumeUp', 'AudioVolumeDown', 'AudioVolumeMute',
-            // 某些系统的替代键名
-            'MediaVolumeUp', 'MediaVolumeDown', 'MediaVolumeMute'
-        ];
-
-        // 允许通过的修饰键组合（音量键可能带修饰键）
-        const isVolumeKeyCombination = (input) => {
-            // 检查主键是否为音量键
-            if (volumeKeys.includes(input.key)) {
-                return true;
-            }
-            // 某些系统音量键可能以不同方式报告
-            const keyLower = input.key.toLowerCase();
-            if (keyLower.includes('volume') || keyLower.includes('audio')) {
-                return true;
-            }
-            return false;
-        };
-
-        // 主拦截器 - 阻止所有非音量键
+        // 保留 before-input-event 作为备用（拦截网页内的按键）
         lockWindow.webContents.on('before-input-event', (event, input) => {
-            // 调试日志（生产环境可注释）
-            console.log('[LOCK] before-input-event:', {
-                key: input.key,
-                code: input.code,
-                type: input.type,
-                alt: input.alt,
-                ctrl: input.control,
-                shift: input.shift,
-                meta: input.meta
-            });
-
-            // 允许音量键通过（不影响系统音量控制）
-            if (isVolumeKeyCombination(input)) {
-                console.log('[LOCK] Volume key allowed:', input.key);
-                return; // 不阻止，让系统处理音量
-            }
-
-            // 阻止所有其他按键
-            // 注意：某些系统级组合键（如 Alt+F4, Ctrl+Alt+Del）仍然无法阻止
-            console.log('[LOCK] Blocked key:', input.key);
-            event.preventDefault();
+            // 如果全局拦截器已激活，这里不需要额外处理
+            // 但保留作为备用
+            console.log('[LOCK] before-input-event (fallback):', input.key);
         });
 
-        // 额外的安全措施：阻止右键菜单
+        // 阻止右键菜单
         lockWindow.webContents.on('context-menu', (event) => {
             console.log('[LOCK] Context menu blocked');
             event.preventDefault();
         });
 
-        // 可选：注入渲染进程的额外防护（双重保险）
+        // 渲染进程备用拦截
         lockWindow.webContents.executeJavaScript(`
-            // 渲染进程层面的额外拦截（作为备用）
             (function() {
-                // 音量键列表
                 const volumeKeys = [
                     'VolumeUp', 'VolumeDown', 'VolumeMute',
                     'AudioVolumeUp', 'AudioVolumeDown', 'AudioVolumeMute',
                     'MediaVolumeUp', 'MediaVolumeDown', 'MediaVolumeMute'
                 ];
                 
-                // 在渲染进程也拦截一次（主进程已经拦截，这是双重保险）
                 document.addEventListener('keydown', (e) => {
-                    // 如果是音量键，放行
                     if (volumeKeys.includes(e.key)) {
                         console.log('[LOCK Renderer] Volume key allowed:', e.key);
                         return true;
                     }
-                    
-                    // 阻止所有其他按键
                     console.log('[LOCK Renderer] Blocked key:', e.key);
                     e.preventDefault();
                     e.stopPropagation();
@@ -323,7 +372,7 @@ function createLockWindow(durationSeconds, forceLock) {
         lockWindow.focus();
         lockWindow.moveTop();
 
-        // 持续确保全屏和焦点（移除了有问题的 document.hasFocus 检查）
+        // 持续确保全屏和焦点
         const fullscreenInterval = setInterval(() => {
             if (lockWindow && !lockWindow.isDestroyed()) {
                 lockWindow.setKiosk(true);
@@ -332,7 +381,6 @@ function createLockWindow(durationSeconds, forceLock) {
                 if (process.platform === 'win32') {
                     lockWindow.setSkipTaskbar(true);
                 }
-                // 确保窗口获得焦点（只使用 Electron API）
                 lockWindow.focus();
                 lockWindow.moveTop();
             } else {
@@ -344,6 +392,9 @@ function createLockWindow(durationSeconds, forceLock) {
     });
 
     lockWindow.on('closed', () => {
+        // ========== 停止全局键盘拦截 ==========
+        keyboardBlocker.stopBlocking();
+
         if (lockWindow?._fullscreenInterval) {
             clearInterval(lockWindow._fullscreenInterval);
         }
@@ -354,13 +405,6 @@ function createLockWindow(durationSeconds, forceLock) {
 
     lockWindow.on('blur', () => {
         if (lockWindow && !lockWindow.isDestroyed() && !isLockWindowClosing) {
-            // 延迟重新聚焦，避免与系统对话框冲突
-            // setTimeout(() => {
-            //     if (lockWindow && !lockWindow.isDestroyed() && !isLockWindowClosing) {
-            //         lockWindow.focus();
-            //         lockWindow.moveTop();
-            //     }
-            // }, 50);
             lockWindow.focus();
             lockWindow.moveTop();
         }
@@ -390,6 +434,9 @@ function forceCloseLockWindow() {
         lockWindow = null;
     }
 
+    // 确保停止键盘拦截
+    keyboardBlocker.stopBlocking();
+
     isLockWindowClosing = false;
     return { lockClosed: true };
 }
@@ -411,9 +458,11 @@ function closeLockWindow(autoClose = true) {
 
     // 只有自动关闭时才调用系统锁屏
     if (autoClose) {
-        // 倒计时完成后调用系统锁屏
         lockSystem();
     }
+
+    // 停止键盘拦截
+    keyboardBlocker.stopBlocking();
 
     restoreMainWindow();
 
@@ -462,6 +511,7 @@ module.exports = {
     forceCloseLockWindow,
     closeLockWindow,
     restoreMainWindow,
+    initPowerManagement,
     getMainWindow,
     getLockWindow,
     getTray,
