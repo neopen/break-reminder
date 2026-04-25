@@ -37,11 +37,11 @@
 
 ### 主界面
 
-![image-20260425181747216](./imgs/screenshots-1.png)
+![image-20260425181747216](./assets/screenshots-1.png)
 
 ### 锁屏提醒界面
 
-<img src="./imgs/screenshot-2.png" alt="screenshot-2" style="zoom:67%;" />
+<img src="./assets/screenshot-2.png" alt="screenshot-2" style="zoom:67%;" />
 
 
 
@@ -62,7 +62,7 @@
 
 3. 选择「安装」，即可像原生应用一样使用
 
-   <img src="./imgs/image-20260413221538624.png" alt="image-20260413221538624" style="zoom:60%;" />
+   <img src="./assets/image-20260413221538624.png" alt="image-20260413221538624" style="zoom:60%;" />
 
 ### 方式三：安装桌面应用（推荐）
 
