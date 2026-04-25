@@ -66,13 +66,18 @@ mac:
     - zip
   icon: src/renderer/icons/icon-512.icns
   category: public.app-category.healthcare-fitness
-  entitlements: entitlements.mac.plist
+#  entitlements: entitlements.mac.plist
+#  entitlements: ./entitlements.mac.plist
   entitlementsInherit: entitlements.mac.plist
   gatekeeperAssess: false
   hardenedRuntime: true
   asar: true
   asarUnpack: "**/*.node"
   artifactName: HealthClock-${version}-${arch}.${ext}
+  # null 表示跳过签名
+  identity: null
+  certificateFile: null
+  signAndNotarize: false
 
 # DMG 配置
 dmg:
