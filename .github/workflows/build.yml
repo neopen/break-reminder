@@ -31,6 +31,16 @@ jobs:
     - name: Install dependencies
       run: npm install
 
+    - name: Cache electron-builder binaries
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/electron
+          ~/.cache/electron-builder
+        key: ${{ runner.os }}-electron-builder-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-electron-builder-
+
     - name: Build source code
       run: npm run build
     
@@ -38,6 +48,7 @@ jobs:
       if: matrix.platform == 'mac'
       run: npx electron-builder --mac --publish never
       env:
+        ELECTRON_BUILDER_BINARIES_MIRROR: ""
         CSC_IDENTITY_AUTO_DISCOVERY: false
         CSC_IDENTITY: ""
         CSC_FORCE_NO_SIGN: "true"
