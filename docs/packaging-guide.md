@@ -143,7 +143,7 @@ npm run dist:portable
 
 ### 4.2 方式二：批处理脚本（自动归档日志，排错首选）
 
-`scripts/` 下有三个脚本，特点是：自动清理 `dist`/`release`、把完整输出写入 `logs/build_*.log`、结束后输出 asar 清单。
+`scripts/` 下有三个脚本，特点是：自动关闭正在运行的旧版本、自动清理 `dist`/`release`、把完整输出写入 `logs/build_*.log`、结束后输出 asar 清单。
 
 | 脚本 | 用途 | 日志文件 |
 | --- | --- | --- |
@@ -157,9 +157,9 @@ npm run dist:portable
 .\scripts\electron-win-all.bat
 ```
 
-脚本会依次执行：清理 → `npm run build` → `npx electron-builder` → `npx asar list`，任何一步失败会暂停并提示日志路径。
+脚本会依次执行：检测并关闭运行中的旧版本 → 清理 → `npm run build` → `npx electron-builder` → `npx asar list`，任何一步失败会暂停并提示日志路径。
 
-> 注意：脚本会 `rd /s /q release`。如果 `release\win-unpacked` 里的应用正在运行，删除会失败，请先退出应用。
+> 脚本启动时会用 `taskkill` 关闭所有 `别坐了.exe` 进程（避免 `release\win-unpacked` 被占用）；若 `release` 仍无法删除，会直接报错退出，此时请手动从托盘退出应用后重试。
 
 ### 4.3 方式三：手动命令（需要自定义参数时）
 
@@ -452,7 +452,7 @@ npx electron-builder --win --x64 --publish always
 
 | 现象 | 原因 | 处理 |
 | --- | --- | --- |
-| `remove ...\release\win-unpacked\chrome_100_percent.pak: Access is denied` | 上一次打包的程序仍在运行，文件被占用 | 退出应用 / 结束 `别坐了.exe` 进程，或换输出目录 `"-c.directories.output=release-check"` |
+| `remove ...\release\win-unpacked\chrome_100_percent.pak: Access is denied` | 上一次打包的程序仍在运行，文件被占用 | 三个 bat 脚本已自动检测并关闭 `别坐了.exe`；手动命令需先退出应用，或换输出目录 `"-c.directories.output=release-check"` |
 | `GitHub Personal Access Token is not set ... GH_TOKEN` | electron-builder 检测到 CI 环境（IDE 终端可能自动设置 `CI=true`），触发隐式发布 | 加 `--publish never`；发布时设置 `GH_TOKEN` 并 `--publish always` |
 | `ELSPROBLEMS invalid: node-global-key-listener@0.3.0` | `dependencies` 与 `optionalDependencies` 重复且版本冲突 | 删除 `optionalDependencies` 重复项后 `npm install` |
 | `npm warn Unknown project config "electron_mirror"` | npm 11 对旧式 `.npmrc` 键的警告 | 非致命。可改用环境变量 `ELECTRON_MIRROR` / `ELECTRON_BUILDER_BINARIES_MIRROR` |
