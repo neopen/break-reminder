@@ -1,15 +1,14 @@
 {
   "name": "HealthClock",
-  "version": "0.5.8",
+  "version": "0.6.0",
   "description": "一款强制锁屏的健康提醒应用，帮你打破久坐循环，养成定时活动的好习惯。",
   "main": "dist/main/main.js",
   "scripts": {
     "dev": "electron .",
     "build": "node scripts/js/build.js",
     "start": "electron .",
-	
-	"dist": "npm run build && npm run verify:build && npx electron-builder",
-	"verify:build": "node scripts/js/verify-build.js",
+    "dist": "npm run build && npm run verify:build && npx electron-builder",
+    "verify:build": "node scripts/js/verify-build.js",
     "dist:win": "npm run build && electron-builder --win --x64",
     "dist:portable": "npm run build && electron-builder --win --x64 --config.win.target=portable",
     "dist:win32": "npm run build && electron-builder --win --ia32",
@@ -41,7 +40,6 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "compress": "compress.bat"
   },
-
   "repository": {
     "type": "git",
     "url": "git+https://github.com/neopen/break-reminder.git"
@@ -80,5 +78,4 @@
   "optionalDependencies": {
     "x11": "^2.3.0"
   }
-  
 }
