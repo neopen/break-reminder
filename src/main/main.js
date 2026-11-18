@@ -126,6 +126,23 @@ if (!gotTheLock) {
     });
 }
 
+app.on('before-quit', () => {
+    console.log('[MAIN] App is about to quit (user quit or system shutdown)');
+    app.quitting = true;
+    // 释放键盘钩子、锁屏窗口和定时器
+    try {
+        windowManager.dispose();
+    } catch (e) {
+        console.error('[MAIN] Error disposing window manager:', e);
+    }
+    // 刷新日志缓冲区
+    if (logWriteTimer) {
+        clearTimeout(logWriteTimer);
+        logWriteTimer = null;
+    }
+    flushLogBuffer();
+});
+
 app.on('window-all-closed', () => {
     console.log('[MAIN] All windows closed');
 });

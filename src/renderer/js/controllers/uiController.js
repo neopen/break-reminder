@@ -74,6 +74,8 @@ const UIController = (function () {
             const next = ReminderModule.calculateNextReminder(now, config);
             ReminderModule.setNextReminderTime(next.getTime());
             UIModule.updateNextReminderDisplay(next.getTime());
+            // 事件驱动调度下需重新排程，否则新的提醒时间不会被触发
+            ReminderModule.startCheckLoop();
         }
     }
 

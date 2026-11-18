@@ -1,13 +1,15 @@
 {
   "name": "HealthClock",
-  "version": "v0.5.7",
+  "version": "0.5.8",
   "description": "一款强制锁屏的健康提醒应用，帮你打破久坐循环，养成定时活动的好习惯。",
   "main": "dist/main/main.js",
   "scripts": {
     "dev": "electron .",
     "build": "node scripts/js/build.js",
     "start": "electron .",
-    "dist": "npm run build && npx electron-builder",
+	
+	"dist": "npm run build && npm run verify:build && npx electron-builder",
+	"verify:build": "node scripts/js/verify-build.js",
     "dist:win": "npm run build && electron-builder --win --x64",
     "dist:portable": "npm run build && electron-builder --win --x64 --config.win.target=portable",
     "dist:win32": "npm run build && electron-builder --win --ia32",
@@ -73,11 +75,9 @@
     "electron-vite": "^2.0.0"
   },
   "dependencies": {
-    "node-global-key-listener": "^0.3.0",
-    "x11": "^2.3.0"
+    "node-global-key-listener": "^0.3.0"
   },
   "optionalDependencies": {
-    "node-global-key-listener": "^0.1.2",
     "x11": "^2.3.0"
   }
   

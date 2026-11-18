@@ -13,6 +13,7 @@ let isLockWindowClosing = false;
 let isRestoringMain = false;
 let wasMainWindowVisible = true; // 保存主窗口的可见状态
 let systemLockEnabled = false; // 系统锁屏设置
+let idleCheckInterval = null; // 系统空闲状态轮询定时器
 
 // 调用系统锁屏
 function lockSystem() {
@@ -105,6 +106,25 @@ function createTray() {
                         mainWindow.focus();
                     } else {
                         createMainWindow();
+                    }
+                }
+            },
+            {
+                label: '稍后提醒',
+                submenu: [5, 10, 15, 30].map(minutes => ({
+                    label: `${minutes} 分钟后提醒`,
+                    click: () => {
+                        if (mainWindow && !mainWindow.isDestroyed()) {
+                            mainWindow.webContents.send('reminder-snooze', minutes);
+                        }
+                    }
+                }))
+            },
+            {
+                label: '跳过本次',
+                click: () => {
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.send('reminder-skip');
                     }
                 }
             },
@@ -237,9 +257,34 @@ function initPowerManagement() {
         }
     });
 
+    // 系统即将关机/重启
+    powerMonitor.on('shutdown', () => {
+        console.log('[WindowManager] System is shutting down');
+        // 清理资源：销毁锁屏窗口、停止键盘拦截、暂停计时器
+        if (lockWindow && !lockWindow.isDestroyed()) {
+            try {
+                lockWindow.destroy();
+                lockWindow = null;
+            } catch (error) {
+                console.error('[WindowManager] Error destroying lock window on shutdown:', error);
+            }
+        }
+        if (lockTimer) {
+            clearTimeout(lockTimer);
+            lockTimer = null;
+        }
+        if (keyboardBlocker.isActive()) {
+            keyboardBlocker.stopBlocking();
+        }
+        if (mainWindow && !mainWindow.isDestroyed() && !isSystemPaused) {
+            isSystemPaused = true;
+            mainWindow.webContents.send('pause-reminder');
+        }
+    });
+
     // 周期性检查系统空闲/锁屏状态（作为事件监听的补充）
     let lastIdleState = 'unknown';
-    const idleCheckInterval = setInterval(() => {
+    idleCheckInterval = setInterval(() => {
         try {
             const idleState = powerMonitor.getSystemIdleState(30);
 
@@ -266,7 +311,7 @@ function initPowerManagement() {
         } catch (e) {
             console.error('[WindowManager] Idle check error:', e.message);
         }
-    }, 60000); // 每60秒检查一次
+    }, 120000); // 兜底检查每 2 分钟一次（常规状态切换由 powerMonitor 事件驱动）
 }
 
 // 创建锁屏窗口
@@ -430,21 +475,20 @@ function createLockWindow(durationSeconds, forceLock, systemLock) {
         lockWindow.focus();
         lockWindow.moveTop();
 
-        // 持续确保全屏和焦点
+        // 持续确保全屏和焦点（低频校验，仅在状态被破坏时才重新设置，降低锁屏期间的 CPU 占用）
         const fullscreenInterval = setInterval(() => {
-            if (lockWindow && !lockWindow.isDestroyed()) {
-                lockWindow.setKiosk(true);
-                lockWindow.setFullScreen(true);
-                lockWindow.setAlwaysOnTop(true, 'screen-saver');
-                if (process.platform === 'win32') {
-                    lockWindow.setSkipTaskbar(true);
-                }
+            if (!lockWindow || lockWindow.isDestroyed()) {
+                clearInterval(fullscreenInterval);
+                return;
+            }
+            if (!lockWindow.isKiosk()) lockWindow.setKiosk(true);
+            if (!lockWindow.isFullScreen()) lockWindow.setFullScreen(true);
+            if (!lockWindow.isAlwaysOnTop()) lockWindow.setAlwaysOnTop(true, 'screen-saver');
+            if (!lockWindow.isFocused()) {
                 lockWindow.focus();
                 lockWindow.moveTop();
-            } else {
-                clearInterval(fullscreenInterval);
             }
-        }, 500);
+        }, 2000);
 
         lockWindow._fullscreenInterval = fullscreenInterval;
     });
@@ -562,6 +606,39 @@ function getLockWindow() { return lockWindow; }
 function getTray() { return tray; }
 function isLockWindowClosingState() { return isLockWindowClosing; }
 
+// 退出前统一释放资源，避免键盘钩子、定时器和锁屏窗口残留
+function dispose() {
+    console.log('[WindowManager] Disposing resources');
+
+    if (idleCheckInterval) {
+        clearInterval(idleCheckInterval);
+        idleCheckInterval = null;
+    }
+
+    if (lockTimer) {
+        clearTimeout(lockTimer);
+        lockTimer = null;
+    }
+
+    if (lockWindow && !lockWindow.isDestroyed()) {
+        if (lockWindow._fullscreenInterval) {
+            clearInterval(lockWindow._fullscreenInterval);
+        }
+        try {
+            lockWindow.destroy();
+        } catch (e) {
+            console.error('[WindowManager] Error destroying lock window on dispose:', e);
+        }
+        lockWindow = null;
+    }
+
+    try {
+        keyboardBlocker.stopBlocking();
+    } catch (e) {
+        console.error('[WindowManager] Error stopping keyboard blocker:', e);
+    }
+}
+
 module.exports = {
     createMainWindow,
     createTray,
@@ -570,6 +647,7 @@ module.exports = {
     closeLockWindow,
     restoreMainWindow,
     initPowerManagement,
+    dispose,
     getMainWindow,
     getLockWindow,
     getTray,

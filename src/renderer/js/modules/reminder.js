@@ -1,7 +1,7 @@
 // 提醒核心逻辑模块
 const ReminderModule = (function () {
     let isRunning = false;
-    let checkInterval = null;
+    let checkTimeoutId = null; // 下一次检查的定时器（事件驱动，避免高频轮询）
     let nextReminderTimestamp = null;
     let currentLockEndTime = null;
     let lockTimerInterval = null;
@@ -14,6 +14,26 @@ const ReminderModule = (function () {
     let pendingLock = false;
     let isPaused = false; // 计时器是否被暂停
     let pauseTimestamp = null; // 暂停时的时间戳
+    let alertTimers = []; // 提醒音效的待执行定时器
+    let alertSession = 0; // 提醒会话标识，用于丢弃过期回调
+    let manualNextTimestamp = null; // 稍后提醒/跳过时预先指定的下次提醒时间
+    let currentForceLock = false; // 当前锁屏是否为强制锁屏
+
+    // 注册可取消的提醒定时器
+    function scheduleAlert(fn, delay) {
+        const id = setTimeout(() => {
+            alertTimers = alertTimers.filter(t => t !== id);
+            fn();
+        }, delay);
+        alertTimers.push(id);
+    }
+
+    // 取消所有待执行的提醒定时器，并使已有回调失效
+    function clearAlertTimers() {
+        alertSession++;
+        alertTimers.forEach(id => clearTimeout(id));
+        alertTimers = [];
+    }
 
     let onReminderTrigger = null;
     let onLockClose = null;
@@ -127,6 +147,9 @@ const ReminderModule = (function () {
     function closeLockScreen() {
         console.log('closeLockScreen called');
 
+        // 取消尚未执行的提醒音效与锁屏回调
+        clearAlertTimers();
+
         // 先停止声音！
         if (AudioModule) {
             console.log('[REMINDER] Stopping continuous sound');
@@ -160,16 +183,24 @@ const ReminderModule = (function () {
                 isLocked = false;
                 pendingLock = false;
                 isCreatingLock = false;
+                currentForceLock = false;
                 currentLockEndTime = null;
-                if (onLockClose) onLockClose();
+                // Electron 环境由主进程的 lock-closed 事件统一回调，避免重复排程
+                if (onLockClose && !isElectronEnvironment()) onLockClose();
             }, 300);
         } else {
             isLocked = false;
             pendingLock = false;
             isCreatingLock = false;
+            currentForceLock = false;
             currentLockEndTime = null;
-            if (onLockClose) onLockClose();
+            if (onLockClose && !isElectronEnvironment()) onLockClose();
         }
+    }
+
+    // 是否运行在 Electron 渲染进程
+    function isElectronEnvironment() {
+        return typeof window !== 'undefined' && !!window.require;
     }
 
     let isCreatingLock = false;
@@ -201,6 +232,7 @@ const ReminderModule = (function () {
 
                 console.log('[REMINDER] Setting isLocked to true');
                 isLocked = true;
+                currentForceLock = !!forceLock;
                 // 传递秒数、强制锁屏和系统锁屏设置给主进程
                 console.log('[REMINDER] Sending show-lock to main process, durationSeconds:', totalSeconds, 'forceLock:', forceLock, 'systemLock:', systemLock);
                 ipcRenderer.send('show-lock', totalSeconds, forceLock, systemLock);
@@ -270,7 +302,8 @@ const ReminderModule = (function () {
         };
 
         updateTimer();
-        lockTimerInterval = setInterval(updateTimer, 100);
+        // 倒计时按秒刷新即可，避免高频重绘造成无谓的 CPU/GPU 占用
+        lockTimerInterval = setInterval(updateTimer, 1000);
     }
 
 
@@ -366,30 +399,36 @@ const ReminderModule = (function () {
             // 先播放声音提示三次，然后再显示锁屏
             if (soundEnabled && AudioModule) {
                 console.log('[REMINDER] Playing alert sounds first');
-                // 播放第一次
+                clearAlertTimers();
+                const session = alertSession;
+
+                const showLockAfterAlerts = () => {
+                    // 已停止、已取消或会话已失效时不再弹出锁屏
+                    if (session !== alertSession || !isRunning || !pendingLock) {
+                        console.log('[REMINDER] Alert session cancelled, skip lock screen');
+                        return;
+                    }
+                    console.log('[REMINDER] Showing lock screen after sound alerts');
+                    showLockScreen(lockMins, forceLock, () => {
+                        console.log('[REMINDER] Lock screen completed callback');
+                        isLocked = false;
+                        pendingLock = false;
+                        isCreatingLock = false;
+                        if (AudioModule) {
+                            AudioModule.stopContinuous();
+                        }
+                        if (callbacks.onLockClose) callbacks.onLockClose();
+                    });
+                };
+
                 AudioModule.playAlert();
-                // 延迟播放第二次
-                setTimeout(() => {
-                    AudioModule.playAlert();
-                    // 延迟播放第三次
-                    setTimeout(() => {
-                        AudioModule.playAlert();
-                        // 播放完三次后显示锁屏
-                        setTimeout(() => {
-                            console.log('[REMINDER] Showing lock screen after sound alerts');
-                            showLockScreen(lockMins, forceLock, () => {
-                                console.log('[REMINDER] Lock screen completed callback');
-                                isLocked = false;
-                                pendingLock = false;
-                                isCreatingLock = false;
-                                if (AudioModule) {
-                                    AudioModule.stopContinuous();
-                                }
-                                if (callbacks.onLockClose) callbacks.onLockClose();
-                            });
-                        }, 1000);
-                    }, 2000);
+                scheduleAlert(() => {
+                    if (session === alertSession) AudioModule.playAlert();
                 }, 2000);
+                scheduleAlert(() => {
+                    if (session === alertSession) AudioModule.playAlert();
+                }, 4000);
+                scheduleAlert(showLockAfterAlerts, 5000);
             } else {
                 // 无声音时直接显示锁屏
                 showLockScreen(lockMins, forceLock, () => {
@@ -407,12 +446,24 @@ const ReminderModule = (function () {
     }
 
 
+    // 通知主进程是否需要保持渲染进程定时器精度（隐藏到托盘时避免被节流延迟提醒）
+    function notifyThrottling(running) {
+        if (!isElectronEnvironment()) return;
+        try {
+            const { ipcRenderer } = window.require('electron');
+            ipcRenderer.send('reminder-running', running);
+        } catch (e) {
+            // 忽略：不影响提醒主流程
+        }
+    }
+
     function start(config) {
         console.log('ReminderModule.start called, config:', config);
         isRunning = true;
         pendingLock = false;
         isLocked = false;
         isCreatingLock = false;
+        notifyThrottling(true);
         console.log('[REMINDER] Start state:', { isRunning, pendingLock, isLocked, isCreatingLock });
     }
 
@@ -420,17 +471,21 @@ const ReminderModule = (function () {
         console.log('[REMINDER] stop called, isRunning:', isRunning, 'isLocked:', isLocked);
         isRunning = false;
 
-        if (checkInterval) {
-            clearInterval(checkInterval);
-            checkInterval = null;
-        }
+        clearCheckTimer();
+
+        // 恢复后台节流，未运行时不占用资源
+        notifyThrottling(false);
 
         // 停止声音
         if (AudioModule) {
             AudioModule.stopContinuous();
         }
 
-        if (isLocked) {
+        // 取消尚未执行的提醒音效与锁屏回调
+        clearAlertTimers();
+
+        const wasLocked = isLocked;
+        if (wasLocked) {
             console.log('[REMINDER] Lock active, sending hide-lock');
             if (typeof window !== 'undefined' && window.require) {
                 try {
@@ -440,28 +495,16 @@ const ReminderModule = (function () {
                     console.error('[REMINDER] Failed to send hide-lock:', e);
                 }
             }
-            isLocked = false;
-            pendingLock = false;
-            isCreatingLock = false;
         }
+
+        // 无论是否已进入锁屏，都重置所有锁屏相关状态
+        isLocked = false;
+        pendingLock = false;
+        isCreatingLock = false;
+        currentLockEndTime = null;
 
         // 注意：不要重置 nextReminderTimestamp，否则会导致下一次提醒无法触发
         // nextReminderTimestamp = null;
-    }
-
-    let mainIntervalId = null;
-
-    function setMainInterval(fn, interval) {
-        if (mainIntervalId) clearInterval(mainIntervalId);
-        if (!isRunning) return;
-        mainIntervalId = setInterval(fn, interval);
-    }
-
-    function clearMainInterval() {
-        if (mainIntervalId) {
-            clearInterval(mainIntervalId);
-            mainIntervalId = null;
-        }
     }
 
     function unlock(forceLock) {
@@ -487,6 +530,7 @@ const ReminderModule = (function () {
         isLocked = false;
         pendingLock = false;
         isCreatingLock = false;
+        currentForceLock = false;
         console.log('[REMINDER] Lock states reset:', { isLocked, pendingLock, isCreatingLock });
     }
 
@@ -502,15 +546,17 @@ const ReminderModule = (function () {
         console.log('[REMINDER] Timer paused at:', pauseTimestamp);
 
         // 停止检查循环
-        if (checkInterval) {
-            clearInterval(checkInterval);
-            checkInterval = null;
-        }
+        clearCheckTimer();
 
         // 停止声音
         if (AudioModule) {
             AudioModule.stopContinuous();
         }
+
+        // 系统锁屏时取消待执行的提醒链，避免解锁后突然弹出锁屏
+        clearAlertTimers();
+        pendingLock = false;
+        isCreatingLock = false;
     }
 
     // 从0开始恢复计时器（系统解锁时调用）
@@ -541,15 +587,12 @@ const ReminderModule = (function () {
         startCheckLoop();
     }
 
-    // 检查系统是否处于锁屏状态
+    // 检查系统是否处于锁屏状态（仅在提醒到点时调用一次，避免高频查询）
     function isSystemLocked() {
-        // 在 Electron 环境中，我们可以通过 powerMonitor 或系统 API 检查
         if (typeof window !== 'undefined' && window.require) {
             try {
                 const { powerMonitor } = window.require('electron');
-                // 检查系统是否处于空闲状态（通常表示锁屏）
-                const systemIdleState = powerMonitor.getSystemIdleState(60); // 60秒空闲
-                return systemIdleState === 'locked';
+                return powerMonitor.getSystemIdleState(60) === 'locked';
             } catch (e) {
                 console.error('[REMINDER] Failed to check system lock state:', e);
                 return false;
@@ -558,31 +601,29 @@ const ReminderModule = (function () {
         return false;
     }
 
-    // 主检查循环
+    // 主检查循环（单次检查）
     function checkAndRemind() {
         if (!isRunning) {
-            console.log('[REMINDER] Check skipped: not running');
             return;
         }
         if (isLocked) {
-            console.log('[REMINDER] Check skipped: locked');
             return;
         }
         if (pendingLock) {
-            console.log('[REMINDER] Check skipped: pending lock');
             return;
         }
-        if (isSystemLocked()) {
-            console.log('[REMINDER] Check skipped: system is locked');
+        if (isPaused) {
             return;
         }
 
         const now = Date.now();
-        // if (nextReminderTimestamp) {
-        //     console.log('[REMINDER] Time difference:', (nextReminderTimestamp - now) / 1000, 'seconds');
-        // }
 
         if (nextReminderTimestamp && now >= nextReminderTimestamp) {
+            // 系统锁屏时推迟提醒，避免用户在离开时触发无意义提醒
+            if (isSystemLocked()) {
+                console.log('[REMINDER] System locked, postpone reminder');
+                return;
+            }
             console.log('[REMINDER] Time to remind!');
             if (ConfigModule) {
                 const config = ConfigModule.load();
@@ -594,18 +635,37 @@ const ReminderModule = (function () {
         }
     }
 
-    // 启动检查循环
-    function startCheckLoop() {
-        if (mainIntervalId) {
-            console.log('[REMINDER] Clearing existing interval:', mainIntervalId);
-            clearInterval(mainIntervalId);
-            mainIntervalId = null;
+    // 停止调度
+    function clearCheckTimer() {
+        if (checkTimeoutId) {
+            clearTimeout(checkTimeoutId);
+            checkTimeoutId = null;
         }
-        if (!isRunning) {
-            console.log('[REMINDER] Not running, skipping startCheckLoop');
+    }
+
+    // 启动检查循环：只在“下一次提醒时刻”唤醒一次，避免 500ms 高频轮询
+    function startCheckLoop() {
+        clearCheckTimer();
+
+        if (!isRunning || isLocked || pendingLock || isPaused) {
             return;
         }
-        mainIntervalId = setInterval(() => checkAndRemind(), 500);
+
+        // 兜底唤醒：应对系统时间跳变、休眠恢复等异常场景
+        const MAX_SLEEP_MS = 5 * 60 * 1000;
+        const RETRY_DELAY_MS = 30 * 1000;
+        let delay = MAX_SLEEP_MS;
+        if (nextReminderTimestamp) {
+            const remain = nextReminderTimestamp - Date.now() + 50;
+            // 已过点却未触发（例如系统锁屏被推迟）时，用低频重试代替高频轮询
+            delay = remain > 0 ? Math.min(MAX_SLEEP_MS, remain) : RETRY_DELAY_MS;
+        }
+
+        checkTimeoutId = setTimeout(() => {
+            checkTimeoutId = null;
+            checkAndRemind();
+            startCheckLoop();
+        }, delay);
     }
 
     // 检查是否在免打扰时段
@@ -653,6 +713,97 @@ const ReminderModule = (function () {
     }
 
 
+    // 取出并清空手动指定的下次提醒时间
+    function consumeManualNext() {
+        const ts = manualNextTimestamp;
+        manualNextTimestamp = null;
+        return ts;
+    }
+
+    // 应用新的提醒时间并重启检查循环
+    function applyNextReminder(timestamp) {
+        nextReminderTimestamp = timestamp;
+        if (typeof UIModule !== 'undefined' && UIModule.updateNextReminderDisplay) {
+            UIModule.updateNextReminderDisplay(timestamp);
+        }
+        if (isRunning) {
+            startCheckLoop();
+        }
+    }
+
+    // 稍后提醒：关闭当前锁屏（如有），在指定分钟数后再次提醒
+    function snooze(minutes = 5) {
+        if (!isRunning) {
+            console.warn('[REMINDER] Snooze ignored: reminder is not running');
+            return false;
+        }
+
+        const mins = Math.min(120, Math.max(1, parseInt(minutes, 10) || 5));
+        const nextTimestamp = Date.now() + mins * 60 * 1000;
+
+        // 强制锁屏不允许通过托盘绕过
+        if (isLocked && currentForceLock) {
+            console.warn('[REMINDER] Snooze ignored: force lock is active');
+            return false;
+        }
+
+        clearAlertTimers();
+        if (AudioModule) {
+            AudioModule.stopContinuous();
+        }
+
+        if (isLocked || pendingLock || isCreatingLock) {
+            // 锁屏关闭后由 lock-closed 事件消费该时间
+            manualNextTimestamp = nextTimestamp;
+            manualCloseLockScreen();
+        } else {
+            applyNextReminder(nextTimestamp);
+        }
+
+        console.log('[REMINDER] Snoozed for', mins, 'minutes');
+        return nextTimestamp;
+    }
+
+    // 跳过本次：关闭当前锁屏（如有），按正常间隔安排下一次提醒
+    function skipCurrent() {
+        if (!isRunning) {
+            console.warn('[REMINDER] Skip ignored: reminder is not running');
+            return false;
+        }
+
+        // 强制锁屏不允许通过托盘绕过
+        if (isLocked && currentForceLock) {
+            console.warn('[REMINDER] Skip ignored: force lock is active');
+            return false;
+        }
+
+        clearAlertTimers();
+        if (AudioModule) {
+            AudioModule.stopContinuous();
+        }
+
+        let nextTimestamp;
+        try {
+            const config = typeof Config !== 'undefined' ? Config.load() : null;
+            nextTimestamp = config
+                ? calculateNextReminder(new Date(), config).getTime()
+                : Date.now() + 30 * 60 * 1000;
+        } catch (e) {
+            console.error('[REMINDER] Failed to calculate next reminder:', e);
+            nextTimestamp = Date.now() + 30 * 60 * 1000;
+        }
+
+        if (isLocked || pendingLock || isCreatingLock) {
+            manualNextTimestamp = nextTimestamp;
+            manualCloseLockScreen();
+        } else {
+            applyNextReminder(nextTimestamp);
+        }
+
+        console.log('[REMINDER] Current reminder skipped');
+        return nextTimestamp;
+    }
+
     return {
         setModules,
         setElements,
@@ -666,15 +817,16 @@ const ReminderModule = (function () {
         trigger,
         start,
         stop,
-        setMainInterval,
-        clearMainInterval,
         startCheckLoop,
         resetLockStates,
         pauseTimer,
         resumeTimerFromStart,
         unlock,
         closeLockScreen: manualCloseLockScreen,
-        checkAndRemind
+        checkAndRemind,
+        snooze,
+        skipCurrent,
+        consumeManualNext
     };
 })();
 

@@ -19,12 +19,61 @@ function checkForUpdate() {
         const currentVersion = app.getVersion();
         console.log('[UpdateChecker] Current version:', currentVersion);
 
-        const request = net.request({
-            method: 'GET',
-            url: 'https://api.github.com/repos/neopen/active-break-clock/releases/latest'
+        let settled = false;
+        let timer = null;
+
+        const finish = (result) => {
+            if (settled) return;
+            settled = true;
+            if (timer) {
+                clearTimeout(timer);
+                timer = null;
+            }
+            resolve(result);
+        };
+
+        const fail = (message) => finish({
+            hasUpdate: false,
+            currentVersion,
+            latestVersion: null,
+            releaseUrl: null,
+            releaseNotes: null,
+            error: message
         });
 
+        const request = net.request({
+            method: 'GET',
+            url: 'https://api.github.com/repos/neopen/active-break-clock/releases/latest',
+            headers: {
+                'User-Agent': 'HealthClock-Updater',
+                'Accept': 'application/vnd.github+json'
+            }
+        });
+
+        // 超时保护：网络异常时不让检查一直挂起
+        timer = setTimeout(() => {
+            console.error('[UpdateChecker] Request timeout');
+            try {
+                request.abort();
+            } catch (e) {
+                // 请求可能已经结束
+            }
+            fail('timeout');
+        }, 8000);
+
         request.on('response', (response) => {
+            if (response.statusCode !== 200) {
+                finish({
+                    hasUpdate: false,
+                    currentVersion,
+                    latestVersion: null,
+                    releaseUrl: null,
+                    releaseNotes: null,
+                    error: `HTTP ${response.statusCode}`
+                });
+                return;
+            }
+
             let data = '';
             response.on('data', (chunk) => {
                 data += chunk;
@@ -41,7 +90,7 @@ function checkForUpdate() {
 
                     const hasUpdate = compareVersions(currentVersion, latestVersion) < 0;
 
-                    resolve({
+                    finish({
                         hasUpdate,
                         currentVersion,
                         latestVersion,
@@ -50,28 +99,14 @@ function checkForUpdate() {
                     });
                 } catch (e) {
                     console.error('[UpdateChecker] Failed to parse response:', e);
-                    resolve({
-                        hasUpdate: false,
-                        currentVersion,
-                        latestVersion: null,
-                        releaseUrl: null,
-                        releaseNotes: null,
-                        error: e.message
-                    });
+                    fail(e.message);
                 }
             });
         });
 
         request.on('error', (e) => {
             console.error('[UpdateChecker] Network error:', e);
-            resolve({
-                hasUpdate: false,
-                currentVersion,
-                latestVersion: null,
-                releaseUrl: null,
-                releaseNotes: null,
-                error: e.message
-            });
+            fail(e.message);
         });
 
         request.end();

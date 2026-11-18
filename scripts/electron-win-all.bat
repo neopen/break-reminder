@@ -21,8 +21,25 @@ echo ========================================
 echo 日志将保存至: !LOG_FILE!
 echo.
 
+:: 0. 关闭正在运行的旧版本，否则 release 目录被占用会导致打包失败
+echo [0/4] 检测正在运行的应用...
+set "RUN_COUNT=0"
+for /f %%i in ('powershell -NoProfile -Command "@(Get-Process -Name 别坐了 -ErrorAction SilentlyContinue).Count"') do set "RUN_COUNT=%%i"
+if not "!RUN_COUNT!"=="0" (
+    echo   检测到 !RUN_COUNT! 个进程，正在关闭...
+    echo 检测到 !RUN_COUNT! 个运行中进程，已尝试关闭 >> "!LOG_FILE!" 2>&1
+    taskkill /F /IM "别坐了.exe" >nul 2>&1
+    ping -n 3 127.0.0.1 >nul
+)
+
 echo [1/4] 清理旧构建产物...
 rd /s /q dist release 2>nul
+if exist release (
+    echo [错误] release 目录无法删除，文件仍被占用。
+    echo        请从托盘退出“别坐了”后重试。
+    echo release 目录删除失败 >> "!LOG_FILE!" 2>&1
+    pause & exit /b 1
+)
 echo 清理完成 >> "!LOG_FILE!" 2>&1
 echo.
 

@@ -1,8 +1,14 @@
-# 防久坐（定时提醒 - 拒绝久坐）
+<h1 align="center">定时提醒 - 拒绝久坐</h1>
+<p align="center">
+<strong>一款强制提醒活动的桌面应用，帮助久坐用户定时起身活动（防久坐），支持锁屏强制提醒、桌面通知、每日打卡统计。</strong>
+</p>
 
-一款强制提醒活动的桌面应用，帮助久坐用户定时起身活动（防久坐），支持锁屏强制提醒、桌面通知、每日打卡统计。
-
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)  [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Web-brightgreen)]()
+<p align="center">
+  <a href="https://github.com/neopen/active-break-clock/releases"><img src="https://img.shields.io/github/v/release/neopen/active-break-clock?label=Version&color=blue" alt="Version"></a>
+  <a href="https://github.com/neopen/active-break-clock/releases"><img src="https://img.shields.io/github/downloads/neopen/active-break-clock/total?label=Downloads&logo=github&color=blue" alt="Downloads"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Web-brightgreen" alt="Platform">
+</p>
 
 
 
@@ -19,7 +25,7 @@
 
 ### 统计与反馈
 - **每日打卡统计** - 记录今日活动次数、连续打卡天数
-- **本周完成率** - 基于目标次数自动计算完成百分比（周一至周五，每天至少休息10 次）
+- **本周完成率** - 基于目标次数自动计算完成百分比（周一至周五，每天至少休息 8 次）
 - **下次提醒显示** - 实时显示下一次提醒的具体时间
 - **数据持久化** - 自动保存配置和统计记录，刷新不丢失
 
@@ -101,7 +107,7 @@
 | :--------- | :-------------------------------------------------- |
 | 今日活动   | 今日完成的活动提醒次数                              |
 | 连续打卡   | 连续完成活动的天数                                  |
-| 本周完成率 | 本周活动次数 / 本周目标次数 × 100%（每周5天、每天8次） |
+| 本周完成率 | 本周活动次数 / 本周目标次数 × 100%（目标：每天 8 次，每周 40 次） |
 
 ### 运行状态
 
