@@ -36,12 +36,12 @@ mod imp {
     use std::sync::mpsc;
     use std::time::Duration;
 
-    use windows_sys::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
+    use windows_sys::Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, WPARAM};
     use windows_sys::Win32::System::Threading::GetCurrentThreadId;
     use windows_sys::Win32::UI::WindowsAndMessaging::{
         CallNextHookEx, DispatchMessageW, GetMessageW, PostThreadMessageW, SetWindowsHookExW,
-        TranslateMessage, UnhookWindowsHookEx, HHOOK, HINSTANCE, HWND, KBDLLHOOKSTRUCT, MSG,
-        WH_KEYBOARD_LL, WM_QUIT,
+        TranslateMessage, UnhookWindowsHookEx, HHOOK, KBDLLHOOKSTRUCT, MSG, WH_KEYBOARD_LL,
+        WM_QUIT,
     };
 
     static INSTALLED: AtomicBool = AtomicBool::new(false);
