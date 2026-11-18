@@ -127,10 +127,15 @@ Tauri 正式取代 Electron 后，再统一切换为 `vX.Y.Z`。
 
 ### 手动测试包（未签名、不发布）
 
-`.github/workflows/desktop-build-test.yml`，仅 `workflow_dispatch` 手动触发：
+`.github/workflows/desktop-build-test.yml`，支持手动触发与测试标签触发：
 
 ```bash
+# 工作流合并到默认分支后可用
 gh workflow run desktop-build-test.yml --ref tauri/foundation
+
+# 当前分支可直接用测试标签触发（推荐）
+git tag desktop-test-0.7.0.1
+git push origin desktop-test-0.7.0.1
 ```
 
 - 执行 `tauri build --no-bundle`，跳过安装包和更新签名。

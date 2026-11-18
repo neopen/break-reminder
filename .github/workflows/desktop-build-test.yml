@@ -2,6 +2,10 @@ name: Desktop Test Build (Windows, unsigned)
 
 on:
   workflow_dispatch:
+  # 测试标签触发：分支上也可直接产出 exe，不会触发正式发布
+  push:
+    tags:
+      - "desktop-test-*"
 
 permissions:
   contents: read
