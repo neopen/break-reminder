@@ -1,44 +1,146 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#667eea"/>
-      <stop offset="100%" style="stop-color:#764ba2"/>
+    <!-- 背景渐变：清新的薄荷绿 -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#E0F7F1" />
+      <stop offset="100%" stop-color="#A8E6CF" />
     </linearGradient>
-    <linearGradient id="bellGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#fbbf24"/>
-      <stop offset="100%" style="stop-color:#f59e0b"/>
+
+    <!-- 椅子渐变 -->
+    <linearGradient id="chairGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#F0F4F8" />
     </linearGradient>
+
+    <!-- 橙色渐变：用于闹钟和小人 -->
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFB347" />
+      <stop offset="100%" stop-color="#FF8C00" />
+    </linearGradient>
+
+    <!-- 阴影 -->
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000000" flood-opacity="0.1" />
+    </filter>
   </defs>
-  
-  <!-- 背景圆角方形 -->
-  <rect x="32" y="32" width="448" height="448" rx="96" ry="96" fill="url(#bgGrad)"/>
-  
-  <!-- 外圈光晕 -->
-  <circle cx="256" cy="220" r="120" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="8"/>
-  
-  <!-- 铃铛主体 -->
-  <path d="M256 80 C220 80 190 105 186 140 L176 230 C172 260 160 280 140 292 L140 300 L372 300 L372 292 C352 280 340 260 336 230 L326 140 C322 105 292 80 256 80 Z" 
-        fill="url(#bellGrad)" stroke="#d97706" stroke-width="4"/>
-  
-  <!-- 铃铛顶部圆钮 -->
-  <circle cx="256" cy="72" r="18" fill="#fcd34d" stroke="#d97706" stroke-width="3"/>
-  
-  <!-- 铃铛底部开口 -->
-  <path d="M210 300 L210 310 C210 330 230 348 256 348 C282 348 302 330 302 310 L302 300" 
-        fill="none" stroke="#d97706" stroke-width="5" stroke-linecap="round"/>
-  
-  <!-- 铃舌 -->
-  <circle cx="256" cy="355" r="10" fill="#f59e0b"/>
-  
-  <!-- 提醒波纹（右侧） -->
-  <path d="M380 160 Q400 200 395 240" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="4" stroke-linecap="round"/>
-  <path d="M400 130 Q430 190 420 260" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="3" stroke-linecap="round"/>
-  
-  <!-- 提醒波纹（左侧） -->
-  <path d="M132 160 Q112 200 117 240" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="4" stroke-linecap="round"/>
-  <path d="M112 130 Q82 190 92 260" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="3" stroke-linecap="round"/>
-  
-  <!-- 底部文字 "STAND" -->
-  <text x="256" y="440" font-family="Arial, Helvetica, sans-serif" font-size="36" font-weight="bold" 
-        fill="white" text-anchor="middle" letter-spacing="4" opacity="0.9">STAND</text>
+
+  <!-- 背景 -->
+  <rect width="1024" height="1024" rx="220" ry="220" fill="url(#bgGrad)" />
+
+  <!-- ===== 左侧：办公椅 + 闹钟 ===== -->
+  <g filter="url(#shadow)">
+    <!-- 椅子底座 -->
+    <ellipse cx="360" cy="920" rx="180" ry="20" fill="#000000" opacity="0.08" />
+    
+    <!-- 椅子五星脚 -->
+    <g stroke="#B0BEC5" stroke-width="18" stroke-linecap="round">
+      <line x1="360" y1="880" x2="220" y2="930" />
+      <line x1="360" y1="880" x2="500" y2="930" />
+      <line x1="360" y1="880" x2="280" y2="950" />
+      <line x1="360" y1="880" x2="440" y2="950" />
+      <line x1="360" y1="880" x2="360" y2="960" />
+    </g>
+    
+    <!-- 轮子 -->
+    <g fill="#78909C">
+      <circle cx="220" cy="935" r="22" />
+      <circle cx="500" cy="935" r="22" />
+      <circle cx="280" cy="955" r="22" />
+      <circle cx="440" cy="955" r="22" />
+      <circle cx="360" cy="965" r="22" />
+    </g>
+
+    <!-- 椅子支柱 -->
+    <rect x="340" y="750" width="40" height="140" rx="10" fill="#B0BEC5" />
+    <rect x="330" y="740" width="60" height="30" rx="8" fill="#90A4AE" />
+
+    <!-- 椅座 -->
+    <path d="M 200 700 L 520 700 C 540 700, 550 710, 550 730 L 540 780 C 535 800, 510 810, 490 810 L 230 810 C 210 810, 190 800, 185 780 L 175 730 C 170 710, 180 700, 200 700 Z" fill="url(#chairGrad)" />
+    <!-- 椅座侧面厚度 -->
+    <path d="M 185 780 L 540 780 L 535 810 C 530 825, 500 835, 480 835 L 240 835 C 220 835, 195 825, 190 810 Z" fill="#E0E0E0" />
+
+    <!-- 椅背 -->
+    <path d="M 220 700 L 220 320 C 220 260, 260 220, 320 220 L 420 220 C 470 220, 500 250, 500 300 L 500 700 Z" fill="url(#chairGrad)" />
+    <!-- 椅背内侧阴影 -->
+    <path d="M 240 680 L 240 330 C 240 280, 270 250, 320 250 L 410 250 C 450 250, 475 275, 475 310 L 475 680 Z" fill="#F5F7FA" />
+  </g>
+
+  <!-- 闹钟 -->
+  <g transform="translate(360, 520)" filter="url(#shadow)">
+    <!-- 闹钟腿 -->
+    <line x1="-50" y1="130" x2="-70" y2="170" stroke="#FF8C00" stroke-width="14" stroke-linecap="round" />
+    <line x1="50" y1="130" x2="70" y2="170" stroke="#FF8C00" stroke-width="14" stroke-linecap="round" />
+    
+    <!-- 闹钟主体 -->
+    <circle cx="0" cy="0" r="120" fill="#FFFFFF" stroke="#FF8C00" stroke-width="12" />
+    <!-- 闹钟内圈 -->
+    <circle cx="0" cy="0" r="100" fill="#FFF8F0" />
+    
+    <!-- 闹钟顶部按钮 -->
+    <rect x="-15" y="-135" width="30" height="20" rx="5" fill="#FF8C00" />
+    
+    <!-- 闹钟铃铛 -->
+    <path d="M -90 -80 C -110 -110, -70 -130, -50 -110 Z" fill="#FF8C00" />
+    <path d="M 90 -80 C 110 -110, 70 -130, 50 -110 Z" fill="#FF8C00" />
+    <!-- 铃铛高光 -->
+    <path d="M -80 -95 C -90 -105, -75 -115, -65 -105" stroke="#FFB347" stroke-width="4" fill="none" stroke-linecap="round" />
+    <path d="M 80 -95 C 90 -105, 75 -115, 65 -105" stroke="#FFB347" stroke-width="4" fill="none" stroke-linecap="round" />
+
+    <!-- 时钟刻度 -->
+    <g stroke="#333333" stroke-width="4" stroke-linecap="round">
+      <line x1="0" y1="-85" x2="0" y2="-70" />
+      <line x1="0" y1="85" x2="0" y2="70" />
+      <line x1="-85" y1="0" x2="-70" y2="0" />
+      <line x1="85" y1="0" x2="70" y2="0" />
+      <line x1="60" y1="-60" x2="50" y2="-50" />
+      <line x1="-60" y1="-60" x2="-50" y2="-50" />
+      <line x1="60" y1="60" x2="50" y2="50" />
+      <line x1="-60" y1="60" x2="-50" y2="50" />
+    </g>
+
+    <!-- 时针 (指向4点方向) -->
+    <line x1="0" y1="0" x2="50" y2="30" stroke="#FF8C00" stroke-width="10" stroke-linecap="round" />
+    <!-- 分针 (指向12点方向) -->
+    <line x1="0" y1="0" x2="0" y2="-65" stroke="#333333" stroke-width="7" stroke-linecap="round" />
+    <!-- 中心点 -->
+    <circle cx="0" cy="0" r="10" fill="#FF8C00" />
+
+    <!-- 响铃波纹 (左侧) -->
+    <g stroke="#FF8C00" stroke-width="8" stroke-linecap="round" fill="none" opacity="0.9">
+      <path d="M -140 -60 Q -170 -60 -170 -30" />
+      <path d="M -160 -80 Q -200 -80 -200 -30" />
+      <path d="M -180 -100 Q -230 -100 -230 -30" />
+    </g>
+    <!-- 响铃波纹 (右侧) -->
+    <g stroke="#FF8C00" stroke-width="8" stroke-linecap="round" fill="none" opacity="0.9">
+      <path d="M 140 -60 Q 170 -60 170 -30" />
+      <path d="M 160 -80 Q 200 -80 200 -30" />
+      <path d="M 180 -100 Q 230 -100 230 -30" />
+    </g>
+  </g>
+
+  <!-- ===== 右侧：站立伸展的小人 ===== -->
+  <g transform="translate(720, 480)" fill="url(#orangeGrad)" filter="url(#shadow)">
+    <!-- 身体躯干 -->
+    <path d="M 0 80 Q 10 200 -10 340" stroke="url(#orangeGrad)" stroke-width="70" stroke-linecap="round" fill="none" />
+    
+    <!-- 头部 -->
+    <circle cx="10" cy="0" r="65" />
+    <!-- 头部高光 -->
+    <circle cx="-15" cy="-25" r="20" fill="#FFFFFF" opacity="0.25" />
+
+    <!-- 左臂 (向上伸展) -->
+    <path d="M 10 90 Q -60 20 -110 -80" stroke="url(#orangeGrad)" stroke-width="48" stroke-linecap="round" fill="none" />
+    <!-- 右臂 (向上伸展) -->
+    <path d="M 10 90 Q 80 20 130 -70" stroke="url(#orangeGrad)" stroke-width="48" stroke-linecap="round" fill="none" />
+
+    <!-- 左腿 -->
+    <path d="M -10 340 Q -40 450 -30 540" stroke="url(#orangeGrad)" stroke-width="55" stroke-linecap="round" fill="none" />
+    <!-- 右腿 -->
+    <path d="M -10 340 Q 30 450 40 540" stroke="url(#orangeGrad)" stroke-width="55" stroke-linecap="round" fill="none" />
+  </g>
+
+  <!-- 小人脚下的地面阴影 -->
+  <ellipse cx="720" cy="930" rx="100" ry="15" fill="#000000" opacity="0.06" />
+
 </svg>
