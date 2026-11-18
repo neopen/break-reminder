@@ -177,6 +177,16 @@ A:
 
 
 
+## 桌面端技术体系（Tauri 2）
+
+仓库正在并行推进新一代桌面端：`apps/desktop` 采用 **Tauri 2 + Vue 3 + TypeScript**，
+目标是把安装包从约 97 MB 降到 10 MB 以内，并显著降低常驻内存。
+
+- 技术体系与规范：[docs/desktop/README.md](docs/desktop/README.md)
+- 本地开发：`npm run desktop:install && npm run desktop:dev`
+- 发布标签：`desktop-vX.Y.Z`（与 Electron 旧线的 `vX.Y.Z` 并行）
+- 自动更新：GitHub Release + `tauri-plugin-updater`
+
 ## 致谢
 
 感谢所有使用和反馈的用户，让这个工具变得更好！

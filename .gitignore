@@ -52,3 +52,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Tauri desktop app
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/schemas/
+*.key
+!*.pub

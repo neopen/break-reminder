@@ -1,0 +1,57 @@
+/**
+ * 设计令牌（Design Tokens）
+ * 统一颜色、圆角、间距、阴影与动效。组件只引用变量，不写死色值。
+ */
+:root {
+  /* 字体 */
+  --hc-font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+  /* 品牌色：沿用 Electron 版视觉 */
+  --hc-color-brand: #667eea;
+  --hc-color-brand-deep: #764ba2;
+  --hc-gradient-brand: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+  /* 强调色（统计 / 提醒） */
+  --hc-color-accent: #f59e0b;
+  --hc-color-accent-deep: #f97316;
+  --hc-gradient-accent: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+
+  /* 中性色 */
+  --hc-color-bg: #eef0f8;
+  --hc-color-surface: #ffffff;
+  --hc-color-surface-soft: #f7f8fc;
+  --hc-color-text: #1f2430;
+  --hc-color-text-muted: #6b7280;
+  --hc-color-border: rgba(31, 36, 48, 0.08);
+
+  /* 语义色 */
+  --hc-color-success: #10b981;
+  --hc-color-warning: #f59e0b;
+  --hc-color-danger: #ef4444;
+
+  /* 圆角 */
+  --hc-radius-sm: 12px;
+  --hc-radius-md: 20px;
+  --hc-radius-lg: 28px;
+  --hc-radius-xl: 40px;
+  --hc-radius-pill: 999px;
+
+  /* 间距 */
+  --hc-space-1: 4px;
+  --hc-space-2: 8px;
+  --hc-space-3: 12px;
+  --hc-space-4: 16px;
+  --hc-space-5: 24px;
+  --hc-space-6: 32px;
+  --hc-space-7: 48px;
+
+  /* 阴影 */
+  --hc-shadow-card: 0 24px 48px -20px rgba(31, 36, 48, 0.28);
+  --hc-shadow-soft: 0 8px 24px rgba(31, 36, 48, 0.08);
+
+  /* 动效 */
+  --hc-duration-fast: 150ms;
+  --hc-duration-normal: 240ms;
+  --hc-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}

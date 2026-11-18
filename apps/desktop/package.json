@@ -1,0 +1,36 @@
+{
+  "name": "@healthclock/desktop",
+  "private": true,
+  "version": "0.7.0",
+  "type": "module",
+  "description": "别坐了桌面端 - Tauri 2 + Vue 3 + TypeScript",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit",
+    "tauri": "tauri",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "tauri build",
+    "version:sync": "node scripts/sync-version.mjs",
+    "version:check": "node scripts/check-version.mjs",
+    "audio:generate": "node scripts/generate-audio.mjs",
+    "postversion": "node scripts/sync-version.mjs"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.9.0",
+    "@tauri-apps/plugin-autostart": "^2.5.0",
+    "@tauri-apps/plugin-notification": "^2.3.0",
+    "@tauri-apps/plugin-process": "^2.3.0",
+    "@tauri-apps/plugin-updater": "^2.9.0",
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.9.0",
+    "@types/node": "^24.0.0",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.0",
+    "vue-tsc": "^3.0.0"
+  }
+}

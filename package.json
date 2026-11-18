@@ -18,7 +18,13 @@
     "dist:all": "npm run build && electron-builder --win --mac --linux",
     "build:web": "node scripts/js/build-web.js",
     "clean": "rd /s /q dist release 2>nul || rm -rf dist release",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "desktop:install": "npm --prefix apps/desktop install",
+    "desktop:dev": "npm --prefix apps/desktop run desktop:dev",
+    "desktop:build": "npm --prefix apps/desktop run desktop:build",
+    "desktop:typecheck": "npm --prefix apps/desktop run typecheck",
+    "desktop:version:sync": "npm --prefix apps/desktop run version:sync",
+    "desktop:version:check": "npm --prefix apps/desktop run version:check"
   },
   "scripts-bak": {
     "start": "electron .",
