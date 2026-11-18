@@ -4,7 +4,7 @@ const StorageModule = (function () {
     let isEnabled = true;
 
     // 导出数据到 JSON 文件
-    function exportData() {
+    async function exportData() {
         try {
             const config = localStorage.getItem('healthAlarmConfig');
             const stats = localStorage.getItem('healthAlarmStats');
@@ -14,22 +14,33 @@ const StorageModule = (function () {
                 config: config ? JSON.parse(config) : null,
                 stats: stats ? JSON.parse(stats) : null
             };
+            const content = JSON.stringify(data, null, 2);
+            const fileName = `stand_up_backup_${formatDateForFilename(new Date())}.json`;
 
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            // Electron 环境使用系统保存对话框
+            if (typeof window !== 'undefined' && window.require) {
+                const { ipcRenderer } = window.require('electron');
+                const result = await ipcRenderer.invoke('export-data', content, fileName);
+                console.log('Data export result:', result);
+                return result;
+            }
+
+            // 浏览器环境使用下载
+            const blob = new Blob([content], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `stand_up_backup_${formatDateForFilename(new Date())}.json`;
+            a.download = fileName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
             console.log('Data exported successfully');
-            return true;
+            return { success: true };
         } catch (e) {
             console.error('Export failed:', e);
-            return false;
+            return { success: false, error: e.message };
         }
     }
 

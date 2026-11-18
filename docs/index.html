@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -48,10 +48,9 @@
     <link rel="stylesheet" href="./css/lock.css">
 </head>
 
-<body data-mode="web">
-<div style="background:#667eea;color:white;text-align:center;padding:8px;position:fixed;top:0;left:0;right:0;z-index:10000;">⚡ Web 演示版 · <a href="https://github.com/neopen/active-break-clock/releases" target="_blank" style="color:white;text-decoration:underline;">下载桌面版</a></div>
+<body>
 
-    <div class="app-container" style="padding-top:45px;">
+    <div class="app-container">
         <div class="status-bar">
             <div class="status-bar-left">
                 <h1>⏰ 别坐了</h1>
@@ -63,6 +62,16 @@
                     <span class="download-icon">📥</span>
                     <span class="download-text">下载最新版</span>
                 </a>
+            </div>
+        </div>
+
+        <!-- 版本更新提示 -->
+        <div id="updateBanner" class="update-banner hidden">
+            <div class="update-banner-content">
+                <span class="update-icon">🔔</span>
+                <span class="update-text">发现新版本 <span id="updateVersion"></span></span>
+                <a id="updateLink" href="#" target="_blank" class="update-link">立即更新</a>
+                <button id="updateCloseBtn" class="update-close">✕</button>
             </div>
         </div>
 
@@ -126,23 +135,24 @@
                     <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
 
                         <!-- 午休时间 -->
-                        <div id="lunchBreakSettings" style="margin-top: 12px; margin-left: 8px;">
-                            <div class="settings-row">
-                                <div class="settings-item" style="flex: 2;">
-                                    <span>午休时间段</span>
-                                    <input type="time" id="lunchStart" class="settings-input" value="12:00"
-                                        style="width: 120px;">
+                    <div id="lunchBreakSettings" style="margin-top: 12px; margin-left: 8px;">
+                        <div class="settings-row">
+                            <div class="settings-item" style="flex: 2;">
+                                <span>午休时间段</span>
+                                <div class="time-group">
+                                    <input type="time" id="lunchStart" class="settings-input" value="12:00" style="width: 120px;">
                                     <span>—</span>
                                     <input type="time" id="lunchEnd" class="settings-input" value="14:00" style="width: 120px;">
                                 </div>
                             </div>
                         </div>
+                    </div>
 
                         <!-- 自定义免打扰时段 -->
                         <div style="margin-top: 12px;">
                             <div class="settings-row">
                                 <div class="settings-item settings-item-full" style="justify-content: space-between;">
-                                    <span>自定义免打扰时段（最多5个）</span>
+                                    <span>自定义免打扰时段（5个）</span>
                                     <button class="add-break-btn" id="addBreakBtn"
                                         style="background: #667eea; border: none; padding: 4px 12px; border-radius: 20px; color: white; cursor: pointer;">+  添加</button>
                                 </div>
@@ -292,28 +302,25 @@
         </div>
 
         <!-- 数据管理 -->
-        <!-- <div class="card" style="margin-top: 20px;">
-		<div class="card-title">💾 数据管理</div>
-		<div class="data-actions">
-			<button class="data-btn export-btn" id="exportDataBtn">
-				📥 导出备份
-			</button>
-			<label class="data-btn import-btn" id="importDataLabel">
-				📤 导入恢复
-				<input type="file" id="importFileInput" accept=".json" style="display: none;">
-			</label>
-			<button class="data-btn auto-backup-btn" id="autoBackupToggle">
-				⏰ 自动备份: 开启
-			</button>
-		</div>
-		<div class="data-info">
-			<span id="dataSizeInfo">数据大小: 0 KB</span>
-			<span class="backup-hint">💡 自动备份每24小时执行一次，备份文件保存在下载目录</span>
-		</div>
-	</div> -->
+        <div class="card" style="margin-top: 20px;">
+            <div class="card-title">💾 数据管理</div>
+            <div class="data-actions">
+                <button class="data-btn export-btn" id="exportDataBtn">
+                    📥 导出备份
+                </button>
+                <label class="data-btn import-btn" id="importDataLabel">
+                    📤 导入恢复
+                    <input type="file" id="importFileInput" accept=".json" style="display: none;">
+                </label>
+            </div>
+            <div class="data-info">
+                <span id="dataSizeInfo">数据大小: 0 KB</span>
+                <span class="backup-hint">💡 备份文件包含提醒设置和统计数据，可在重装后导入恢复</span>
+            </div>
+        </div>
 
         <!-- 共享模块 -->
-        <script src="./js/web-adapter.js"></script>`n    <script src="./js/shared/constants.js"></script>
+        <script src="./js/shared/constants.js"></script>
         <script src="./js/shared/logger.js"></script>
         <script src="./js/shared/errorHandler.js"></script>
         <script src="./js/shared/fs-util.js"></script>
