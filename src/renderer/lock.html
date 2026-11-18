@@ -219,6 +219,31 @@
             box-shadow: none;
         }
 
+        .lock-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 14px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .secondary-btn {
+            flex: 1;
+            max-width: 160px;
+            padding: 10px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            background: rgba(255, 255, 255, 0.08);
+            color: #e5e7eb;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .secondary-btn:hover {
+            background: rgba(255, 255, 255, 0.16);
+        }
+
         .reminder-suggestion {
             margin-top: 32px;
             font-size: 14px;
@@ -378,6 +403,11 @@
 
         <button id="unlockBtn" class="action-btn">等待倒计时...</button>
 
+        <div class="lock-actions" id="lockActions">
+            <button id="snoozeBtn" class="secondary-btn">稍后 5 分钟</button>
+            <button id="skipBtn" class="secondary-btn">跳过本次</button>
+        </div>
+
         <div class="reminder-suggestion">
             <div class="suggestion-item">
                 <span class="suggestion-icon">🚶</span>
@@ -429,6 +459,9 @@
             const countdownSpan = document.getElementById('countdownSeconds');
             const unlockBtn = document.getElementById('unlockBtn');
             const timerRing = document.getElementById('timerRing');
+            const snoozeBtn = document.getElementById('snoozeBtn');
+            const skipBtn = document.getElementById('skipBtn');
+            const lockActions = document.getElementById('lockActions');
 
             let progressCircle = null;
             let timerInterval = null;
@@ -617,6 +650,49 @@
                     unlockBtn.disabled = false;
                 }
                 unlockBtn.addEventListener('click', onEarlyUnlock);
+            }
+
+            // 强制锁屏时不提供稍后/跳过
+            if (forceLock && lockActions) {
+                lockActions.style.display = 'none';
+            }
+
+            function sendToMain(channel, ...args) {
+                try {
+                    const { ipcRenderer } = window.require('electron');
+                    ipcRenderer.send(channel, ...args);
+                } catch (e) {
+                    console.error('[LOCK] Failed to send', channel, e);
+                }
+            }
+
+            if (snoozeBtn) {
+                snoozeBtn.addEventListener('click', () => {
+                    if (isClosed) return;
+                    snoozeBtn.disabled = true;
+                    snoozeBtn.innerText = '已稍后提醒';
+                    sendToMain('snooze-reminder', 5);
+                });
+            }
+
+            if (skipBtn) {
+                skipBtn.addEventListener('click', async () => {
+                    if (isClosed) return;
+
+                    const confirmed = await showConfirmDialog({
+                        title: '跳过本次提醒',
+                        message: '跳过本次不会计入完成次数。<br>确定要跳过吗？',
+                        confirmText: '跳过',
+                        cancelText: '再坚持一下',
+                        confirmColor: '#f59e0b'
+                    });
+
+                    if (!confirmed) return;
+
+                    skipBtn.disabled = true;
+                    skipBtn.innerText = '已跳过';
+                    sendToMain('skip-reminder');
+                });
             }
 
             startCountdown();
