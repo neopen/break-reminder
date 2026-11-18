@@ -1,6 +1,7 @@
-<h1 align="center">定时提醒 - 拒绝久坐</h1>
+<h1 align="center">别坐了 (HealthClock)</h1>
+<h2 align="center">定时提醒 - 拒绝久坐</h2>
 <p align="center">
-<strong>一款强制提醒活动的桌面应用，帮助久坐用户定时起身活动（防久坐），支持锁屏强制提醒、桌面通知、每日打卡统计。</strong>
+<strong>一款强制提醒活动的桌面应用，帮助久坐用户定时起身活动，支持强制锁屏、桌面通知、打卡统计。</strong>
 </p>
 
 <p align="center">
