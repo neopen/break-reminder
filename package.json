@@ -30,6 +30,18 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "compress": "compress.bat"
   },
+  "scripts-bak": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64",
+    "build:win": "electron-builder --win --x64",
+    "clean": "rmdir /s /q dist node_modules",
+    "build:web": "node scripts/build-web.js",
+    "deploy:web": "npm run build:web && node scripts/deploy-web.js",
+    "serve:web": "npx serve docs",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "compress": "compress.bat"
+  },
+
   "repository": {
     "type": "git",
     "url": "git+https://github.com/neopen/break-reminder.git"
@@ -68,4 +80,5 @@
   "optionalDependencies": {
     "x11": "^2.3.0"
   }
+  
 }

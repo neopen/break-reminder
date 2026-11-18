@@ -1,0 +1,73 @@
+name: Build Electron App
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: mac
+          - os: windows-latest
+            platform: win
+          - os: ubuntu-latest
+            platform: linux
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm install
+
+    - name: Cache electron-builder binaries
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/electron
+          ~/.cache/electron-builder
+        key: ${{ runner.os }}-electron-builder-v2-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-electron-builder-v2-
+
+    - name: Build source code
+      run: npm run build
+    
+    - name: Build macOS app (unsigned)
+      if: matrix.platform == 'mac'
+      run: npx electron-builder --mac --publish never --x64
+      env:
+        ELECTRON_BUILDER_BINARIES_MIRROR: ""
+        ELECTRON_MIRROR: "https://npmmirror.com/mirrors/electron/"
+        CSC_IDENTITY_AUTO_DISCOVERY: false
+        CSC_IDENTITY: ""
+        CSC_FORCE_NO_SIGN: "true"
+        ELECTRON_BUILDER_ALLOW_UNSIGNED: "true"
+        APPLE_ID: ""
+        APPLE_TEAM_ID: ""
+    
+    - name: Build Windows app
+      if: matrix.platform == 'win'
+      run: npx electron-builder --win --publish never
+      env:
+        WIN_CSC_LINK: ""
+    
+    - name: Build Linux app
+      if: matrix.platform == 'linux'
+      run: npx electron-builder --linux --publish never
+    
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.platform }}-artifacts
+        path: release/
