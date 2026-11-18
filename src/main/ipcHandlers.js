@@ -80,6 +80,19 @@ function initIpcHandlers() {
         }
     });
 
+    // 闹铃运行状态：运行中关闭后台节流，保证隐藏到托盘时提醒不被延迟；停止后恢复节流以省电
+    ipcMain.on('reminder-running', (event, running) => {
+        const mainWindow = windowManager.getMainWindow();
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            try {
+                mainWindow.webContents.setBackgroundThrottling(!running);
+                console.log('[IPC] Background throttling:', !running);
+            } catch (e) {
+                console.error('[IPC] Failed to set background throttling:', e);
+            }
+        }
+    });
+
     // ========== 声音相关 ==========
 
     ipcMain.on('stop-sound-request', () => {

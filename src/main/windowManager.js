@@ -311,7 +311,7 @@ function initPowerManagement() {
         } catch (e) {
             console.error('[WindowManager] Idle check error:', e.message);
         }
-    }, 60000); // 每60秒检查一次
+    }, 120000); // 兜底检查每 2 分钟一次（常规状态切换由 powerMonitor 事件驱动）
 }
 
 // 创建锁屏窗口
@@ -475,21 +475,20 @@ function createLockWindow(durationSeconds, forceLock, systemLock) {
         lockWindow.focus();
         lockWindow.moveTop();
 
-        // 持续确保全屏和焦点
+        // 持续确保全屏和焦点（低频校验，仅在状态被破坏时才重新设置，降低锁屏期间的 CPU 占用）
         const fullscreenInterval = setInterval(() => {
-            if (lockWindow && !lockWindow.isDestroyed()) {
-                lockWindow.setKiosk(true);
-                lockWindow.setFullScreen(true);
-                lockWindow.setAlwaysOnTop(true, 'screen-saver');
-                if (process.platform === 'win32') {
-                    lockWindow.setSkipTaskbar(true);
-                }
+            if (!lockWindow || lockWindow.isDestroyed()) {
+                clearInterval(fullscreenInterval);
+                return;
+            }
+            if (!lockWindow.isKiosk()) lockWindow.setKiosk(true);
+            if (!lockWindow.isFullScreen()) lockWindow.setFullScreen(true);
+            if (!lockWindow.isAlwaysOnTop()) lockWindow.setAlwaysOnTop(true, 'screen-saver');
+            if (!lockWindow.isFocused()) {
                 lockWindow.focus();
                 lockWindow.moveTop();
-            } else {
-                clearInterval(fullscreenInterval);
             }
-        }, 500);
+        }, 2000);
 
         lockWindow._fullscreenInterval = fullscreenInterval;
     });

@@ -1,7 +1,7 @@
 // 提醒核心逻辑模块
 const ReminderModule = (function () {
     let isRunning = false;
-    let mainIntervalId = null;
+    let checkTimeoutId = null; // 下一次检查的定时器（事件驱动，避免高频轮询）
     let nextReminderTimestamp = null;
     let currentLockEndTime = null;
     let lockTimerInterval = null;
@@ -302,7 +302,8 @@ const ReminderModule = (function () {
         };
 
         updateTimer();
-        lockTimerInterval = setInterval(updateTimer, 100);
+        // 倒计时按秒刷新即可，避免高频重绘造成无谓的 CPU/GPU 占用
+        lockTimerInterval = setInterval(updateTimer, 1000);
     }
 
 
@@ -445,12 +446,24 @@ const ReminderModule = (function () {
     }
 
 
+    // 通知主进程是否需要保持渲染进程定时器精度（隐藏到托盘时避免被节流延迟提醒）
+    function notifyThrottling(running) {
+        if (!isElectronEnvironment()) return;
+        try {
+            const { ipcRenderer } = window.require('electron');
+            ipcRenderer.send('reminder-running', running);
+        } catch (e) {
+            // 忽略：不影响提醒主流程
+        }
+    }
+
     function start(config) {
         console.log('ReminderModule.start called, config:', config);
         isRunning = true;
         pendingLock = false;
         isLocked = false;
         isCreatingLock = false;
+        notifyThrottling(true);
         console.log('[REMINDER] Start state:', { isRunning, pendingLock, isLocked, isCreatingLock });
     }
 
@@ -458,10 +471,10 @@ const ReminderModule = (function () {
         console.log('[REMINDER] stop called, isRunning:', isRunning, 'isLocked:', isLocked);
         isRunning = false;
 
-        if (mainIntervalId) {
-            clearInterval(mainIntervalId);
-            mainIntervalId = null;
-        }
+        clearCheckTimer();
+
+        // 恢复后台节流，未运行时不占用资源
+        notifyThrottling(false);
 
         // 停止声音
         if (AudioModule) {
@@ -533,10 +546,7 @@ const ReminderModule = (function () {
         console.log('[REMINDER] Timer paused at:', pauseTimestamp);
 
         // 停止检查循环
-        if (mainIntervalId) {
-            clearInterval(mainIntervalId);
-            mainIntervalId = null;
-        }
+        clearCheckTimer();
 
         // 停止声音
         if (AudioModule) {
@@ -577,50 +587,22 @@ const ReminderModule = (function () {
         startCheckLoop();
     }
 
-    // 检查系统是否处于锁屏状态
-    function isSystemLocked() {
-        // 在 Electron 环境中，我们可以通过 powerMonitor 或系统 API 检查
-        if (typeof window !== 'undefined' && window.require) {
-            try {
-                const { powerMonitor } = window.require('electron');
-                // 检查系统是否处于空闲状态（通常表示锁屏）
-                const systemIdleState = powerMonitor.getSystemIdleState(60); // 60秒空闲
-                return systemIdleState === 'locked';
-            } catch (e) {
-                console.error('[REMINDER] Failed to check system lock state:', e);
-                return false;
-            }
-        }
-        return false;
-    }
-
-    // 主检查循环
+    // 主检查循环（单次检查）
     function checkAndRemind() {
         if (!isRunning) {
-            console.log('[REMINDER] Check skipped: not running');
             return;
         }
         if (isLocked) {
-            console.log('[REMINDER] Check skipped: locked');
             return;
         }
         if (pendingLock) {
-            console.log('[REMINDER] Check skipped: pending lock');
             return;
         }
         if (isPaused) {
-            console.log('[REMINDER] Check skipped: paused');
-            return;
-        }
-        if (isSystemLocked()) {
-            console.log('[REMINDER] Check skipped: system is locked');
             return;
         }
 
         const now = Date.now();
-        // if (nextReminderTimestamp) {
-        //     console.log('[REMINDER] Time difference:', (nextReminderTimestamp - now) / 1000, 'seconds');
-        // }
 
         if (nextReminderTimestamp && now >= nextReminderTimestamp) {
             console.log('[REMINDER] Time to remind!');
@@ -634,18 +616,34 @@ const ReminderModule = (function () {
         }
     }
 
-    // 启动检查循环
-    function startCheckLoop() {
-        if (mainIntervalId) {
-            console.log('[REMINDER] Clearing existing interval:', mainIntervalId);
-            clearInterval(mainIntervalId);
-            mainIntervalId = null;
+    // 停止调度
+    function clearCheckTimer() {
+        if (checkTimeoutId) {
+            clearTimeout(checkTimeoutId);
+            checkTimeoutId = null;
         }
-        if (!isRunning) {
-            console.log('[REMINDER] Not running, skipping startCheckLoop');
+    }
+
+    // 启动检查循环：只在“下一次提醒时刻”唤醒一次，避免 500ms 高频轮询
+    function startCheckLoop() {
+        clearCheckTimer();
+
+        if (!isRunning || isLocked || pendingLock || isPaused) {
             return;
         }
-        mainIntervalId = setInterval(() => checkAndRemind(), 500);
+
+        // 兜底唤醒：应对系统时间跳变、休眠恢复等异常场景
+        const MAX_SLEEP_MS = 5 * 60 * 1000;
+        let delay = MAX_SLEEP_MS;
+        if (nextReminderTimestamp) {
+            delay = Math.min(MAX_SLEEP_MS, Math.max(250, nextReminderTimestamp - Date.now() + 50));
+        }
+
+        checkTimeoutId = setTimeout(() => {
+            checkTimeoutId = null;
+            checkAndRemind();
+            startCheckLoop();
+        }, delay);
     }
 
     // 检查是否在免打扰时段
