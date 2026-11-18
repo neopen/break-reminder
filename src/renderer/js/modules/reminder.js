@@ -587,6 +587,20 @@ const ReminderModule = (function () {
         startCheckLoop();
     }
 
+    // 检查系统是否处于锁屏状态（仅在提醒到点时调用一次，避免高频查询）
+    function isSystemLocked() {
+        if (typeof window !== 'undefined' && window.require) {
+            try {
+                const { powerMonitor } = window.require('electron');
+                return powerMonitor.getSystemIdleState(60) === 'locked';
+            } catch (e) {
+                console.error('[REMINDER] Failed to check system lock state:', e);
+                return false;
+            }
+        }
+        return false;
+    }
+
     // 主检查循环（单次检查）
     function checkAndRemind() {
         if (!isRunning) {
@@ -605,6 +619,11 @@ const ReminderModule = (function () {
         const now = Date.now();
 
         if (nextReminderTimestamp && now >= nextReminderTimestamp) {
+            // 系统锁屏时推迟提醒，避免用户在离开时触发无意义提醒
+            if (isSystemLocked()) {
+                console.log('[REMINDER] System locked, postpone reminder');
+                return;
+            }
             console.log('[REMINDER] Time to remind!');
             if (ConfigModule) {
                 const config = ConfigModule.load();
@@ -634,9 +653,12 @@ const ReminderModule = (function () {
 
         // 兜底唤醒：应对系统时间跳变、休眠恢复等异常场景
         const MAX_SLEEP_MS = 5 * 60 * 1000;
+        const RETRY_DELAY_MS = 30 * 1000;
         let delay = MAX_SLEEP_MS;
         if (nextReminderTimestamp) {
-            delay = Math.min(MAX_SLEEP_MS, Math.max(250, nextReminderTimestamp - Date.now() + 50));
+            const remain = nextReminderTimestamp - Date.now() + 50;
+            // 已过点却未触发（例如系统锁屏被推迟）时，用低频重试代替高频轮询
+            delay = remain > 0 ? Math.min(MAX_SLEEP_MS, remain) : RETRY_DELAY_MS;
         }
 
         checkTimeoutId = setTimeout(() => {
