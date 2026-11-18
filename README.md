@@ -1,8 +1,14 @@
-# 定时提醒 - 拒绝久坐
+<h1 align="center">定时提醒 - 拒绝久坐</h1>
+<p align="center">
+<strong>一款强制提醒活动的桌面应用，帮助久坐用户定时起身活动（防久坐），支持锁屏强制提醒、桌面通知、每日打卡统计。</strong>
+</p>
 
-一款强制提醒活动的桌面应用，帮助久坐用户定时起身活动（防久坐），支持锁屏强制提醒、桌面通知、每日打卡统计。
-
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)  [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Web-brightgreen)]()
+<p align="center">
+  <a href="https://github.com/neopen/active-break-clock/releases"><img src="https://img.shields.io/github/v/release/neopen/active-break-clock?label=Version&color=blue" alt="Version"></a>
+  <a href="https://github.com/neopen/active-break-clock/releases"><img src="https://img.shields.io/github/downloads/neopen/active-break-clock/total?label=Downloads&logo=github&color=blue" alt="Downloads"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Web-brightgreen" alt="Platform">
+</p>
 
 
 
