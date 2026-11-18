@@ -13,6 +13,7 @@ let isLockWindowClosing = false;
 let isRestoringMain = false;
 let wasMainWindowVisible = true; // 保存主窗口的可见状态
 let systemLockEnabled = false; // 系统锁屏设置
+let idleCheckInterval = null; // 系统空闲状态轮询定时器
 
 // 调用系统锁屏
 function lockSystem() {
@@ -105,6 +106,25 @@ function createTray() {
                         mainWindow.focus();
                     } else {
                         createMainWindow();
+                    }
+                }
+            },
+            {
+                label: '稍后提醒',
+                submenu: [5, 10, 15, 30].map(minutes => ({
+                    label: `${minutes} 分钟后提醒`,
+                    click: () => {
+                        if (mainWindow && !mainWindow.isDestroyed()) {
+                            mainWindow.webContents.send('reminder-snooze', minutes);
+                        }
+                    }
+                }))
+            },
+            {
+                label: '跳过本次',
+                click: () => {
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.send('reminder-skip');
                     }
                 }
             },
@@ -264,7 +284,7 @@ function initPowerManagement() {
 
     // 周期性检查系统空闲/锁屏状态（作为事件监听的补充）
     let lastIdleState = 'unknown';
-    const idleCheckInterval = setInterval(() => {
+    idleCheckInterval = setInterval(() => {
         try {
             const idleState = powerMonitor.getSystemIdleState(30);
 
@@ -587,6 +607,39 @@ function getLockWindow() { return lockWindow; }
 function getTray() { return tray; }
 function isLockWindowClosingState() { return isLockWindowClosing; }
 
+// 退出前统一释放资源，避免键盘钩子、定时器和锁屏窗口残留
+function dispose() {
+    console.log('[WindowManager] Disposing resources');
+
+    if (idleCheckInterval) {
+        clearInterval(idleCheckInterval);
+        idleCheckInterval = null;
+    }
+
+    if (lockTimer) {
+        clearTimeout(lockTimer);
+        lockTimer = null;
+    }
+
+    if (lockWindow && !lockWindow.isDestroyed()) {
+        if (lockWindow._fullscreenInterval) {
+            clearInterval(lockWindow._fullscreenInterval);
+        }
+        try {
+            lockWindow.destroy();
+        } catch (e) {
+            console.error('[WindowManager] Error destroying lock window on dispose:', e);
+        }
+        lockWindow = null;
+    }
+
+    try {
+        keyboardBlocker.stopBlocking();
+    } catch (e) {
+        console.error('[WindowManager] Error stopping keyboard blocker:', e);
+    }
+}
+
 module.exports = {
     createMainWindow,
     createTray,
@@ -595,6 +648,7 @@ module.exports = {
     closeLockWindow,
     restoreMainWindow,
     initPowerManagement,
+    dispose,
     getMainWindow,
     getLockWindow,
     getTray,

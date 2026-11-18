@@ -43,7 +43,10 @@
         updateBanner: document.getElementById('updateBanner'),
         updateVersion: document.getElementById('updateVersion'),
         updateLink: document.getElementById('updateLink'),
-        updateCloseBtn: document.getElementById('updateCloseBtn')
+        updateCloseBtn: document.getElementById('updateCloseBtn'),
+        exportDataBtn: document.getElementById('exportDataBtn'),
+        importFileInput: document.getElementById('importFileInput'),
+        dataSizeInfo: document.getElementById('dataSizeInfo')
     };
 
     // 初始化各模块
@@ -61,21 +64,24 @@
     ReminderModule.setCallbacks({
         onReminderTrigger: async (notificationType) => {
             logger.info('Reminder triggered, type:', notificationType);
-            const result = StatsModule.recordActivity();
-            console.log('[App] StatsModule.recordActivity result:', result);
 
             if (notificationType === 'desktop') {
+                // 桌面通知模式无法感知用户是否真正活动，按触发计次
+                const result = StatsModule.recordActivity();
+                console.log('[App] StatsModule.recordActivity result:', result);
                 await NotificationModule.sendReminder();
             }
+            // 锁屏模式在倒计时完成后计次（见 lock-closed 处理）
         },
         onLockClose: () => {
             logger.info('Lock closed, rescheduling');
             if (ReminderModule.isReminderRunning()) {
+                const manualNext = ReminderModule.consumeManualNext();
                 const now = new Date();
                 const config = Config.load();
-                const next = ReminderModule.calculateNextReminder(now, config);
-                ReminderModule.setNextReminderTime(next.getTime());
-                UIModule.updateNextReminderDisplay(next.getTime());
+                const nextTime = manualNext || ReminderModule.calculateNextReminder(now, config).getTime();
+                ReminderModule.setNextReminderTime(nextTime);
+                UIModule.updateNextReminderDisplay(nextTime);
                 ReminderModule.startCheckLoop();
             }
             AudioModule.stopContinuous();
@@ -103,6 +109,52 @@
     elements.unlockBtn?.addEventListener('click', () => LockController.unlock());
     elements.resetStatsBtn?.addEventListener('click', () => StatsController.reset());
     elements.testNotifyBtn?.addEventListener('click', () => NotificationTester.test());
+    bindDataManagement();
+
+    /**
+     * 数据导入导出
+     */
+    function bindDataManagement() {
+        if (typeof StorageModule === 'undefined') return;
+
+        updateDataSize();
+
+        elements.exportDataBtn?.addEventListener('click', async () => {
+            const result = await StorageModule.exportData();
+            if (result && result.success) {
+                showDataStatus(result.filePath ? `已导出到 ${result.filePath}` : '导出成功');
+            } else if (result && !result.canceled) {
+                showDataStatus(`导出失败：${result.error || '未知错误'}`);
+            }
+        });
+
+        elements.importFileInput?.addEventListener('change', async (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+
+            try {
+                await StorageModule.importData(file);
+                showDataStatus('导入成功，正在刷新...');
+                setTimeout(() => window.location.reload(), 600);
+            } catch (err) {
+                console.error('[App] Import failed:', err);
+                showDataStatus(`导入失败：${err.message}`);
+                e.target.value = '';
+            }
+        });
+    }
+
+    function updateDataSize() {
+        if (elements.dataSizeInfo && StorageModule.getDataSize) {
+            elements.dataSizeInfo.innerText = `数据大小: ${StorageModule.getDataSize()} KB`;
+        }
+    }
+
+    function showDataStatus(text) {
+        if (!elements.dataSizeInfo) return;
+        elements.dataSizeInfo.innerText = text;
+        setTimeout(updateDataSize, 6000);
+    }
 
     /**
      * 注册 Service Worker（带环境检测和错误处理）
@@ -244,13 +296,15 @@
     // 初始化版本更新检查
     initUpdateChecker();
 
-    // 页面关闭提醒
-    window.addEventListener('beforeunload', (e) => {
-        if (ReminderModule.isReminderRunning()) {
-            e.preventDefault();
-            e.returnValue = '闹铃正在运行，确定要离开吗？';
-        }
-    });
+    // 页面关闭提醒（仅浏览器环境；Electron 由主进程统一处理退出，避免阻塞 app.quit）
+    if (!window.require) {
+        window.addEventListener('beforeunload', (e) => {
+            if (ReminderModule.isReminderRunning()) {
+                e.preventDefault();
+                e.returnValue = '闹铃正在运行，确定要离开吗？';
+            }
+        });
+    }
 
     // 监听统计更新事件
     window.addEventListener('stats-updated', (event) => {
@@ -263,14 +317,20 @@
         try {
             const { ipcRenderer } = window.require('electron');
             ipcRenderer.on('stop-sound', () => AudioModule.stopContinuous());
-            ipcRenderer.on('lock-closed', () => {
+            ipcRenderer.on('lock-closed', (event, completed) => {
+                // 只有倒计时自然完成才计入统计，提前结束/跳过/稍后不计次
+                if (completed === true) {
+                    const result = StatsModule.recordActivity();
+                    console.log('[App] Activity completed, record result:', result);
+                }
                 ReminderModule.resetLockStates();
                 if (ReminderModule.isReminderRunning()) {
+                    const manualNext = ReminderModule.consumeManualNext();
                     const now = new Date();
                     const config = Config.load();
-                    const next = ReminderModule.calculateNextReminder(now, config);
-                    ReminderModule.setNextReminderTime(next.getTime());
-                    UIModule.updateNextReminderDisplay(next.getTime());
+                    const nextTime = manualNext || ReminderModule.calculateNextReminder(now, config).getTime();
+                    ReminderModule.setNextReminderTime(nextTime);
+                    UIModule.updateNextReminderDisplay(nextTime);
                 }
                 ReminderModule.startCheckLoop();
                 AudioModule.stopContinuous();
@@ -280,14 +340,25 @@
                 console.log('[APP] Lock skipped due to system lock');
                 ReminderModule.resetLockStates();
                 if (ReminderModule.isReminderRunning()) {
+                    const manualNext = ReminderModule.consumeManualNext();
                     const now = new Date();
                     const config = Config.load();
-                    const next = ReminderModule.calculateNextReminder(now, config);
-                    ReminderModule.setNextReminderTime(next.getTime());
-                    UIModule.updateNextReminderDisplay(next.getTime());
+                    const nextTime = manualNext || ReminderModule.calculateNextReminder(now, config).getTime();
+                    ReminderModule.setNextReminderTime(nextTime);
+                    UIModule.updateNextReminderDisplay(nextTime);
                 }
                 ReminderModule.startCheckLoop();
                 AudioModule.stopContinuous();
+            });
+            // 托盘 / 锁屏窗口触发的稍后提醒
+            ipcRenderer.on('reminder-snooze', (event, minutes) => {
+                console.log('[APP] Snooze requested:', minutes);
+                ReminderModule.snooze(minutes);
+            });
+            // 托盘 / 锁屏窗口触发的跳过本次
+            ipcRenderer.on('reminder-skip', () => {
+                console.log('[APP] Skip requested');
+                ReminderModule.skipCurrent();
             });
             // 系统锁屏，暂停计时器
             ipcRenderer.on('pause-reminder', () => {

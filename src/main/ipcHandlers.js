@@ -1,4 +1,5 @@
-const { ipcMain, app, Notification, powerMonitor } = require('electron');
+const { ipcMain, app, Notification, powerMonitor, dialog } = require('electron');
+const fs = require('fs');
 const path = require('path');
 const windowManager = require('./windowManager');
 
@@ -38,9 +39,9 @@ function initIpcHandlers() {
         console.log('[IPC] lock-complete');
         const mainWindow = windowManager.getMainWindow();
 
-        // 先通知主窗口锁屏关闭
+        // 先通知主窗口锁屏关闭（倒计时已完成，计入统计）
         if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('lock-closed');
+            mainWindow.webContents.send('lock-closed', true);
             mainWindow.webContents.send('stop-sound');
         }
 
@@ -54,11 +55,29 @@ function initIpcHandlers() {
 
         if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('stop-sound');
-            mainWindow.webContents.send('lock-closed');
+            mainWindow.webContents.send('lock-closed', false);
         }
 
         // 关闭锁屏窗口（手动关闭，不需要系统锁屏）
         windowManager.closeLockWindow(false);
+    });
+
+    // 锁屏窗口请求稍后提醒
+    ipcMain.on('snooze-reminder', (event, minutes) => {
+        console.log('[IPC] snooze-reminder:', minutes);
+        const mainWindow = windowManager.getMainWindow();
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('reminder-snooze', minutes);
+        }
+    });
+
+    // 锁屏窗口请求跳过本次
+    ipcMain.on('skip-reminder', () => {
+        console.log('[IPC] skip-reminder');
+        const mainWindow = windowManager.getMainWindow();
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('reminder-skip');
+        }
     });
 
     // ========== 声音相关 ==========
@@ -68,6 +87,31 @@ function initIpcHandlers() {
         const mainWindow = windowManager.getMainWindow();
         if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('stop-sound');
+        }
+    });
+
+    // ========== 数据导出 ==========
+
+    ipcMain.handle('export-data', async (event, jsonContent, defaultFileName) => {
+        const mainWindow = windowManager.getMainWindow();
+
+        try {
+            const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+                title: '导出数据备份',
+                defaultPath: defaultFileName || 'stand_up_backup.json',
+                filters: [{ name: 'JSON 文件', extensions: ['json'] }]
+            });
+
+            if (canceled || !filePath) {
+                return { success: false, canceled: true };
+            }
+
+            await fs.promises.writeFile(filePath, jsonContent, 'utf8');
+            console.log('[IPC] Data exported to:', filePath);
+            return { success: true, filePath };
+        } catch (e) {
+            console.error('[IPC] Export data failed:', e);
+            return { success: false, error: e.message };
         }
     });
 
@@ -126,39 +170,6 @@ function initIpcHandlers() {
     ipcMain.on('request-notification-permission-async', (event) => {
         console.log('[IPC] request-notification-permission-async');
         event.reply('notification-permission-result', Notification.isSupported());
-    });
-
-    // 显示通知（同步）- 5秒后自动关闭
-    ipcMain.on('show-notification', (event, options) => {
-        console.log('[IPC] show-notification:', options?.title);
-
-        if (!Notification.isSupported()) {
-            event.returnValue = false;
-            return;
-        }
-
-        try {
-            const notification = new Notification({
-                title: options.title || '别坐了',
-                body: options.body || '',
-                silent: options.silent || false,
-                requireInteraction: options.requireInteraction || false
-            });
-
-            notification.on('click', () => {
-                const mainWindow = windowManager.getMainWindow();
-                if (mainWindow) {
-                    mainWindow.show();
-                    mainWindow.focus();
-                }
-            });
-
-            notification.show();
-            event.returnValue = true;
-        } catch (e) {
-            console.error('[IPC] Notification failed:', e);
-            event.returnValue = false;
-        }
     });
 
     // 显示通知（异步）
