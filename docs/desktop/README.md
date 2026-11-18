@@ -125,6 +125,19 @@ Tauri 正式取代 Electron 后，再统一切换为 `vX.Y.Z`。
 - 前端：`npm ci` → 版本校验 → 类型检查 → 生产构建。
 - Rust：Windows / macOS / Ubuntu 三平台 `cargo check`。
 
+### 手动测试包（未签名、不发布）
+
+`.github/workflows/desktop-build-test.yml`，仅 `workflow_dispatch` 手动触发：
+
+```bash
+gh workflow run desktop-build-test.yml --ref tauri/foundation
+```
+
+- 执行 `tauri build --no-bundle`，跳过安装包和更新签名。
+- 产出 `src-tauri/target/release/*.exe`，作为 artifact 保留 7 天。
+- 下载后可直接双击运行，用于验证托盘、遮罩、键盘拦截、音频自动播放。
+- 未签名 exe 可能触发 SmartScreen，选择“仍要运行”即可。
+
 ### Release
 
 `.github/workflows/desktop-release.yml`
@@ -216,7 +229,7 @@ npx tauri signer generate -w ~/.tauri/healthclock.key
 - [x] Vue 类型检查与生产构建通过
 - [x] 版本三处一致（package.json / tauri.conf.json / Cargo.toml）
 - [x] 更新公钥与 GitHub Release 更新端点就绪
-- [ ] `cargo check` 三平台通过（需安装 Rust 工具链）
+- [x] `cargo check` 三平台通过（GitHub Actions）
 - [ ] 托盘菜单可用
 - [ ] 遮罩全屏、置顶并覆盖任务栏
 - [ ] 字母键 / Win / Alt+Tab / Alt+F4 被拦截，音量键正常

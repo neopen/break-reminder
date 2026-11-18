@@ -1,0 +1,57 @@
+name: Desktop Test Build (Windows, unsigned)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build unsigned Windows exe
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        working-directory: apps/desktop
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify version consistency
+        run: npm run version:check
+
+      # --no-bundle 跳过安装包与更新签名，只产出可直接运行的 exe
+      - name: Build unsigned executable
+        run: npx tauri build --no-bundle
+
+      - name: List build output
+        shell: pwsh
+        run: Get-ChildItem src-tauri/target/release -Filter *.exe | Select-Object Name, Length
+
+      - name: Upload test executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: healthclock-windows-test-${{ github.sha }}
+          path: apps/desktop/src-tauri/target/release/*.exe
+          if-no-files-found: error
+          retention-days: 7

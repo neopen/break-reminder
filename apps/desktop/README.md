@@ -47,6 +47,16 @@ WebView2 Runtime。
 5. 启动时单实例、开机自启、系统通知
 6. GitHub Release + `tauri-plugin-updater` 自动更新链路
 
+## 无本地 Rust 环境时
+
+可以手动触发 GitHub Actions 产出未签名、不发布的 Windows 测试 exe：
+
+```bash
+gh workflow run desktop-build-test.yml --ref tauri/foundation
+```
+
+在 Actions 运行页下载 `healthclock-windows-test-<sha>` artifact，双击运行即可验证原生能力。
+
 ## 已知边界
 
 - 全局键盘拦截目前仅实现 Windows；macOS / Linux 返回“暂不支持”。
