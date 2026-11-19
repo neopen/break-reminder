@@ -14,15 +14,6 @@
   <a href="https://breakly.helpoke.com"><img src="https://img.shields.io/badge/Website-breakly.helpoke.com-blue" alt="Website"></a>
 </p>
 
-## 简介
-
-「别坐了」通过定时全屏遮罩提醒久坐用户起身活动。项目已从 Electron 迁移到
-**Tauri 2 + Vue 3 + TypeScript**：安装包从约 97 MB 降至 3–14 MB，常驻内存显著下降。
-
-官网：<https://breakly.helpoke.com>
-
-当前 1.0 版本完成桌面技术底座与核心原生能力；提醒引擎、配置与统计的完整迁移见
-[架构与路线图](docs/architecture.md)。
 
 ## 核心能力
 
@@ -35,9 +26,73 @@
 
 ## 界面预览
 
-![主界面](assets/screenshots-1.png)
+![主界面](assets/imgs/screenshots-1.png)
 
-![锁屏提醒](assets/screenshot-2.png)
+![锁屏提醒](assets/imgs/screenshot-2.png)
+
+## 快速开始
+
+### 方式一：在线使用
+
+访问 [定时提醒 - 拒绝久坐](https://breakly.helpoke.com/)，直接用浏览器打开即可使用。
+
+> 建议使用 Chrome/Edge/Safari 等现代浏览器，可获得最佳体验。
+
+### 方式二：PWA 安装
+
+1. 访问 [定时提醒 - 拒绝久坐](https://breakly.helpoke.com/)，用 Chrome/Edge 打开网页
+
+2. 点击地址栏右侧的「安装」图标
+
+3. 选择「安装」，即可像原生应用一样使用
+
+   ![image-20260413221538624](assets/imgs/image-20260413221538624-1795065519683-2.png)
+
+### 方式三：安装桌面应用（推荐）
+
+下载安装 exe 软件：[GitHub Releases](https://github.com/neopen/break-reminder/releases) 找最新稳定版下载
+
+支持平台：Windows（通过）、macOS（尚未测试）、Linux（尚未测试）
+
+## 使用说明
+
+### 基本设置
+
+| 设置项   | 说明                               | 范围                   | 默认值  |
+| -------- | ---------------------------------- | ---------------------- | ------- |
+| 开始时间 | 每日提醒开始时间                   | 00:00 - 23:59          | 08:00   |
+| 结束时间 | 每日提醒结束时间                   | 00:00 - 23:59          | 18:00   |
+| 提醒频率 | 两次提醒之间的间隔                 | 10 ~ 300 分钟（步长5） | 40 分钟 |
+| 声音提示 | 时间到支持声音提醒                 | 开/关                  | 开      |
+| 桌面通知 | 系统级通知提醒（需要开启系统权限） | 开/关                  | 开      |
+| 锁屏通知 | 全屏锁定通知                       | 开/关                  | 关      |
+| 锁屏时长 | 每次提醒的锁屏时间                 | 1 ~ 30 分钟            | 5 分钟  |
+| 强制锁屏 | 开启后无法提前关闭弹框             | 开/关                  | 关      |
+
+> 开启**Windows 通知设置**：
+>
+> 1. 打开 Windows 设置 → 系统 → 通知和操作
+> 2. 确保"获取来自应用和其他发送者的通知"已开启
+> 3. 在列表中找到您的应用，确保通知已开启
+
+### 统计卡片说明
+
+| 指标       | 说明                                                         |
+| ---------- | ------------------------------------------------------------ |
+| 今日活动   | 今日完成的活动提醒次数                                       |
+| 连续打卡   | 连续完成活动的天数                                           |
+| 本周完成率 | 本周活动次数 / 本周目标次数 × 100%（目标：每天 8 次，每周 40 次） |
+
+### 运行状态
+
+| 状态   | 显示                       | 说明                        |
+| ------ | -------------------------- | --------------------------- |
+| 未启动 | 暂停按钮置灰，启动按钮可点 | 可自由修改配置              |
+| 运行中 | 启动按钮置灰，暂停按钮可点 | 同时下方显示下次提醒时间    |
+| 锁屏中 | 全屏弹框                   | 强制/非强制模式，倒计时显示 |
+| 锁屏中 | 桌面通知                   | 消息通知，5秒后自动关闭     |
+
+
 
 ## 技术栈
 
@@ -88,37 +143,7 @@ npm run lint
 npm run build
 ```
 
-## 目录结构
 
-```text
-.
-├── .github/workflows/     # CI / Release / 测试包
-├── assets/                # README 截图与图标源
-├── docs/                  # 架构、开发、发布文档
-├── public/audio/          # 提醒音效
-├── scripts/               # 版本同步、音效生成
-├── src/                   # Vue 渲染层
-│   ├── components/        # 基础组件与 features/ 特性卡片
-│   ├── composables/       # 跨组件状态与轮询
-│   ├── services/          # 唯一允许调用 Tauri invoke 的位置
-│   ├── styles/            # tokens / base / lock
-│   ├── types/             # 与 Rust 侧对应的类型
-│   ├── utils/             # 通用工具
-│   ├── views/             # 锁屏窗口页面
-│   ├── App.vue
-│   ├── main.ts / lock.ts  # 双入口
-│   └── env.d.ts
-├── src-tauri/             # Rust 主进程
-│   ├── src/               # lib / commands / lock / keyboard / tray / state
-│   ├── capabilities/      # 最小权限
-│   ├── icons/
-│   └── tauri.conf.json
-├── index.html / lock.html # 多页入口
-├── eslint.config.js
-├── rust-toolchain.toml / rustfmt.toml
-├── package.json           # 版本唯一来源
-└── vite.config.ts
-```
 
 ## 常用命令
 

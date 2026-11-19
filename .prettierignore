@@ -4,5 +4,5 @@ package-lock.json
 src-tauri/target/
 src-tauri/gen/
 src-tauri/icons/
-public/audio/
+assets/audio/
 assets/
