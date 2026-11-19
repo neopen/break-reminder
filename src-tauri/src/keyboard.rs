@@ -15,6 +15,7 @@ pub fn is_installed() -> bool {
     imp::is_installed()
 }
 
+#[cfg(target_os = "windows")]
 pub fn set_blocking(enabled: bool) {
     BLOCKING.store(enabled, Ordering::SeqCst);
 }
