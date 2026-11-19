@@ -32,12 +32,7 @@ pub struct ReminderEvent {
 
 pub fn status(app: &AppHandle) -> SchedulerStatus {
     let state = app.state::<AppState>();
-    let next = state
-        .scheduler
-        .next_at
-        .lock()
-        .ok()
-        .and_then(|slot| *slot);
+    let next = state.scheduler.next_at.lock().ok().and_then(|slot| *slot);
 
     SchedulerStatus {
         running: state.scheduler.running.load(Ordering::SeqCst),
@@ -273,12 +268,7 @@ async fn run_loop(app: AppHandle, generation: u64) {
             (
                 state.scheduler.running.load(Ordering::SeqCst),
                 state.scheduler.generation.load(Ordering::SeqCst),
-                state
-                    .scheduler
-                    .next_at
-                    .lock()
-                    .ok()
-                    .and_then(|slot| *slot),
+                state.scheduler.next_at.lock().ok().and_then(|slot| *slot),
             )
         };
 
