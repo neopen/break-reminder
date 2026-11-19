@@ -39,50 +39,50 @@ onMounted(async () => {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--hc-space-4);
-  padding: var(--hc-space-5) var(--hc-space-6);
+  gap: var(--hc-space-3);
+  padding: 16px 20px;
   color: #fff;
   background: var(--hc-gradient-brand);
-  border-radius: var(--hc-radius-xl);
-  box-shadow: var(--hc-shadow-card);
+  border-radius: 24px;
+  box-shadow: var(--hc-shadow-soft);
 }
 
 .status-bar__eyebrow {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  opacity: 0.8;
+  opacity: 0.78;
 }
 
 .status-bar__title {
-  margin-top: var(--hc-space-2);
-  font-size: 32px;
+  margin-top: 4px;
+  font-size: 25px;
   font-weight: 800;
   letter-spacing: 0.03em;
 }
 
 .status-bar__subtitle {
-  margin-top: var(--hc-space-1);
-  font-size: 14px;
-  opacity: 0.9;
+  margin-top: 2px;
+  font-size: 12px;
+  opacity: 0.88;
 }
 
 .status-bar__meta {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: var(--hc-space-2);
-  padding-top: var(--hc-space-1);
+  gap: 6px;
+  padding-top: 2px;
 }
 
 .status-bar__detail {
-  font-size: 12px;
-  opacity: 0.8;
+  font-size: 11px;
+  opacity: 0.78;
   white-space: nowrap;
 }
 
-@media (max-width: 560px) {
+@media (max-width: 520px) {
   .status-bar {
     flex-direction: column;
   }

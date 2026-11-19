@@ -129,11 +129,11 @@ function removeBreak(index: number): void {
 .dnd {
   display: flex;
   flex-direction: column;
-  gap: var(--hc-space-3);
-  padding: var(--hc-space-4);
+  gap: 10px;
+  padding: 12px;
   background: var(--hc-color-surface-soft);
   border: 1px solid var(--hc-color-border);
-  border-radius: var(--hc-radius-md);
+  border-radius: 14px;
 }
 
 .dnd__row,
@@ -141,41 +141,41 @@ function removeBreak(index: number): void {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--hc-space-3);
+  gap: 8px;
 }
 
 .dnd__label {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--hc-color-text);
 }
 
 .dnd__times {
   display: flex;
   align-items: center;
-  gap: var(--hc-space-2);
+  gap: 6px;
   color: var(--hc-color-text-muted);
 }
 
 .dnd__times input {
-  width: 104px;
-  padding: 7px 8px;
-  font-size: 13px;
+  width: 94px;
+  padding: 6px 7px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   background: #fff;
   border: 1px solid var(--hc-color-border);
-  border-radius: var(--hc-radius-sm);
+  border-radius: 8px;
 }
 
 .dnd__hint,
 .dnd__empty {
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 11px;
+  line-height: 1.5;
   color: var(--hc-color-text-muted);
 }
 
 .dnd__add {
-  padding: 6px 12px;
-  font-size: 12px;
+  padding: 5px 10px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--hc-color-brand-deep);
   background: #eef2ff;
@@ -186,32 +186,32 @@ function removeBreak(index: number): void {
 .dnd__break {
   display: flex;
   align-items: center;
-  gap: var(--hc-space-2);
-  padding: var(--hc-space-2);
+  gap: 6px;
+  padding: 6px;
   background: #fff;
   border: 1px solid var(--hc-color-border);
-  border-radius: var(--hc-radius-sm);
+  border-radius: 8px;
 }
 
 .dnd__name {
   flex: 1;
-  min-width: 80px;
-  padding: 7px 8px;
-  font-size: 13px;
+  min-width: 70px;
+  padding: 6px;
+  font-size: 12px;
   background: var(--hc-color-surface-soft);
   border: 1px solid var(--hc-color-border);
-  border-radius: var(--hc-radius-sm);
+  border-radius: 8px;
 }
 
 .dnd__remove {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   color: var(--hc-color-danger);
   background: rgba(239, 68, 68, 0.1);
   border: none;
   border-radius: 50%;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 @media (max-width: 520px) {

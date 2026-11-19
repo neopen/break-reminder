@@ -9,33 +9,21 @@ import {
   enable as enableAutostart,
   isEnabled as isAutostartEnabled,
 } from '@tauri-apps/plugin-autostart'
-import {
-  isPermissionGranted,
-  requestPermission,
-  sendNotification,
-} from '@tauri-apps/plugin-notification'
+import { isPermissionGranted, requestPermission } from '@tauri-apps/plugin-notification'
 
 import {
   getConfig,
-  getRuntimeStatus,
   getSchedulerStatus,
   getStats,
   isDesktopRuntime,
   resetTodayStats,
   saveConfig,
-  setKeyboardBlocking,
   skipReminder,
   snoozeReminder,
   startReminders,
   stopReminders,
 } from '@/services/desktop'
-import type {
-  AppConfig,
-  ReminderEvent,
-  RuntimeStatus,
-  SchedulerStatus,
-  StatsSummary,
-} from '@/types/desktop'
+import type { AppConfig, ReminderEvent, SchedulerStatus, StatsSummary } from '@/types/desktop'
 import { describeError } from '@/utils/error'
 
 import { useToast } from '@/composables/useToast'
@@ -82,12 +70,6 @@ export const useAppStore = defineStore('app', () => {
     nextAtIso: null,
     lockOpen: false,
   })
-  const runtime = ref<RuntimeStatus>({
-    blocking: false,
-    hookInstalled: false,
-    platformSupported: desktop,
-    platform: desktop ? 'unknown' : 'web',
-  })
   const autoLaunch = ref(false)
   const loading = ref(false)
   const now = ref(Date.now())
@@ -129,7 +111,7 @@ export const useAppStore = defineStore('app', () => {
 
     if (!desktop) return
 
-    await Promise.all([loadConfig(), loadStats(), loadStatus(), loadRuntime()])
+    await Promise.all([loadConfig(), loadStats(), loadStatus()])
     await loadAutostart()
     await setupListeners()
 
@@ -178,14 +160,6 @@ export const useAppStore = defineStore('app', () => {
       scheduler.value = await getSchedulerStatus()
     } catch (cause) {
       console.warn('[app] 读取调度状态失败', cause)
-    }
-  }
-
-  async function loadRuntime(): Promise<void> {
-    try {
-      runtime.value = await getRuntimeStatus()
-    } catch (cause) {
-      console.warn('[app] 读取运行状态失败', cause)
     }
   }
 
@@ -312,27 +286,6 @@ export const useAppStore = defineStore('app', () => {
     }
   }
 
-  async function toggleKeyboard(): Promise<void> {
-    try {
-      await setKeyboardBlocking(!runtime.value.blocking)
-      await loadRuntime()
-    } catch (cause) {
-      show(`切换键盘拦截失败：${describeError(cause)}`, 'danger')
-    }
-  }
-
-  async function testNotification(): Promise<void> {
-    if (!(await ensureNotificationPermission())) {
-      show('通知权限被拒绝，请在系统设置中允许', 'danger')
-      return
-    }
-    sendNotification({
-      title: '🔔 测试通知',
-      body: '如果你看到这条消息，说明桌面通知已开启！',
-    })
-    show('测试通知已发送', 'ok')
-  }
-
   function playAlert(): void {
     try {
       const audio = new Audio(alertAudioUrl)
@@ -360,7 +313,6 @@ export const useAppStore = defineStore('app', () => {
     config,
     stats,
     scheduler,
-    runtime,
     autoLaunch,
     loading,
     now,
@@ -373,7 +325,6 @@ export const useAppStore = defineStore('app', () => {
     loadConfig,
     loadStats,
     loadStatus,
-    loadRuntime,
     patchConfig,
     start,
     stop,
@@ -381,8 +332,6 @@ export const useAppStore = defineStore('app', () => {
     skip,
     resetToday,
     toggleAutostart,
-    toggleKeyboard,
-    testNotification,
     ensureNotificationPermission,
   }
 })

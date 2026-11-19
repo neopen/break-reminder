@@ -51,11 +51,11 @@ const { scheduler, countdownLabel, nextTimeLabel, loading } = storeToRefs(store)
 .actions-card {
   display: flex;
   flex-direction: column;
-  gap: var(--hc-space-3);
-  padding: var(--hc-space-5);
+  gap: 10px;
+  padding: 14px;
   background: var(--hc-color-surface);
   border: 1px solid var(--hc-color-border);
-  border-radius: var(--hc-radius-lg);
+  border-radius: 20px;
   box-shadow: var(--hc-shadow-soft);
 }
 
@@ -64,26 +64,26 @@ const { scheduler, countdownLabel, nextTimeLabel, loading } = storeToRefs(store)
   align-items: center;
   justify-content: space-between;
   gap: var(--hc-space-3);
-  padding: var(--hc-space-3) var(--hc-space-4);
+  padding: 10px 12px;
   color: #5b21b6;
   background: #ede9fe;
   border: 1px solid #ddd6fe;
-  border-radius: var(--hc-radius-md);
+  border-radius: 12px;
 }
 
 .actions-card__next-label {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .actions-card__next-time {
   display: block;
-  margin-top: 2px;
-  font-size: 18px;
+  margin-top: 1px;
+  font-size: 16px;
   font-variant-numeric: tabular-nums;
 }
 
 .actions-card__countdown {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
@@ -95,11 +95,11 @@ const { scheduler, countdownLabel, nextTimeLabel, loading } = storeToRefs(store)
 
 .actions-card__action {
   flex: 1;
-  min-height: 52px;
+  min-height: 46px;
   color: #fff;
   border: none;
   border-radius: var(--hc-radius-pill);
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 700;
   transition:
     transform var(--hc-duration-fast) var(--hc-ease),
@@ -126,17 +126,17 @@ const { scheduler, countdownLabel, nextTimeLabel, loading } = storeToRefs(store)
 .actions-card__secondary {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--hc-space-2);
+  gap: 6px;
 }
 
 .actions-card__secondary button {
   flex: 1;
-  min-width: 110px;
-  min-height: 38px;
+  min-width: 92px;
+  min-height: 32px;
   color: var(--hc-color-text-muted);
   background: var(--hc-color-surface-soft);
   border: 1px solid var(--hc-color-border);
   border-radius: var(--hc-radius-sm);
-  font-size: 13px;
+  font-size: 12px;
 }
 </style>

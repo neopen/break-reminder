@@ -32,7 +32,7 @@ function onChange(event: Event): void {
   align-items: center;
   justify-content: space-between;
   gap: var(--hc-space-3);
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -56,8 +56,8 @@ function onChange(event: Event): void {
 
 .toggle__track {
   position: relative;
-  width: 46px;
-  height: 26px;
+  width: 42px;
+  height: 24px;
   border-radius: 999px;
   background: #cbd5e1;
   transition: background var(--hc-duration-fast) var(--hc-ease);
@@ -67,8 +67,8 @@ function onChange(event: Event): void {
   position: absolute;
   top: 3px;
   left: 3px;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
@@ -80,7 +80,7 @@ function onChange(event: Event): void {
 }
 
 .toggle__control input:checked + .toggle__track .toggle__knob {
-  transform: translateX(20px);
+  transform: translateX(18px);
 }
 
 .toggle__control input:focus-visible + .toggle__track {

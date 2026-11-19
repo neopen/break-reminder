@@ -51,10 +51,10 @@ async function resetToday(): Promise<void> {
 
 <style scoped>
 .stats-card {
-  padding: var(--hc-space-4) var(--hc-space-5);
+  padding: 12px 18px;
   color: #fff;
   background: var(--hc-gradient-accent);
-  border-radius: var(--hc-radius-lg);
+  border-radius: 20px;
   box-shadow: var(--hc-shadow-soft);
 }
 
@@ -62,19 +62,19 @@ async function resetToday(): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   opacity: 0.94;
 }
 
 .stats-card__reset {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   color: #fff;
   background: rgba(255, 255, 255, 0.2);
   border: none;
   border-radius: 50%;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1;
   transition: background var(--hc-duration-fast) var(--hc-ease);
 }
@@ -87,21 +87,21 @@ async function resetToday(): Promise<void> {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--hc-space-2);
-  margin-top: var(--hc-space-3);
+  margin-top: 8px;
   text-align: center;
 }
 
 .stats-card__item strong {
   display: block;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 
 .stats-card__item span {
   display: block;
-  margin-top: 2px;
-  font-size: 12px;
+  margin-top: 1px;
+  font-size: 11px;
   opacity: 0.84;
 }
 </style>

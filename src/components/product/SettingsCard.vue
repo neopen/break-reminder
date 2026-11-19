@@ -187,10 +187,10 @@ async function quit(): Promise<void> {
 
 <style scoped>
 .settings-card {
-  padding: 0 var(--hc-space-5);
+  padding: 0 18px;
   background: var(--hc-color-surface);
   border: 1px solid var(--hc-color-border);
-  border-radius: var(--hc-radius-lg);
+  border-radius: 24px;
   box-shadow: var(--hc-shadow-soft);
 }
 
@@ -202,72 +202,72 @@ async function quit(): Promise<void> {
 }
 
 .settings-label {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--hc-color-text);
 }
 
 .settings-times {
   display: flex;
   align-items: center;
-  gap: var(--hc-space-2);
+  gap: 6px;
   color: var(--hc-color-text-muted);
 }
 
 .settings-times input {
-  width: 112px;
-  padding: 8px 10px;
-  font-size: 14px;
+  width: 100px;
+  padding: 6px 8px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   background: var(--hc-color-surface-soft);
   border: 1px solid var(--hc-color-border);
-  border-radius: var(--hc-radius-sm);
+  border-radius: 8px;
 }
 
 .settings-number {
   display: flex;
   align-items: center;
-  gap: var(--hc-space-2);
-  font-size: 13px;
+  gap: 6px;
+  font-size: 12px;
   color: var(--hc-color-text-muted);
 }
 
 .settings-number input {
-  width: 78px;
-  padding: 8px 10px;
-  font-size: 14px;
+  width: 66px;
+  padding: 6px 8px;
+  font-size: 13px;
   text-align: center;
   font-variant-numeric: tabular-nums;
   background: var(--hc-color-surface-soft);
   border: 1px solid var(--hc-color-border);
-  border-radius: var(--hc-radius-sm);
+  border-radius: 8px;
 }
 
 .settings-hint {
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 11px;
+  line-height: 1.5;
   color: var(--hc-color-text-muted);
 }
 
 .settings-warning {
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 11px;
+  line-height: 1.5;
   color: #92400e;
 }
 
 .mode-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--hc-space-2);
+  gap: 8px;
 }
 
 .mode {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: var(--hc-space-3);
+  gap: 1px;
+  padding: 10px;
   background: var(--hc-color-surface-soft);
   border: 1px solid var(--hc-color-border);
-  border-radius: var(--hc-radius-md);
+  border-radius: 12px;
   cursor: pointer;
   transition:
     border-color var(--hc-duration-fast) var(--hc-ease),
@@ -281,11 +281,11 @@ async function quit(): Promise<void> {
 }
 
 .mode strong {
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .mode span {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--hc-color-text-muted);
 }
 
@@ -296,11 +296,11 @@ async function quit(): Promise<void> {
 
 .settings-quit {
   align-self: flex-start;
-  padding: 8px 14px;
-  font-size: 13px;
+  padding: 6px 12px;
+  font-size: 12px;
   color: var(--hc-color-danger);
   background: rgba(239, 68, 68, 0.08);
   border: 1px solid rgba(239, 68, 68, 0.24);
-  border-radius: var(--hc-radius-sm);
+  border-radius: 8px;
 }
 </style>

@@ -40,8 +40,8 @@ const open = ref(props.defaultOpen)
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: var(--hc-space-4) 0;
-  font-size: 16px;
+  padding: 13px 0;
+  font-size: 14px;
   font-weight: 600;
   color: var(--hc-color-text);
   background: none;
@@ -54,14 +54,14 @@ const open = ref(props.defaultOpen)
 }
 
 .accordion__icon {
-  font-size: 12px;
+  font-size: 10px;
   color: var(--hc-color-text-muted);
 }
 
 .accordion__body {
   display: flex;
   flex-direction: column;
-  gap: var(--hc-space-4);
-  padding-bottom: var(--hc-space-5);
+  gap: 12px;
+  padding-bottom: 16px;
 }
 </style>
