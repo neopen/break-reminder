@@ -63,6 +63,7 @@ jobs:
             os: windows-latest
             args: '--bundles nsis'
             rust_targets: 'x86_64-pc-windows-msvc'
+            asset_pattern: 'Breakly-[version]-windows-x64[setup][ext]'
 
           # macOS Universal
           # 同时构建 Apple Silicon 和 Intel
@@ -70,12 +71,14 @@ jobs:
             os: macos-latest
             args: '--target universal-apple-darwin --bundles app,dmg'
             rust_targets: 'aarch64-apple-darwin,x86_64-apple-darwin'
+            asset_pattern: 'Breakly-[version]-darwin-universal[ext]'
 
           # Linux x64
           - name: Linux x64
             os: ubuntu-22.04
             args: '--bundles appimage,deb'
             rust_targets: 'x86_64-unknown-linux-gnu'
+            asset_pattern: 'Breakly-[version]-linux-x64[ext]'
 
     steps:
       # ======================================================
@@ -281,7 +284,7 @@ jobs:
           # Breakly-1.0.0-linux-x64.AppImage
           # Breakly-1.0.0-linux-x64.deb
           # --------------------------------------------------
-          releaseAssetNamePattern: '[name]-[version]-[platform]-[arch][setup][ext]'
+          releaseAssetNamePattern: ${{ matrix.asset_pattern }}
 
           # --------------------------------------------------
           # Tauri Updater
