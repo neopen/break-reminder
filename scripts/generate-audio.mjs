@@ -1,13 +1,13 @@
 /**
  * 生成提醒音效（WAV，16-bit PCM 单声道）。
- * 产物：public/audio/alert.wav，用于验证 WebView 自动播放策略。
+ * 产物：assets/audio/alert.wav，用于验证 WebView 自动播放策略。
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const outputPath = resolve(appRoot, 'public/audio/alert.wav')
+const outputPath = resolve(appRoot, 'assets/audio/alert.wav')
 
 const sampleRate = 22050
 const durationSeconds = 0.95
