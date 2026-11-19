@@ -86,10 +86,8 @@ pub fn stop(app: &AppHandle) {
     if let Ok(mut slot) = state.scheduler.next_at.lock() {
         *slot = None;
     }
-    if let Ok(mut slot) = state.scheduler.lock_tx.lock() {
-        if let Some(sender) = slot.take() {
-            let _ = sender.send(LockOutcome::Skipped);
-        }
+    if let Some(sender) = take_lock_sender(app) {
+        let _ = sender.send(LockOutcome::Skipped);
     }
 
     lock::close(app);
@@ -136,10 +134,8 @@ pub fn snooze(app: &AppHandle, minutes: u32) -> Result<(), String> {
             return Err("强制锁屏期间无法稍后提醒".to_string());
         }
 
-        if let Ok(mut slot) = state.scheduler.lock_tx.lock() {
-            if let Some(sender) = slot.take() {
-                let _ = sender.send(LockOutcome::Snoozed(minutes));
-            }
+        if let Some(sender) = take_lock_sender(app) {
+            let _ = sender.send(LockOutcome::Snoozed(minutes));
         }
         lock::close(app);
         return Ok(());
@@ -165,10 +161,8 @@ pub fn skip(app: &AppHandle) -> Result<(), String> {
             return Err("强制锁屏期间无法跳过".to_string());
         }
 
-        if let Ok(mut slot) = state.scheduler.lock_tx.lock() {
-            if let Some(sender) = slot.take() {
-                let _ = sender.send(LockOutcome::Skipped);
-            }
+        if let Some(sender) = take_lock_sender(app) {
+            let _ = sender.send(LockOutcome::Skipped);
         }
         lock::close(app);
         return Ok(());
@@ -184,22 +178,16 @@ pub fn skip(app: &AppHandle) -> Result<(), String> {
 }
 
 pub fn resolve_lock(app: &AppHandle, outcome: LockOutcome) {
-    let state = app.state::<AppState>();
-    if let Ok(mut slot) = state.scheduler.lock_tx.lock() {
-        if let Some(sender) = slot.take() {
-            let _ = sender.send(outcome);
-        }
+    if let Some(sender) = take_lock_sender(app) {
+        let _ = sender.send(outcome);
     }
     lock::close(app);
     emit_status(app);
 }
 
 pub fn on_lock_destroyed(app: &AppHandle) {
-    let state = app.state::<AppState>();
-    if let Ok(mut slot) = state.scheduler.lock_tx.lock() {
-        if let Some(sender) = slot.take() {
-            let _ = sender.send(LockOutcome::Skipped);
-        }
+    if let Some(sender) = take_lock_sender(app) {
+        let _ = sender.send(LockOutcome::Skipped);
     }
 }
 
@@ -390,19 +378,11 @@ async fn run_loop(app: AppHandle, generation: u64) {
 async fn run_lock(app: &AppHandle, duration_secs: u64, force_lock: bool) -> LockOutcome {
     let (sender, receiver) = tokio::sync::oneshot::channel();
 
-    {
-        let state = app.state::<AppState>();
-        if let Ok(mut slot) = state.scheduler.lock_tx.lock() {
-            *slot = Some(sender);
-        }
-    }
+    store_lock_sender(app, sender);
 
     if let Err(error) = lock::open(app, duration_secs, force_lock) {
         eprintln!("[scheduler] 打开锁屏失败: {error}");
-        let state = app.state::<AppState>();
-        if let Ok(mut slot) = state.scheduler.lock_tx.lock() {
-            slot.take();
-        }
+        let _ = take_lock_sender(app);
         return LockOutcome::Skipped;
     }
 
@@ -426,6 +406,21 @@ fn set_next(app: &AppHandle, next: DateTime<Local>) {
         *slot = Some(next);
     }
     emit_status(app);
+}
+
+fn take_lock_sender(app: &AppHandle) -> Option<tokio::sync::oneshot::Sender<LockOutcome>> {
+    let state = app.state::<AppState>();
+    let mut slot = state.scheduler.lock_tx.lock().ok()?;
+    slot.take()
+}
+
+fn store_lock_sender(app: &AppHandle, sender: tokio::sync::oneshot::Sender<LockOutcome>) {
+    let state = app.state::<AppState>();
+    let mut slot = match state.scheduler.lock_tx.lock() {
+        Ok(slot) => slot,
+        Err(_) => return,
+    };
+    *slot = Some(sender);
 }
 
 fn save_stats(app: &AppHandle, stats: &Stats) {
