@@ -1,6 +1,8 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
+import alertAudioUrl from '../../assets/audio/alert.wav'
+
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import {
   disable as disableAutostart,
@@ -333,7 +335,7 @@ export const useAppStore = defineStore('app', () => {
 
   function playAlert(): void {
     try {
-      const audio = new Audio('/audio/alert.wav')
+      const audio = new Audio(alertAudioUrl)
       audio.volume = 0.7
       void audio.play().catch(() => undefined)
     } catch (cause) {

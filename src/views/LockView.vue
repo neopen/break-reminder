@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
+import alertAudioUrl from '../../assets/audio/alert.wav'
+
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import {
@@ -153,7 +155,7 @@ onMounted(async () => {
   remaining.value = total.value
 
   if (soundEnabled.value) {
-    audio = new Audio('/audio/alert.wav')
+    audio = new Audio(alertAudioUrl)
     audio.preload = 'auto'
     audio.volume = 0.7
     void playTone()
