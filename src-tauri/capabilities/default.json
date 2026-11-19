@@ -1,0 +1,14 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "主窗口与锁屏窗口的最小权限集",
+  "windows": ["main", "lock"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-close",
+    "updater:default",
+    "process:default",
+    "notification:default",
+    "autostart:default"
+  ]
+}

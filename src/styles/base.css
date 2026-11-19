@@ -1,0 +1,82 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--hc-font-sans);
+  color: var(--hc-color-text);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(102, 126, 234, 0.16), transparent 42%),
+    radial-gradient(circle at 88% 8%, rgba(118, 75, 162, 0.14), transparent 38%), var(--hc-color-bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 2px solid var(--hc-color-brand);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(102, 126, 234, 0.28);
+}
+
+/* ---------- 通用布局工具类 ---------- */
+.hc-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hc-space-3);
+  font-size: 14px;
+}
+
+.hc-field select {
+  min-width: 120px;
+  padding: 8px 12px;
+  background: var(--hc-color-surface-soft);
+  border: 1px solid var(--hc-color-border);
+  border-radius: var(--hc-radius-sm);
+}
+
+.hc-result-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hc-space-3);
+}
+
+.hc-result-label {
+  font-size: 14px;
+  color: var(--hc-color-text-muted);
+}
+
+.hc-muted {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--hc-color-text-muted);
+}

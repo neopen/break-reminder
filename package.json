@@ -1,81 +1,64 @@
 {
-  "name": "HealthClock",
-  "version": "0.6.0",
-  "description": "一款强制锁屏的健康提醒应用，帮你打破久坐循环，养成定时活动的好习惯。",
-  "main": "dist/main/main.js",
-  "scripts": {
-    "dev": "electron .",
-    "build": "node scripts/js/build.js",
-    "start": "electron .",
-    "dist": "npm run build && npm run verify:build && npx electron-builder",
-    "verify:build": "node scripts/js/verify-build.js",
-    "dist:win": "npm run build && electron-builder --win --x64",
-    "dist:portable": "npm run build && electron-builder --win --x64 --config.win.target=portable",
-    "dist:win32": "npm run build && electron-builder --win --ia32",
-    "dist:mac": "npm run build && electron-builder --mac",
-    "dist:mac:arm64": "npm run build && electron-builder --mac --arm64",
-    "dist:linux": "npm run build && electron-builder --linux",
-    "dist:all": "npm run build && electron-builder --win --mac --linux",
-    "build:web": "node scripts/js/build-web.js",
-    "clean": "rd /s /q dist release 2>nul || rm -rf dist release",
-    "postinstall": "electron-builder install-app-deps"
-  },
-  "scripts-bak": {
-    "start": "electron .",
-    "build": "electron-builder --win --x64",
-    "build:win": "electron-builder --win --x64",
-    "deploy:web": "npm run build:web && node scripts/js/deploy-web.js",
-    "serve:web": "npx serve docs",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "compress": "compress.bat"
-  },
-  "scripts-bak": {
-    "start": "electron .",
-    "build": "electron-builder --win --x64",
-    "build:win": "electron-builder --win --x64",
-    "clean": "rmdir /s /q dist node_modules",
-    "build:web": "node scripts/build-web.js",
-    "deploy:web": "npm run build:web && node scripts/deploy-web.js",
-    "serve:web": "npx serve docs",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "compress": "compress.bat"
+  "name": "breakly",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Breakly - 健康提醒桌面应用（Tauri 2 + Vue 3 + TypeScript）",
+  "license": "MIT",
+  "author": {
+    "name": "neopen",
+    "email": "helpenx+clock@gmail.com",
+    "url": "https://github.com/neopen"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/neopen/break-reminder.git"
   },
+  "homepage": "https://breakly.helpoke.com",
   "keywords": [
     "health",
     "reminder",
     "stand-up",
     "break-reminder",
     "sedentary",
-    "electron",
     "desktop-app",
-    "productivity",
-    "wellness",
-    "ergonomic"
+    "tauri"
   ],
-  "author": {
-    "name": "neopen",
-    "email": "helpenx+clock@gmail.com",
-    "url": "https://github.com/neopen/break-reminder"
-  },
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/neopen/break-reminder/issues"
-  },
-  "homepage": "https://clock.pengline.cn",
-  "type": "commonjs",
-  "devDependencies": {
-    "electron": "^41.2.0",
-    "electron-builder": "^26.8.1",
-    "electron-vite": "^2.0.0"
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit",
+    "lint": "eslint src --max-warnings 0",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "tauri": "tauri",
+    "version:sync": "node scripts/sync-version.mjs",
+    "version:check": "node scripts/check-version.mjs",
+    "audio:generate": "node scripts/generate-audio.mjs",
+    "postversion": "node scripts/sync-version.mjs"
   },
   "dependencies": {
-    "node-global-key-listener": "^0.3.0"
+    "@tauri-apps/api": "^2.9.0",
+    "@tauri-apps/plugin-autostart": "^2.5.0",
+    "@tauri-apps/plugin-notification": "^2.3.0",
+    "@tauri-apps/plugin-process": "^2.3.0",
+    "@tauri-apps/plugin-updater": "^2.9.0",
+    "pinia": "^4.1.0",
+    "vue": "^3.5.13"
   },
-  "optionalDependencies": {
-    "x11": "^2.3.0"
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@tauri-apps/cli": "^2.9.0",
+    "@types/node": "^24.0.0",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "eslint": "^9.39.0",
+    "eslint-plugin-vue": "^10.6.0",
+    "prettier": "^3.6.0",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.48.0",
+    "vite": "^7.0.0",
+    "vue-tsc": "^3.0.0"
   }
 }

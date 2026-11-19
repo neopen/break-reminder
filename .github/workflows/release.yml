@@ -1,0 +1,291 @@
+# ============================================================
+# Breakly - Cross-platform Release Workflow
+#
+# Project : Breakly (别坐了)
+# Framework: Tauri 2
+# Platforms:
+#   - Windows x64 (NSIS)
+#   - macOS Universal (ARM64 + x64)
+#   - Linux x64 (AppImage + DEB)
+#
+# Release:
+#   - GitHub Releases
+#   - Tauri Updater
+#
+# Trigger:
+#   - Stable version tags: v1.0.0
+# ============================================================
+
+name: Release
+
+# ------------------------------------------------------------
+# 触发条件
+# ------------------------------------------------------------
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+# ------------------------------------------------------------
+# 工作流权限
+# ------------------------------------------------------------
+permissions:
+  contents: write
+
+# ------------------------------------------------------------
+# 并发控制
+# 同一个 Tag 不允许多个 Release 工作流同时运行。
+# 不取消正在执行的发布任务。
+# ------------------------------------------------------------
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ==========================================================
+  # Build & Release
+  # ==========================================================
+  build:
+    name: Build ${{ matrix.name }}
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+
+      # ------------------------------------------------------
+      # 多平台构建矩阵
+      # ------------------------------------------------------
+      matrix:
+        include:
+          # Windows x64
+          - name: Windows x64
+            os: windows-latest
+            args: '--bundles nsis'
+            rust_targets: 'x86_64-pc-windows-msvc'
+
+          # macOS Universal
+          # 同时构建 Apple Silicon 和 Intel
+          - name: macOS Universal
+            os: macos-latest
+            args: '--target universal-apple-darwin --bundles app,dmg'
+            rust_targets: 'aarch64-apple-darwin,x86_64-apple-darwin'
+
+          # Linux x64
+          - name: Linux x64
+            os: ubuntu-22.04
+            args: '--bundles appimage,deb'
+            rust_targets: 'x86_64-unknown-linux-gnu'
+
+    steps:
+      # ======================================================
+      # 1. Checkout
+      # ======================================================
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ======================================================
+      # 2. Install Linux dependencies
+      # Tauri 2 Linux 构建所需系统依赖
+      # ======================================================
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libssl-dev \
+            libxdo-dev \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      # ======================================================
+      # 3. Setup Node.js
+      # 使用 Node.js 22
+      # ======================================================
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # ======================================================
+      # 4. Setup Rust
+      # 根据平台安装对应 Rust Target
+      # ======================================================
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
+
+      # ======================================================
+      # 5. Cache Rust
+      # 缓存 Cargo 编译产物，减少重复编译
+      # ======================================================
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      # ======================================================
+      # 6. Install Node dependencies
+      # 使用 npm ci 保证依赖锁定
+      # ======================================================
+      - name: Install dependencies
+        run: npm ci
+
+      # ======================================================
+      # 7. Verify project version consistency
+      # 检查 package.json、Tauri 配置等项目版本
+      # ======================================================
+      - name: Verify version consistency
+        run: npm run version:check
+
+      # ======================================================
+      # 8. Verify Git Tag
+      # 只允许标准稳定版 SemVer：
+      # v1.0.0
+      # v1.2.3
+      #
+      # 不允许：
+      # v1.0.0-beta.1
+      # v1.0.0-rc.1
+      # ======================================================
+      - name: Verify tag matches version
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid stable release tag: $TAG"
+            exit 1
+          fi
+
+          VERSION=$(node -p "require('./package.json').version")
+
+          if [ "$VERSION" != "${TAG#v}" ]; then
+            echo "::error::Version mismatch"
+            echo "package.json: $VERSION"
+            echo "Git Tag: ${TAG#v}"
+            exit 1
+          fi
+
+          echo "Release version: $VERSION"
+
+      # ======================================================
+      # 9. Build and publish GitHub Release
+      #
+      # Tauri Action 自动完成：
+      #   - Tauri 构建
+      #   - 创建或查找 GitHub Release
+      #   - 上传安装包
+      #   - 上传 Updater 签名文件
+      #   - 生成 latest.json
+      #
+      # 不要手动重命名 Updater 原始文件。
+      # ======================================================
+      - name: Build and publish release
+        uses: tauri-apps/tauri-action@v1
+
+        env:
+          # GitHub Release 权限
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          # --------------------------------------------------
+          # Tauri Updater 签名
+          # 必须与 src-tauri/tauri.conf.json 中的 updater 配置匹配
+          # --------------------------------------------------
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+          # --------------------------------------------------
+          # macOS 代码签名与公证（可选）
+          # 正式发布 macOS 应用时建议配置
+          # --------------------------------------------------
+          # APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          # APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          # APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+          # --------------------------------------------------
+          # Windows 代码签名（可选）
+          # --------------------------------------------------
+          # WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          # WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+
+        with:
+          # --------------------------------------------------
+          # Release 基本信息
+          # --------------------------------------------------
+          tagName: ${{ github.ref_name }}
+
+          releaseName: 'Breakly ${{ github.ref_name }} | 别坐了'
+
+          releaseBody: |
+            ## Breakly | 别坐了
+
+            A lightweight desktop break reminder.
+
+            ### Downloads
+
+            | Platform | Package |
+            |----------|---------|
+            | Windows x64 | NSIS Installer |
+            | macOS Universal | DMG |
+            | Linux x64 | AppImage / DEB |
+
+            ### Automatic Updates
+
+            Tauri Updater artifacts and signatures are included.
+
+            ### Installation
+
+            Download the installer for your operating system from the assets below.
+
+          # 正式发布，不使用 Draft
+          releaseDraft: false
+
+          # 当前只发布稳定版本
+          prerelease: false
+
+          # 发布失败时重试
+          retryAttempts: 3
+
+          # --------------------------------------------------
+          # Tauri 构建参数
+          # --------------------------------------------------
+          args: ${{ matrix.args }}
+
+          # --------------------------------------------------
+          # Release 资产命名
+          #
+          # [name]     产品名称
+          # [version]  应用版本
+          # [platform] 平台
+          # [arch]     CPU 架构
+          # [setup]    NSIS 安装包添加 -setup
+          # [ext]      文件扩展名
+          #
+          # 示例：
+          # Breakly-1.0.0-windows-x64-setup.exe
+          # Breakly-1.0.0-darwin-universal.dmg
+          # Breakly-1.0.0-linux-x64.AppImage
+          # Breakly-1.0.0-linux-x64.deb
+          # --------------------------------------------------
+          releaseAssetNamePattern: '[name]-[version]-[platform]-[arch][setup][ext]'
+
+          # --------------------------------------------------
+          # Tauri Updater
+          # 保留自动更新 JSON 和签名
+          # --------------------------------------------------
+          uploadUpdaterJson: true
+          uploadUpdaterSignatures: true

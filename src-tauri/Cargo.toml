@@ -1,0 +1,34 @@
+[package]
+name = "breakly"
+version = "1.0.0"
+description = "Breakly - 健康提醒桌面应用"
+authors = ["neopen"]
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "breakly_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-autostart = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-process = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-updater = "2"
+chrono = "0.4"
+tokio = { version = "1", features = ["time", "sync"] }
+serde = { version = "1", features = ["derive"] }
+# tauri::generate_context! 宏展开时需要 serde_json
+serde_json = "1"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_System_Threading",
+    "Win32_UI_WindowsAndMessaging",
+] }
