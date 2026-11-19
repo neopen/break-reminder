@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    healthclock_desktop_lib::run()
+    breakly_lib::run()
 }

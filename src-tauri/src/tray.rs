@@ -7,10 +7,14 @@ use crate::keyboard;
 /// 创建托盘图标与右键菜单。
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
     let show_item = MenuItem::with_id(app, "show", "显示主窗口", true, None::<&str>)?;
-    let lock_item =
-        MenuItem::with_id(app, "lock", "打开锁屏测试（60 秒）", true, None::<&str>)?;
-    let keyboard_item =
-        MenuItem::with_id(app, "toggle-keyboard", "开始 / 停止键盘拦截", true, None::<&str>)?;
+    let lock_item = MenuItem::with_id(app, "lock", "打开锁屏测试（60 秒）", true, None::<&str>)?;
+    let keyboard_item = MenuItem::with_id(
+        app,
+        "toggle-keyboard",
+        "开始 / 停止键盘拦截",
+        true,
+        None::<&str>,
+    )?;
     let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
     let separator_one = PredefinedMenuItem::separator(app)?;
     let separator_two = PredefinedMenuItem::separator(app)?;
@@ -29,7 +33,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
 
     let mut builder = TrayIconBuilder::with_id("main-tray")
         .menu(&menu)
-        .tooltip("别坐了 - 健康提醒");
+        .tooltip("Breakly - 健康提醒");
 
     if let Some(icon) = app.default_window_icon() {
         builder = builder.icon(icon.clone());

@@ -46,6 +46,17 @@ jobs:
         shell: bash
         run: npx tauri build --bundles nsis --config '{"bundle":{"createUpdaterArtifacts":false}}'
 
+      - name: Rename Windows installer
+        shell: bash
+        run: |
+          INSTALLER=$(find src-tauri/target/release/bundle/nsis -maxdepth 1 -name '*-setup.exe' ! -name 'Breakly-Setup.exe' | head -n 1)
+          if [ -z "$INSTALLER" ]; then
+            echo "::error::NSIS installer not found"
+            exit 1
+          fi
+          cp "$INSTALLER" src-tauri/target/release/bundle/nsis/Breakly-Setup.exe
+          rm "$INSTALLER"
+
       - name: List build output
         shell: pwsh
         run: |
@@ -55,7 +66,7 @@ jobs:
       - name: Upload test artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: healthclock-test-${{ github.sha }}
+          name: breakly-test-${{ github.sha }}
           path: |
             src-tauri/target/release/*.exe
             src-tauri/target/release/bundle/nsis/*.exe

@@ -1,8 +1,9 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "HealthClock",
+  "productName": "Breakly",
+  "mainBinaryName": "breakly",
   "version": "1.0.0",
-  "identifier": "com.neopen.healthclock",
+  "identifier": "com.neopen.breakly",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -13,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "别坐了 · HealthClock",
+        "title": "别坐了 · Breakly",
         "width": 720,
         "height": 820,
         "minWidth": 560,

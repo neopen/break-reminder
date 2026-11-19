@@ -1,4 +1,4 @@
-<h1 align="center">别坐了 (HealthClock)</h1>
+<h1 align="center">别坐了 (Breakly)</h1>
 <h2 align="center">定时提醒 · 拒绝久坐</h2>
 
 <p align="center">
@@ -49,11 +49,11 @@
 
 ## 体积与资源
 
-| 构建                                  | 体积           |
-| ------------------------------------- | -------------- |
-| Windows NSIS 安装包（未签名测试构建） | **3.3 MB**     |
-| Windows 便携 exe                      | 14 MB          |
-| Electron 旧版安装包 / 安装后          | 97 MB / 306 MB |
+| 构建                                          | 体积           |
+| --------------------------------------------- | -------------- |
+| Windows `Breakly-Setup.exe`（未签名测试构建） | **3.3 MB**     |
+| Windows 便携 exe                              | 14 MB          |
+| Electron 旧版安装包 / 安装后                  | 97 MB / 306 MB |
 
 安装后实际占用与空载内存待 Windows 正式包实测后补充。
 

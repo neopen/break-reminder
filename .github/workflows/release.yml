@@ -116,3 +116,19 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+
+      # 自动更新继续使用 Tauri 生成的带版本号安装包；
+      # 额外提供固定文件名 Breakly-Setup.exe 方便用户直接下载。
+      - name: Upload friendly Windows installer name
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          INSTALLER=$(find src-tauri/target/release/bundle/nsis -maxdepth 1 -name '*-setup.exe' ! -name 'Breakly-Setup.exe' | head -n 1)
+          if [ -z "$INSTALLER" ]; then
+            echo "::error::NSIS installer not found"
+            exit 1
+          fi
+          cp "$INSTALLER" Breakly-Setup.exe
+          gh release upload "${{ github.ref_name }}" Breakly-Setup.exe --clobber

@@ -53,17 +53,10 @@ mod imp {
     const VK_VOLUME_DOWN: u32 = 0xAE;
     const VK_VOLUME_UP: u32 = 0xAF;
 
-    unsafe extern "system" fn keyboard_proc(
-        code: i32,
-        wparam: WPARAM,
-        lparam: LPARAM,
-    ) -> LRESULT {
+    unsafe extern "system" fn keyboard_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
         if code >= 0 && super::is_blocking() {
             let event = &*(lparam as *const KBDLLHOOKSTRUCT);
-            if !matches!(
-                event.vkCode,
-                VK_VOLUME_MUTE | VK_VOLUME_DOWN | VK_VOLUME_UP
-            ) {
+            if !matches!(event.vkCode, VK_VOLUME_MUTE | VK_VOLUME_DOWN | VK_VOLUME_UP) {
                 // 低级键盘钩子返回 1 表示吞掉该按键。
                 return 1;
             }

@@ -45,6 +45,7 @@ Workflow 会校验 `package.json` 版本与标签一致。
   - macOS Universal（arm64 + x64）→ APP + DMG
   - Linux x64 → AppImage + DEB
 - `tauri-apps/tauri-action` 负责构建、生成 `latest.json` 与 `.sig`、创建 GitHub Release
+- Windows 额外上传固定文件名 `Breakly-Setup.exe`，自动更新仍使用带版本号的原产物
 
 ### 必需的 GitHub Secrets
 
@@ -61,13 +62,13 @@ Workflow 会校验 `package.json` 版本与标签一致。
 
 本地已生成一对密钥：
 
-- 私钥：`C:\Users\haeng\.tauri\healthclock.key`（**不要提交**）
+- 私钥：`C:\Users\haeng\.tauri\breakly.key`（**不要提交**）
 - 公钥：已写入 `src-tauri/tauri.conf.json` → `plugins.updater.pubkey`
 
 重新生成：
 
 ```bash
-npx tauri signer generate -w ~/.tauri/healthclock.key
+npx tauri signer generate -w ~/.tauri/breakly.key
 # 将输出的公钥替换到 tauri.conf.json 的 pubkey
 ```
 
@@ -95,7 +96,7 @@ git push origin test-1.0.0.1
 产物包含：
 
 - `src-tauri/target/release/*.exe`（便携版）
-- `src-tauri/target/release/bundle/nsis/*.exe`（安装版，验证系统通知）
+- `src-tauri/target/release/bundle/nsis/Breakly-Setup.exe`（安装版，验证系统通知）
 - `src-tauri/Cargo.lock`（用于提交锁定文件）
 
 测试包关闭 updater 产物，不需要签名密钥。系统通知仅对安装版生效。

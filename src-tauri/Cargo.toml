@@ -1,13 +1,13 @@
 [package]
-name = "healthclock-desktop"
+name = "breakly"
 version = "1.0.0"
-description = "别坐了 - 健康提醒桌面应用"
+description = "Breakly - 健康提醒桌面应用"
 authors = ["neopen"]
 edition = "2021"
 rust-version = "1.77.2"
 
 [lib]
-name = "healthclock_desktop_lib"
+name = "breakly_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

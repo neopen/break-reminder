@@ -15,7 +15,7 @@ const { desktop, version, platformLabel } = useRuntimeStatus()
     <header class="hero">
       <p class="hero__eyebrow">Tauri 2 · Vue 3 · TypeScript</p>
       <h1 class="hero__title">别坐了</h1>
-      <p class="hero__subtitle">健康提醒桌面应用 · Tauri 2 技术底座</p>
+      <p class="hero__subtitle">健康提醒桌面应用 · Breakly 1.0</p>
       <div class="hero__meta">
         <StatusPill
           :tone="desktop ? 'ok' : 'warn'"
