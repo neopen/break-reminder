@@ -1,9 +1,14 @@
-use std::sync::atomic::AtomicU64;
+use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::sync::Mutex;
 
+use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
+use tokio::sync::oneshot;
 
-/// 锁屏窗口的运行参数，前端通过 `get_lock_config` 读取。
+use crate::config::AppConfig;
+use crate::stats::Stats;
+
+/// 锁屏窗口的运行参数，锁屏页通过命令读取。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LockConfig {
@@ -20,9 +25,28 @@ impl Default for LockConfig {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LockOutcome {
+    Completed,
+    Snoozed(u32),
+    Skipped,
+}
+
+#[derive(Default)]
+pub struct SchedulerState {
+    pub running: AtomicBool,
+    pub generation: AtomicU64,
+    pub next_at: Mutex<Option<DateTime<Local>>>,
+    pub lock_tx: Mutex<Option<oneshot::Sender<LockOutcome>>>,
+}
+
 #[derive(Default)]
 pub struct AppState {
+    pub config: Mutex<AppConfig>,
+    pub stats: Mutex<Stats>,
+    pub scheduler: SchedulerState,
     pub lock_config: Mutex<LockConfig>,
     /// 每次打开/关闭锁屏窗口递增，用于终止旧的置顶巡检线程。
     pub lock_generation: AtomicU64,
+    pub quitting: AtomicBool,
 }

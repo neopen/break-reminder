@@ -1,66 +1,50 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
-import { emit } from '@tauri-apps/api/event'
-import { getCurrentWindow } from '@tauri-apps/api/window'
-
-import AppButton from '@/components/AppButton.vue'
-import StatusPill from '@/components/StatusPill.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import { useConfirm } from '@/composables/useConfirm'
 import {
   closeLockWindow,
+  completeLock,
+  getConfig,
   getLockConfig,
-  getRuntimeStatus,
   isDesktopRuntime,
+  skipReminder,
+  snoozeReminder,
 } from '@/services/desktop'
 import type { LockConfig } from '@/types/desktop'
 
-const config = ref<LockConfig>({ durationSecs: 60, forceLock: false })
+const lockConfig = ref<LockConfig>({ durationSecs: 60, forceLock: false })
+const soundEnabled = ref(true)
 const remaining = ref(60)
 const total = ref(60)
-const blocking = ref(false)
-const supported = ref(true)
-const audioState = ref<'pending' | 'playing' | 'blocked'>('pending')
-const audioDetail = ref('等待播放…')
-const playedCount = ref(0)
-const isDev = import.meta.env.DEV
+const finished = ref(false)
+
+const { confirm } = useConfirm()
 
 let tickTimer: number | undefined
 let toneTimer: number | undefined
 let deadlineTimer: number | undefined
 let audio: HTMLAudioElement | null = null
-let finishing = false
 
 const circumference = 2 * Math.PI * 120
-const progress = computed(() => (total.value > 0 ? remaining.value / total.value : 0))
-const dashOffset = computed(() => circumference * (1 - progress.value))
+const elapsedRatio = computed(() =>
+  total.value > 0 ? (total.value - remaining.value) / total.value : 0,
+)
+const dashOffset = computed(() => circumference * (1 - elapsedRatio.value))
 const timeText = computed(() => {
   const minutes = Math.floor(remaining.value / 60)
   const seconds = remaining.value % 60
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  return `${pad(minutes)}:${pad(seconds)}`
 })
-const canClose = computed(() => !config.value.forceLock || remaining.value <= 0)
+const primaryLabel = computed(() =>
+  lockConfig.value.forceLock
+    ? `⏳ 请等待 ${remaining.value} 秒`
+    : `⏳ 请活动 ${remaining.value} 秒`,
+)
 
-async function reportAudio(): Promise<void> {
-  await emit('hc-audio-autoplay', {
-    ok: audioState.value === 'playing',
-    detail: audioDetail.value,
-    playedCount: playedCount.value,
-  }).catch(() => undefined)
-}
-
-async function playTone(): Promise<void> {
-  if (!audio) return
-  try {
-    audio.currentTime = 0
-    await audio.play()
-    audioState.value = 'playing'
-    playedCount.value += 1
-    audioDetail.value = `已自动播放 ${playedCount.value} 次`
-  } catch (cause) {
-    audioState.value = 'blocked'
-    audioDetail.value = cause instanceof Error ? cause.message : String(cause)
-  }
-  await reportAudio()
+function pad(value: number): string {
+  return String(value).padStart(2, '0')
 }
 
 function stopTimers(): void {
@@ -72,65 +56,121 @@ function stopTimers(): void {
   deadlineTimer = undefined
 }
 
-async function finish(): Promise<void> {
-  if (finishing) return
-  finishing = true
+async function playTone(): Promise<void> {
+  if (!audio) return
+  try {
+    audio.currentTime = 0
+    await audio.play()
+  } catch {
+    // 自动播放被系统策略拦截时静默处理，不影响倒计时。
+  }
+}
+
+async function complete(): Promise<void> {
+  if (finished.value) return
+  finished.value = true
   stopTimers()
   audio?.pause()
 
-  // 优先让锁屏窗口直接关闭，避免依赖自定义命令的 IPC 往返。
   try {
-    await getCurrentWindow().close()
-    return
-  } catch (cause) {
-    console.warn('[lock] 窗口 close 失败，回退到命令', cause)
+    await completeLock()
+  } catch {
+    await closeLockWindow().catch(() => undefined)
   }
+}
+
+async function earlyEnd(): Promise<void> {
+  if (lockConfig.value.forceLock) return
+
+  const confirmed = await confirm({
+    title: '提前结束提醒',
+    message: '活动时间还没到。\n提前结束会影响健康习惯的！\n确定要提前结束吗？',
+    confirmText: '提前结束',
+    cancelText: '继续活动',
+    tone: 'warn',
+  })
+  if (!confirmed) return
+
+  finished.value = true
+  stopTimers()
+  audio?.pause()
+  await closeLockWindow().catch(() => undefined)
+}
+
+async function snooze(): Promise<void> {
+  if (lockConfig.value.forceLock) return
+
+  finished.value = true
+  stopTimers()
+  audio?.pause()
 
   try {
-    await closeLockWindow()
+    await snoozeReminder(5)
   } catch {
-    window.close()
+    await closeLockWindow().catch(() => undefined)
+  }
+}
+
+async function skip(): Promise<void> {
+  if (lockConfig.value.forceLock) return
+
+  const confirmed = await confirm({
+    title: '跳过本次提醒',
+    message: '跳过本次不会计入完成次数。\n确定要跳过吗？',
+    confirmText: '跳过',
+    cancelText: '再坚持一下',
+    tone: 'warn',
+  })
+  if (!confirmed) return
+
+  finished.value = true
+  stopTimers()
+  audio?.pause()
+
+  try {
+    await skipReminder()
+  } catch {
+    await closeLockWindow().catch(() => undefined)
   }
 }
 
 onMounted(async () => {
   if (isDesktopRuntime()) {
     try {
-      config.value = await getLockConfig()
+      lockConfig.value = await getLockConfig()
     } catch (cause) {
       console.warn('[lock] 读取锁屏配置失败', cause)
     }
     try {
-      const status = await getRuntimeStatus()
-      blocking.value = status.blocking
-      supported.value = status.platformSupported
+      const config = await getConfig()
+      soundEnabled.value = config.soundEnabled
     } catch (cause) {
-      console.warn('[lock] 读取拦截状态失败', cause)
+      console.warn('[lock] 读取提醒设置失败', cause)
     }
   }
 
-  total.value = Math.max(1, config.value.durationSecs)
+  total.value = Math.max(1, lockConfig.value.durationSecs)
   remaining.value = total.value
 
-  audio = new Audio('/audio/alert.wav')
-  audio.preload = 'auto'
-  audio.volume = 0.7
-
-  await playTone()
-  toneTimer = window.setInterval(() => {
+  if (soundEnabled.value) {
+    audio = new Audio('/audio/alert.wav')
+    audio.preload = 'auto'
+    audio.volume = 0.7
     void playTone()
-  }, 3000)
+    toneTimer = window.setInterval(() => {
+      void playTone()
+    }, 3000)
+  }
 
   tickTimer = window.setInterval(() => {
     remaining.value = Math.max(0, remaining.value - 1)
     if (remaining.value === 0) {
-      void finish()
+      void complete()
     }
   }, 1000)
 
-  // 绝对截止时间：即使显示计时被节流，也能按时关闭（Rust 侧还有兜底）。
   deadlineTimer = window.setTimeout(() => {
-    void finish()
+    void complete()
   }, total.value * 1000)
 })
 
@@ -147,11 +187,10 @@ onBeforeUnmount(() => {
     <div class="lock-glow lock-glow--two" />
 
     <section class="lock-card">
-      <p class="lock-eyebrow">
-        {{ blocking ? '键盘已锁定 · 请起来活动' : '健康提醒' }}
-      </p>
-      <h1 class="lock-title">起来走一走</h1>
-      <p class="lock-subtitle">站起来活动一下，喝口水，看看远处。</p>
+      <div class="lock-emoji" aria-hidden="true">🧘</div>
+      <p class="lock-eyebrow">{{ lockConfig.forceLock ? '强制休息' : '锁屏提醒' }}</p>
+      <h1 class="lock-title">该活动啦！</h1>
+      <p class="lock-subtitle">站起来走走，伸个懒腰<br />活动一下筋骨。</p>
 
       <div class="ring">
         <svg class="ring__svg" viewBox="0 0 280 280" role="img" aria-label="剩余时间">
@@ -167,38 +206,40 @@ onBeforeUnmount(() => {
         </svg>
         <div class="ring__center">
           <span class="ring__time">{{ timeText }}</span>
-          <span class="ring__label">剩余时间</span>
+          <span class="ring__label">倒计时</span>
         </div>
       </div>
 
-      <div class="lock-audio">
-        <StatusPill
-          :tone="audioState === 'playing' ? 'ok' : audioState === 'blocked' ? 'danger' : 'off'"
-          :label="
-            audioState === 'playing'
-              ? '音频自动播放中'
-              : audioState === 'blocked'
-                ? '音频被拦截'
-                : '音频准备中'
-          "
-        />
-        <span class="lock-audio__detail">{{ audioDetail }}</span>
+      <button
+        type="button"
+        class="lock-primary"
+        :class="{ 'lock-primary--disabled': lockConfig.forceLock }"
+        :disabled="lockConfig.forceLock"
+        @click="earlyEnd"
+      >
+        {{ primaryLabel }}
+      </button>
+
+      <div v-if="!lockConfig.forceLock" class="lock-secondary">
+        <button type="button" @click="snooze">稍后 5 分钟</button>
+        <button type="button" @click="skip">跳过本次</button>
       </div>
 
-      <div class="lock-actions">
-        <AppButton v-if="canClose" variant="secondary" @click="finish">结束提醒</AppButton>
-        <button v-else-if="isDev" type="button" class="lock-debug" @click="finish">
-          调试：提前结束
-        </button>
+      <div class="lock-suggestions">
+        <span><i aria-hidden="true">🚶</i>走动一下</span>
+        <span><i aria-hidden="true">💧</i>喝杯热水</span>
+        <span><i aria-hidden="true">👀</i>看看远方</span>
       </div>
 
       <p class="lock-hint">
         {{
-          supported
-            ? '全局键盘拦截已启用（音量键除外），鼠标仍可操作。'
-            : '当前平台暂未实现全局键盘拦截，可直接点击按钮结束。'
+          lockConfig.forceLock
+            ? '强制锁屏中，键盘已锁定，请等待倒计时结束。'
+            : '鼠标仍可操作；音量键保持可用。'
         }}
       </p>
     </section>
+
+    <ConfirmDialog />
   </div>
 </template>

@@ -1,9 +1,14 @@
+use std::sync::atomic::Ordering;
+
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
 
+use crate::config::AppConfig;
 use crate::keyboard;
 use crate::lock;
-use crate::state::{AppState, LockConfig};
+use crate::scheduler::{self, SchedulerStatus};
+use crate::state::{AppState, LockConfig, LockOutcome};
+use crate::stats::StatsSummary;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -22,6 +27,61 @@ pub fn get_runtime_status() -> RuntimeStatus {
         platform_supported: keyboard::is_supported(),
         platform: std::env::consts::OS.to_string(),
     }
+}
+
+#[tauri::command]
+pub fn get_config(state: State<'_, AppState>) -> AppConfig {
+    state
+        .config
+        .lock()
+        .map(|config| config.clone())
+        .unwrap_or_default()
+}
+
+#[tauri::command]
+pub fn save_config(app: AppHandle, config: AppConfig) -> Result<AppConfig, String> {
+    scheduler::apply_config(&app, config)
+}
+
+#[tauri::command]
+pub fn get_stats(app: AppHandle) -> StatsSummary {
+    scheduler::refresh_stats(&app)
+}
+
+#[tauri::command]
+pub fn reset_today_stats(app: AppHandle) -> StatsSummary {
+    scheduler::reset_today(&app)
+}
+
+#[tauri::command]
+pub fn get_scheduler_status(app: AppHandle) -> SchedulerStatus {
+    scheduler::status(&app)
+}
+
+#[tauri::command]
+pub fn start_reminders(app: AppHandle) -> Result<(), String> {
+    scheduler::start(&app)
+}
+
+#[tauri::command]
+pub fn stop_reminders(app: AppHandle) {
+    scheduler::stop(&app);
+}
+
+#[tauri::command]
+pub fn snooze_reminder(app: AppHandle, minutes: u32) -> Result<(), String> {
+    scheduler::snooze(&app, minutes)
+}
+
+#[tauri::command]
+pub fn skip_reminder(app: AppHandle) -> Result<(), String> {
+    scheduler::skip(&app)
+}
+
+#[tauri::command]
+pub fn complete_lock(app: AppHandle) -> Result<(), String> {
+    scheduler::resolve_lock(&app, LockOutcome::Completed);
+    Ok(())
 }
 
 #[tauri::command]
@@ -58,7 +118,7 @@ pub async fn close_lock_window(app: AppHandle) -> Result<(), String> {
     // 异步命令先返回 IPC 响应，再销毁窗口，避免在窗口自身的调用里等待。
     let handle = app.clone();
     tauri::async_runtime::spawn(async move {
-        lock::close(&handle);
+        scheduler::resolve_lock(&handle, LockOutcome::Skipped);
     });
     Ok(())
 }
@@ -72,4 +132,12 @@ pub fn open_main_window(app: AppHandle) -> Result<(), String> {
     window.show().map_err(|error| error.to_string())?;
     let _ = window.unminimize();
     window.set_focus().map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+pub fn quit_app(app: AppHandle) {
+    app.state::<AppState>()
+        .quitting
+        .store(true, Ordering::SeqCst);
+    app.exit(0);
 }

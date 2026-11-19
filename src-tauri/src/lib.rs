@@ -1,8 +1,14 @@
 mod commands;
+mod config;
 mod keyboard;
 mod lock;
+mod scheduler;
 mod state;
+mod stats;
+mod store;
 mod tray;
+
+use std::sync::atomic::Ordering;
 
 use tauri::Manager;
 
@@ -36,20 +42,68 @@ pub fn run() {
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             commands::get_runtime_status,
+            commands::get_config,
+            commands::save_config,
+            commands::get_stats,
+            commands::reset_today_stats,
+            commands::get_scheduler_status,
+            commands::start_reminders,
+            commands::stop_reminders,
+            commands::snooze_reminder,
+            commands::skip_reminder,
+            commands::complete_lock,
             commands::get_lock_config,
             commands::set_keyboard_blocking,
             commands::open_lock_window,
             commands::close_lock_window,
             commands::open_main_window,
+            commands::quit_app,
         ])
         .setup(|app| {
-            tray::create(app.handle())?;
+            let handle = app.handle();
+            let paths = store::init(handle).map_err(std::io::Error::other)?;
+
+            let config = store::load_config(&paths.config);
+            let mut stats = store::load_stats(&paths.stats);
+            let now = chrono::Local::now();
+            let mut changed = stats.rollover(now);
+            changed |= stats.fix_streak(now);
+            if changed {
+                let _ = store::save_stats(&paths.stats, &stats);
+            }
+
+            {
+                let state = handle.state::<AppState>();
+                *state
+                    .config
+                    .lock()
+                    .map_err(|_| std::io::Error::other("配置状态已损坏"))? = config;
+                *state
+                    .stats
+                    .lock()
+                    .map_err(|_| std::io::Error::other("统计状态已损坏"))? = stats;
+            }
+
+            tray::create(handle)?;
             Ok(())
         })
-        .on_window_event(|window, event| {
-            if window.label() == "lock" && matches!(event, tauri::WindowEvent::Destroyed) {
-                keyboard::stop();
+        .on_window_event(|window, event| match event {
+            tauri::WindowEvent::CloseRequested { api, .. } if window.label() == "main" => {
+                let app = window.app_handle();
+                let quitting = app
+                    .state::<AppState>()
+                    .quitting
+                    .load(Ordering::SeqCst);
+                if !quitting {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
             }
+            tauri::WindowEvent::Destroyed if window.label() == "lock" => {
+                keyboard::stop();
+                scheduler::on_lock_destroyed(window.app_handle());
+            }
+            _ => {}
         })
         .run(tauri::generate_context!())
         .expect("运行 Tauri 应用失败");

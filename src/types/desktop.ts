@@ -1,3 +1,60 @@
+export type NotificationType = 'desktop' | 'lock'
+
+export interface TimeRange {
+  start: string
+  end: string
+}
+
+export interface CustomBreak {
+  name: string
+  start: string
+  end: string
+}
+
+export interface DoNotDisturb {
+  enabled: boolean
+  lunchBreak: TimeRange
+  customBreaks: CustomBreak[]
+}
+
+/** 与 Rust 侧 AppConfig 一一对应 */
+export interface AppConfig {
+  startTime: string
+  endTime: string
+  intervalMinutes: number
+  lockMinutes: number
+  forceLock: boolean
+  systemLock: boolean
+  soundEnabled: boolean
+  notificationType: NotificationType
+  doNotDisturb: DoNotDisturb
+  [key: string]: unknown
+}
+
+/** 与 Rust 侧 StatsSummary 一一对应 */
+export interface StatsSummary {
+  todayCount: number
+  continuousDays: number
+  weeklyRate: number
+  weeklyCount: number
+  weeklyTarget: number
+  dailyTarget: number
+}
+
+/** 与 Rust 侧 SchedulerStatus 一一对应 */
+export interface SchedulerStatus {
+  running: boolean
+  nextAt: string | null
+  nextAtIso: string | null
+  lockOpen: boolean
+}
+
+/** 调度器触发提醒时广播的事件 */
+export interface ReminderEvent {
+  mode: NotificationType
+  soundEnabled: boolean
+}
+
 /** 与 Rust 侧 RuntimeStatus 一一对应 */
 export interface RuntimeStatus {
   blocking: boolean

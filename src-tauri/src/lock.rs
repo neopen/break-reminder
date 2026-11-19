@@ -76,7 +76,7 @@ pub fn open(app: &AppHandle, duration_secs: u64, force_lock: bool) -> Result<(),
             return;
         }
 
-        close(&close_handle);
+        crate::scheduler::resolve_lock(&close_handle, crate::state::LockOutcome::Completed);
     });
 
     Ok(())
