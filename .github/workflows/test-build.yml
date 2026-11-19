@@ -46,16 +46,23 @@ jobs:
         shell: bash
         run: npx tauri build --bundles nsis --config '{"bundle":{"createUpdaterArtifacts":false}}'
 
-      - name: Rename Windows installer
+      - name: Rename Windows artifacts
         shell: bash
         run: |
-          INSTALLER=$(find src-tauri/target/release/bundle/nsis -maxdepth 1 -name '*-setup.exe' ! -name 'Breakly-Setup.exe' | head -n 1)
+          VERSION=$(node -p "require('./package.json').version")
+          INSTALLER=$(find src-tauri/target/release/bundle/nsis -maxdepth 1 -name '*-setup.exe' ! -name 'Breakly-*-x64-Setup.exe' | head -n 1)
           if [ -z "$INSTALLER" ]; then
             echo "::error::NSIS installer not found"
             exit 1
           fi
-          cp "$INSTALLER" src-tauri/target/release/bundle/nsis/Breakly-Setup.exe
+          cp "$INSTALLER" "src-tauri/target/release/bundle/nsis/Breakly-${VERSION}-x64-Setup.exe"
           rm "$INSTALLER"
+
+          EXE=$(find src-tauri/target/release -maxdepth 1 -name '*.exe' ! -name 'Breakly-*-x64.exe' | head -n 1)
+          if [ -n "$EXE" ]; then
+            cp "$EXE" "src-tauri/target/release/Breakly-${VERSION}-x64.exe"
+            rm "$EXE"
+          fi
 
       - name: List build output
         shell: pwsh
