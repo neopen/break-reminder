@@ -60,20 +60,14 @@ Workflow 会校验 `package.json` 版本与标签一致。
 
 ## 5. 更新签名密钥
 
-本地已生成一对密钥：
+完整配置步骤（CLI / 网页、验证、轮换与排错）见 [更新签名配置](signing.md)。
 
-- 私钥：`C:\Users\haeng\.tauri\breakly.key`（**不要提交**）
+摘要：
+
+- 私钥：`~/.tauri/breakly.key`（**不要提交**）
 - 公钥：已写入 `src-tauri/tauri.conf.json` → `plugins.updater.pubkey`
-
-重新生成：
-
-```bash
-npx tauri signer generate -w ~/.tauri/breakly.key
-# 将输出的公钥替换到 tauri.conf.json 的 pubkey
-```
-
-> 私钥丢失将无法发布可被旧版本验证的更新。轮换密钥后，旧版本无法验证新公钥，
-> 需要过渡发布或提供手动安装包。
+- 当前密钥无密码，只需配置 `TAURI_SIGNING_PRIVATE_KEY`
+- 建议在首次发布前改用带密码密钥，并同时配置 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
 
 ## 6. 自动更新
 

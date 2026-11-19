@@ -5,6 +5,7 @@
 | [架构与路线图](architecture.md) | 技术选型、目录约定、UI 规范、原生能力边界、迁移阶段 |
 | [开发指南](development.md)      | 环境准备、常用命令、代码质量、常见问题              |
 | [发布与自动更新](release.md)    | 版本策略、标签、CI/Release、更新密钥与 Secrets      |
+| [更新签名配置](signing.md)      | 密钥原理、Secret 配置、验证、轮换与故障排查         |
 
 ## 项目速览
 
