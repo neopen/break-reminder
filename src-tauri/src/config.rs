@@ -9,17 +9,12 @@ pub const DEFAULT_LOCK_MINUTES: u32 = 5;
 pub const MIN_LOCK_MINUTES: u32 = 1;
 pub const MAX_LOCK_MINUTES: u32 = 30;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum NotificationType {
+    #[default]
     Desktop,
     Lock,
-}
-
-impl Default for NotificationType {
-    fn default() -> Self {
-        Self::Desktop
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

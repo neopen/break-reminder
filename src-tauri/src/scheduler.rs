@@ -37,7 +37,7 @@ pub fn status(app: &AppHandle) -> SchedulerStatus {
         .next_at
         .lock()
         .ok()
-        .and_then(|slot| slot.clone());
+        .and_then(|slot| *slot);
 
     SchedulerStatus {
         running: state.scheduler.running.load(Ordering::SeqCst),
@@ -278,7 +278,7 @@ async fn run_loop(app: AppHandle, generation: u64) {
                     .next_at
                     .lock()
                     .ok()
-                    .and_then(|slot| slot.clone()),
+                    .and_then(|slot| *slot),
             )
         };
 
