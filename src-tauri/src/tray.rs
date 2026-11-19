@@ -78,10 +78,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
                 }
             }
             id if id.starts_with("snooze-") => {
-                let minutes = id
-                    .trim_start_matches("snooze-")
-                    .parse::<u32>()
-                    .unwrap_or(5);
+                let minutes = id.trim_start_matches("snooze-").parse::<u32>().unwrap_or(5);
                 if let Err(error) = scheduler::snooze(app, minutes) {
                     eprintln!("[tray] 稍后提醒失败: {error}");
                 }

@@ -90,10 +90,7 @@ pub fn run() {
         .on_window_event(|window, event| match event {
             tauri::WindowEvent::CloseRequested { api, .. } if window.label() == "main" => {
                 let app = window.app_handle();
-                let quitting = app
-                    .state::<AppState>()
-                    .quitting
-                    .load(Ordering::SeqCst);
+                let quitting = app.state::<AppState>().quitting.load(Ordering::SeqCst);
                 if !quitting {
                     api.prevent_close();
                     let _ = window.hide();

@@ -9,8 +9,8 @@ use tauri_plugin_notification::NotificationExt;
 use crate::config::{AppConfig, NotificationType};
 use crate::lock;
 use crate::state::{AppState, LockOutcome};
-use crate::store;
 use crate::stats::Stats;
+use crate::store;
 
 const MAX_SLEEP_MS: i64 = 5 * 60 * 1000;
 
@@ -41,7 +41,9 @@ pub fn status(app: &AppHandle) -> SchedulerStatus {
 
     SchedulerStatus {
         running: state.scheduler.running.load(Ordering::SeqCst),
-        next_at: next.as_ref().map(|value| value.format("%H:%M:%S").to_string()),
+        next_at: next
+            .as_ref()
+            .map(|value| value.format("%H:%M:%S").to_string()),
         next_at_iso: next.map(|value| value.to_rfc3339()),
         lock_open: app.get_webview_window("lock").is_some(),
     }

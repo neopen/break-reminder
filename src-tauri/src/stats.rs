@@ -90,8 +90,7 @@ impl Stats {
 
     pub fn reset_today(&mut self, now: DateTime<Local>) {
         self.today_count = 0;
-        self.daily_records
-            .insert(date_key(now.date_naive()), 0);
+        self.daily_records.insert(date_key(now.date_naive()), 0);
     }
 
     pub fn summary(&self, now: DateTime<Local>) -> StatsSummary {

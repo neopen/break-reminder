@@ -1,6 +1,4 @@
-use chrono::{
-    DateTime, Duration, Local, LocalResult, NaiveDateTime, NaiveTime, TimeZone,
-};
+use chrono::{DateTime, Duration, Local, LocalResult, NaiveDateTime, NaiveTime, TimeZone};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
@@ -147,9 +145,7 @@ impl AppConfig {
         self.start_time = normalize_hhmm(&self.start_time, "08:00");
         self.end_time = normalize_hhmm(&self.end_time, "18:00");
         self.interval_minutes = normalize_interval(self.interval_minutes);
-        self.lock_minutes = self
-            .lock_minutes
-            .clamp(MIN_LOCK_MINUTES, MAX_LOCK_MINUTES);
+        self.lock_minutes = self.lock_minutes.clamp(MIN_LOCK_MINUTES, MAX_LOCK_MINUTES);
         self.do_not_disturb.normalize();
         self
     }

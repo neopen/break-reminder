@@ -28,9 +28,7 @@ pub fn init(app: &AppHandle) -> Result<StorePaths, String> {
 }
 
 pub fn load_config(path: &Path) -> AppConfig {
-    load_json::<AppConfig>(path)
-        .unwrap_or_default()
-        .normalize()
+    load_json::<AppConfig>(path).unwrap_or_default().normalize()
 }
 
 pub fn load_stats(path: &Path) -> Stats {
