@@ -43,7 +43,7 @@
 
 ### 方式二：安装桌面应用（推荐）
 
-下载安装软件：[GitHub Releases](https://github.com/neopen/break-reminder/releases)  找最新稳定版（1.0 之前的版本体积较大，建议选择 1.0之后的安装）。
+下载安装软件：[GitHub Releases](https://github.com/neopen/break-reminder/releases) 找最新稳定版（1.0 之前的版本体积较大，建议选择 1.0之后的安装）。
 
 支持平台：Windows（通过）、macOS（尚未测试）、Linux（尚未测试）
 

@@ -1,4 +1,3 @@
-
 # ============================================================
 # Breakly - Cross-platform Release Workflow
 #
@@ -43,7 +42,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-
   # ==========================================================
   # Build & Release
   # ==========================================================
@@ -60,7 +58,6 @@ jobs:
       # ------------------------------------------------------
       matrix:
         include:
-
           # Windows x64
           - name: Windows x64
             os: windows-latest
@@ -81,7 +78,6 @@ jobs:
             rust_targets: 'x86_64-unknown-linux-gnu'
 
     steps:
-
       # ======================================================
       # 1. Checkout
       # ======================================================
@@ -227,7 +223,6 @@ jobs:
           # WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
 
         with:
-
           # --------------------------------------------------
           # Release 基本信息
           # --------------------------------------------------
