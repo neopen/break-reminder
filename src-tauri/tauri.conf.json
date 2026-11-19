@@ -15,10 +15,10 @@
       {
         "label": "main",
         "title": "别坐了 · Breakly",
-        "width": 700,
-        "height": 760,
-        "minWidth": 600,
-        "minHeight": 620,
+        "width": 640,
+        "height": 700,
+        "minWidth": 560,
+        "minHeight": 600,
         "center": true,
         "resizable": true
       }

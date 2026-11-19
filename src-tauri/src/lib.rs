@@ -84,6 +84,11 @@ pub fn run() {
                     .map_err(|_| std::io::Error::other("统计状态已损坏"))? = stats;
             }
 
+            // 仅缩放主窗口；锁屏页保持原始比例。
+            if let Some(window) = handle.get_webview_window("main") {
+                let _ = window.set_zoom(0.85);
+            }
+
             tray::create(handle)?;
             Ok(())
         })

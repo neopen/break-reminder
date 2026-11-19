@@ -40,11 +40,11 @@ onMounted(() => {
 
 <style scoped>
 .app-shell {
-  width: min(620px, 100%);
+  width: min(560px, 100%);
   margin: 0 auto;
-  padding: 18px 16px 22px;
+  padding: 16px 14px 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 </style>
