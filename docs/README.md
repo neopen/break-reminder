@@ -9,6 +9,7 @@
 
 ## 项目速览
 
+- 官网：<https://breakly.helpoke.com>
 - 桌面容器：Tauri 2（Rust）
 - 渲染层：Vue 3 + TypeScript + Vite
 - 原生能力：托盘、单实例、开机自启、通知、自动更新，以及自研 Windows 低层键盘钩子

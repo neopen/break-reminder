@@ -33,6 +33,7 @@
     "targets": "all",
     "createUpdaterArtifacts": true,
     "publisher": "neopen",
+    "homepage": "https://breakly.helpoke.com",
     "copyright": "Copyright © 2026 neopen",
     "shortDescription": "健康提醒与强制活动桌面应用",
     "longDescription": "定时提醒久坐用户起身活动，支持全屏提醒遮罩、全局键盘拦截、系统通知与自动更新。",

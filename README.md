@@ -11,12 +11,15 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-brightgreen" alt="Platform">
   <img src="https://img.shields.io/badge/Tauri-2-orange" alt="Tauri 2">
+  <a href="https://breakly.helpoke.com"><img src="https://img.shields.io/badge/Website-breakly.helpoke.com-blue" alt="Website"></a>
 </p>
 
 ## 简介
 
 「别坐了」通过定时全屏遮罩提醒久坐用户起身活动。项目已从 Electron 迁移到
 **Tauri 2 + Vue 3 + TypeScript**：安装包从约 97 MB 降至 3–14 MB，常驻内存显著下降。
+
+官网：<https://breakly.helpoke.com>
 
 当前 1.0 版本完成桌面技术底座与核心原生能力；提醒引擎、配置与统计的完整迁移见
 [架构与路线图](docs/architecture.md)。
