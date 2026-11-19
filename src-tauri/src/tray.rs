@@ -2,7 +2,6 @@ use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager};
 
-use crate::keyboard;
 use crate::scheduler;
 use crate::state::AppState;
 
@@ -12,14 +11,6 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
     let start_item = MenuItem::with_id(app, "start", "开始提醒", true, None::<&str>)?;
     let stop_item = MenuItem::with_id(app, "stop", "停止提醒", true, None::<&str>)?;
     let skip_item = MenuItem::with_id(app, "skip", "跳过本次", true, None::<&str>)?;
-    let lock_item = MenuItem::with_id(app, "lock", "打开锁屏测试（60 秒）", true, None::<&str>)?;
-    let keyboard_item = MenuItem::with_id(
-        app,
-        "toggle-keyboard",
-        "开始 / 停止键盘拦截",
-        true,
-        None::<&str>,
-    )?;
     let quit_item = MenuItem::with_id(app, "quit", "退出应用", true, None::<&str>)?;
 
     let snooze_menu = Submenu::with_id(app, "snooze", "稍后提醒", true)?;
@@ -36,7 +27,6 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
 
     let separator_one = PredefinedMenuItem::separator(app)?;
     let separator_two = PredefinedMenuItem::separator(app)?;
-    let separator_three = PredefinedMenuItem::separator(app)?;
 
     let menu = Menu::with_items(
         app,
@@ -48,9 +38,6 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
             &snooze_menu,
             &skip_item,
             &separator_two,
-            &lock_item,
-            &keyboard_item,
-            &separator_three,
             &quit_item,
         ],
     )?;
@@ -81,18 +68,6 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
                 let minutes = id.trim_start_matches("snooze-").parse::<u32>().unwrap_or(5);
                 if let Err(error) = scheduler::snooze(app, minutes) {
                     eprintln!("[tray] 稍后提醒失败: {error}");
-                }
-            }
-            "lock" => {
-                if let Err(error) = crate::lock::open(app, 60, false) {
-                    eprintln!("[tray] 打开锁屏失败: {error}");
-                }
-            }
-            "toggle-keyboard" => {
-                if keyboard::is_blocking() {
-                    keyboard::stop();
-                } else if let Err(error) = keyboard::start() {
-                    eprintln!("[tray] 启动键盘拦截失败: {error}");
                 }
             }
             "quit" => {
