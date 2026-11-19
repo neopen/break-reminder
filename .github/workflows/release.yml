@@ -234,25 +234,58 @@ jobs:
           releaseName: 'Breakly ${{ github.ref_name }} | 别坐了'
 
           releaseBody: |
-            ## Breakly | 别坐了
+            ## Breakly ${{ github.ref_name }} | 别坐了
 
-            A lightweight desktop break reminder.
+            **强烈建议所有用户安装最新版。** Breakly 使用 Tauri 2 重写，安装包相比 Electron 旧版缩小约一个数量级，常驻内存与启动速度也明显改善。
 
-            ### Downloads
+            ### 体积对比
 
-            | Platform | Package |
-            |----------|---------|
-            | Windows x64 | NSIS Installer |
-            | macOS Universal | DMG |
-            | Linux x64 | AppImage / DEB |
+            | 版本 | 安装包 |
+            | --- | ---: |
+            | Electron 旧版 0.6.x | 约 97 MB |
+            | **Breakly（NSIS 安装版）** | **通常 3–10 MB，1.0.0 实测约 3.4 MB** |
+            | Breakly 便携版 | 约 14 MB |
 
-            ### Automatic Updates
+            应用不再自带 Chromium，改用系统 WebView2（Windows 10/11 通常已内置）。
 
-            Tauri Updater artifacts and signatures are included.
+            > **从 0.6.x 升级：** App ID 已从 `com.neopen.activebreakclock` 改为 `com.neopen.breakly`，旧版无法自动更新到 1.0，请下载安装包手动安装一次；后续版本支持应用内自动更新。
 
-            ### Installation
+            ### 本次更新
 
-            Download the installer for your operating system from the assets below.
+            - Tauri 2 + Vue 3 + TypeScript 桌面底座
+            - 真实主界面：今日打卡、连续打卡、本周完成率、提醒设置、免打扰、通知方式、下次提醒倒计时
+            - 后台提醒调度：跨天工作时段、免打扰、桌面/锁屏两种模式
+            - 锁屏提醒：倒计时、强制锁屏、稍后 5 分钟、跳过、提前结束
+            - 托盘：开始/停止、稍后 5/10/15/30 分钟、跳过、退出
+            - 系统集成：开机启动、系统通知、系统锁屏、单实例、关闭窗口隐藏到托盘
+            - 工程规范：ESLint、Prettier、rustfmt、Clippy、三平台 CI
+
+            ### 下载
+
+            | 平台 | 文件 |
+            | --- | --- |
+            | Windows x64 | `Breakly-<version>-windows-x64-setup.exe` |
+            | macOS Universal | `Breakly-<version>-darwin-universal.dmg` |
+            | Linux x64 | `Breakly-<version>-linux-x64.AppImage` / `.deb` |
+
+            ### 安装说明
+
+            - **Windows**：安装包未签名，SmartScreen 提示时选择「更多信息 → 仍要运行」。
+            - **macOS**：未签名/未公证，首次打开需在「系统设置 → 隐私与安全性」中允许，或右键 → 打开。
+            - **Linux**：AppImage 先 `chmod +x`；DEB 使用系统包管理器安装。
+            - Windows 系统通知仅对安装版生效，便携版不显示通知。
+
+            ### 已知限制
+
+            - 全局键盘拦截目前仅 Windows 实现；macOS/Linux 暂未支持。
+            - `Ctrl+Alt+Del`、`Win+L` 属于系统安全序列，桌面应用无法拦截。
+            - 锁屏遮罩定位为习惯养成工具，不做对抗性安全隔离。
+
+            ### 链接
+
+            - 官网：https://breakly.helpoke.com
+            - 文档：https://github.com/neopen/break-reminder/tree/main/docs
+            - 问题反馈：https://github.com/neopen/break-reminder/issues
 
           # 正式发布，不使用 Draft
           releaseDraft: false
