@@ -1,24 +1,84 @@
-name: Test Build (Windows, unsigned)
 
+# ============================================================
+# Breakly - Windows Test Build Workflow
+#
+# Project  : Breakly (别坐了)
+# Framework: Tauri 2
+# Platform : Windows x64
+#
+# Output:
+#   - NSIS Installer (unsigned)
+#   - Standalone EXE (unsigned)
+#
+# Features:
+#   - Manual build
+#   - Test tag build
+#   - No GitHub Release
+#   - No Updater signing required
+#   - Temporary artifact storage (7 days)
+# ============================================================
+
+name: Test Build
+
+# ------------------------------------------------------------
+# 触发条件
+#
+# 1. workflow_dispatch:
+#    可以在 GitHub Actions 页面手动触发。
+#    手动触发时可以选择需要测试的分支。
+#
+# 2. push tags:
+#    推送 test-* 标签自动构建。
+#
+# 示例：
+#    test-v1.0.0
+#    test-v1.0.0-1
+#    test-20261119
+# ------------------------------------------------------------
 on:
   workflow_dispatch:
-  # 测试标签触发：分支上也可直接产出安装包，不会触发正式发布
+
   push:
     tags:
       - 'test-*'
 
+# ------------------------------------------------------------
+# 最小权限
+# 测试构建只需要读取仓库内容，不需要 Release 写权限。
+# ------------------------------------------------------------
 permissions:
   contents: read
 
+# ------------------------------------------------------------
+# 并发控制
+# 同一分支或测试标签不重复运行多个相同构建。
+# ------------------------------------------------------------
+concurrency:
+  group: test-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+
+  # ==========================================================
+  # Windows Test Build
+  # ==========================================================
   build:
-    name: Build unsigned Windows package
+    name: Build Windows x64 (Unsigned)
+
     runs-on: windows-latest
 
     steps:
+
+      # ======================================================
+      # 1. Checkout
+      # ======================================================
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ======================================================
+      # 2. Setup Node.js
+      # 使用 Node.js 22
+      # ======================================================
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -26,57 +86,191 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      # ======================================================
+      # 3. Setup Rust
+      # Windows 默认使用 MSVC Target
+      # ======================================================
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
+      # ======================================================
+      # 4. Cache Rust
+      # 缓存 Rust 编译结果
+      # ======================================================
       - name: Cache Rust
         uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
 
+      # ======================================================
+      # 5. Install dependencies
+      # 使用 npm ci 保证依赖一致性
+      # ======================================================
       - name: Install dependencies
         run: npm ci
 
+      # ======================================================
+      # 6. Verify version consistency
+      # 检查前端与 Tauri 项目版本
+      # ======================================================
       - name: Verify version consistency
         run: npm run version:check
 
-      # 构建 NSIS 安装版（验证系统通知需要安装），同时产出可运行的 exe。
-      # 关闭 updater 产物，避免测试包依赖更新签名密钥。
-      - name: Build unsigned executable and NSIS installer
-        shell: bash
-        run: npx tauri build --bundles nsis --config '{"bundle":{"createUpdaterArtifacts":false}}'
-
-      - name: Rename Windows artifacts
-        shell: bash
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          INSTALLER=$(find src-tauri/target/release/bundle/nsis -maxdepth 1 -name '*-setup.exe' ! -name 'Breakly-*-x64-Setup.exe' | head -n 1)
-          if [ -z "$INSTALLER" ]; then
-            echo "::error::NSIS installer not found"
-            exit 1
-          fi
-          cp "$INSTALLER" "src-tauri/target/release/bundle/nsis/Breakly-${VERSION}-x64-Setup.exe"
-          rm "$INSTALLER"
-
-          EXE=$(find src-tauri/target/release -maxdepth 1 -name '*.exe' ! -name 'Breakly-*-x64.exe' | head -n 1)
-          if [ -n "$EXE" ]; then
-            cp "$EXE" "src-tauri/target/release/Breakly-${VERSION}-x64.exe"
-            rm "$EXE"
-          fi
-
-      - name: List build output
+      # ======================================================
+      # 7. Verify test tag (only for tag-triggered builds)
+      #
+      # 测试 Tag 不要求与 package.json 版本一致。
+      # 手动触发时不执行 Tag 检查。
+      # ======================================================
+      - name: Verify test tag
+        if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
         run: |
-          Get-ChildItem src-tauri/target/release -Filter *.exe | Select-Object Name, Length
-          Get-ChildItem src-tauri/target/release/bundle/nsis -Filter *.exe | Select-Object Name, Length
+          $Tag = "${{ github.ref_name }}"
 
+          if ($Tag -notmatch '^test-.+$') {
+            Write-Error "Invalid test tag: $Tag"
+            exit 1
+          }
+
+          Write-Host "Test tag: $Tag"
+
+      # ======================================================
+      # 8. Build unsigned Windows application
+      #
+      # 构建：
+      #   - Windows Standalone EXE
+      #   - NSIS Installer
+      #
+      # 关闭 Updater 产物生成：
+      #   - 不生成更新签名文件
+      #   - 不需要 TAURI_SIGNING_PRIVATE_KEY
+      #
+      # 注意：
+      #   这只是关闭 Updater 签名，不代表 Windows
+      #   代码签名；测试包不会进行 Authenticode 签名。
+      # ======================================================
+      - name: Build unsigned executable and NSIS installer
+        shell: pwsh
+        run: |
+          npx tauri build `
+            --bundles nsis `
+            --config '{"bundle":{"createUpdaterArtifacts":false}}'
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Tauri build failed"
+          }
+
+      # ======================================================
+      # 9. Rename Windows artifacts
+      #
+      # Installer:
+      #   Breakly-1.0.0-windows-x64-setup.exe
+      #
+      # Standalone:
+      #   Breakly-1.0.0-windows-x64-standalone.exe
+      #
+      # 这里使用 Move-Item，不保留多余的重复文件。
+      # ======================================================
+      - name: Rename Windows artifacts
+        shell: pwsh
+        run: |
+          $Version = node -p "require('./package.json').version"
+
+          if ($LASTEXITCODE -ne 0 -or !$Version) {
+            throw "Unable to read package version"
+          }
+
+          # --------------------------------------------------
+          # NSIS Installer
+          # --------------------------------------------------
+          $InstallerDir = "src-tauri/target/release/bundle/nsis"
+
+          $Installers = @(
+            Get-ChildItem $InstallerDir -File -Filter "*-setup.exe" |
+            Where-Object { $_.Name -notlike "Breakly-*-setup.exe" }
+          )
+
+          if ($Installers.Count -ne 1) {
+            throw "Expected exactly one NSIS installer, found $($Installers.Count)"
+          }
+
+          $InstallerName = "Breakly-$Version-windows-x64-setup.exe"
+
+          Move-Item `
+            -Path $Installers[0].FullName `
+            -Destination (Join-Path $InstallerDir $InstallerName)
+
+          # --------------------------------------------------
+          # Standalone executable
+          # --------------------------------------------------
+          $ReleaseDir = "src-tauri/target/release"
+
+          $Executables = @(
+            Get-ChildItem $ReleaseDir -File -Filter "*.exe" |
+            Where-Object {
+              $_.Name -notlike "*-setup.exe" -and
+              $_.Name -notlike "Breakly-*-standalone.exe"
+            }
+          )
+
+          if ($Executables.Count -ne 1) {
+            throw "Expected exactly one application EXE, found $($Executables.Count)"
+          }
+
+          $StandaloneName = "Breakly-$Version-windows-x64-standalone.exe"
+
+          Move-Item `
+            -Path $Executables[0].FullName `
+            -Destination (Join-Path $ReleaseDir $StandaloneName)
+
+          Write-Host "Installer: $InstallerName"
+          Write-Host "Standalone: $StandaloneName"
+
+      # ======================================================
+      # 10. Verify build outputs
+      #
+      # 确保两个安装产物都存在且文件大小正常。
+      # ======================================================
+      - name: Verify build outputs
+        shell: pwsh
+        run: |
+          $Version = node -p "require('./package.json').version"
+
+          $Files = @(
+            "src-tauri/target/release/Breakly-$Version-windows-x64-standalone.exe",
+            "src-tauri/target/release/bundle/nsis/Breakly-$Version-windows-x64-setup.exe"
+          )
+
+          foreach ($File in $Files) {
+            if (!(Test-Path $File)) {
+              throw "Build artifact missing: $File"
+            }
+
+            $Info = Get-Item $File
+
+            if ($Info.Length -le 0) {
+              throw "Build artifact is empty: $File"
+            }
+
+            Write-Host "$($Info.Name) - $([math]::Round($Info.Length / 1MB, 2)) MB"
+          }
+
+      # ======================================================
+      # 11. Upload test artifacts
+      #
+      # 上传到 GitHub Actions Artifacts。
+      # 不创建 GitHub Release。
+      #
+      # 保留 7 天，避免长期占用存储空间。
+      # ======================================================
       - name: Upload test artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: breakly-test-${{ github.sha }}
+          name: Breakly-Windows-x64-Test-${{ github.sha }}
           path: |
-            src-tauri/target/release/*.exe
-            src-tauri/target/release/bundle/nsis/*.exe
-            src-tauri/Cargo.lock
+            src-tauri/target/release/Breakly-*-standalone.exe
+            src-tauri/target/release/bundle/nsis/Breakly-*-setup.exe
           if-no-files-found: error
+          compression-level: 0
           retention-days: 7

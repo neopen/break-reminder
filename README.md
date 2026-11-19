@@ -25,31 +25,25 @@
 
 ## 界面预览
 
-![主界面](assets/imgs/screenshots-1.png)
+主界面
 
-![锁屏提醒](assets/imgs/screenshot-2.png)
+![image-20261119141826298](assets/imgs/image-20261119141826298.png)
+
+提醒界面
+
+![image-20261119141641593](assets/imgs/image-20261119141641593.png)
 
 ## 快速开始
 
-### 方式一：在线使用
+### 方式一：在线体验
 
 访问 [定时提醒 - 拒绝久坐](https://breakly.helpoke.com/)，直接用浏览器打开即可使用。
 
 > 建议使用 Chrome/Edge/Safari 等现代浏览器，可获得最佳体验。
 
-### 方式二：PWA 安装
+### 方式二：安装桌面应用（推荐）
 
-1. 访问 [定时提醒 - 拒绝久坐](https://breakly.helpoke.com/)，用 Chrome/Edge 打开网页
-
-2. 点击地址栏右侧的「安装」图标
-
-3. 选择「安装」，即可像原生应用一样使用
-
-   ![image-20260413221538624](assets/imgs/image-20260413221538624-1795065519683-2.png)
-
-### 方式三：安装桌面应用（推荐）
-
-下载安装 exe 软件：[GitHub Releases](https://github.com/neopen/break-reminder/releases) 找最新稳定版下载，1.0 之前的版本体积较大，建议选择 1.0之后的安装。
+下载安装软件：[GitHub Releases](https://github.com/neopen/break-reminder/releases)  找最新稳定版（1.0 之前的版本体积较大，建议选择 1.0之后的安装）。
 
 支持平台：Windows（通过）、macOS（尚未测试）、Linux（尚未测试）
 
