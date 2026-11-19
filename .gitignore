@@ -1,60 +1,31 @@
-.idea/
+# 依赖
+node_modules/
+
+# 前端构建产物
+dist/
+
+# Rust 构建产物
+target/
+src-tauri/target/
+src-tauri/gen/schemas/
+
+# 本地运行数据与日志
 logs/
-outputs/
-uploads/
-node_modules/*
-*.egg-info/
-.venv/
-.env/
 .storage/
-.tmp/
-data/
-venv/
-temp/
-.git/
-.svn/
-.env
-.pypirc
-bin/
-.settings/
-__pycache__/
-.classpath
-.factorypath
-.project
-.DS_Store
-db.json
 *.log
-*.iml
-*.git
-mvnw
-mvnw.cmd
 
-# Logs
-logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-release
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Tauri desktop app
-apps/desktop/src-tauri/target/
-apps/desktop/src-tauri/gen/schemas/
+# 密钥（更新签名私钥禁止入库）
 *.key
 !*.pub
+.env
+.env.*
+
+# 编辑器与系统文件
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# 本机 Claude 配置
+.claude/settings.local.json

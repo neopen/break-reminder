@@ -1,196 +1,158 @@
 <h1 align="center">别坐了 (HealthClock)</h1>
-<h2 align="center">定时提醒 - 拒绝久坐</h2>
+<h2 align="center">定时提醒 · 拒绝久坐</h2>
+
 <p align="center">
-<strong>一款强制提醒活动的桌面应用，帮助久坐用户定时起身活动，支持强制锁屏、桌面通知、打卡统计。</strong>
+<strong>基于 Tauri 2 + Vue 3 + TypeScript 的健康提醒桌面应用，提供全屏提醒遮罩、全局键盘拦截、系统通知与自动更新。</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/neopen/active-break-clock/releases"><img src="https://img.shields.io/github/v/release/neopen/active-break-clock?label=Version&color=blue" alt="Version"></a>
-  <a href="https://github.com/neopen/active-break-clock/releases"><img src="https://img.shields.io/github/downloads/neopen/active-break-clock/total?label=Downloads&logo=github&color=blue" alt="Downloads"></a>
+  <a href="https://github.com/neopen/break-reminder/releases"><img src="https://img.shields.io/github/v/release/neopen/break-reminder?label=Version&color=blue" alt="Version"></a>
+  <a href="https://github.com/neopen/break-reminder/releases"><img src="https://img.shields.io/github/downloads/neopen/break-reminder/total?label=Downloads&logo=github&color=blue" alt="Downloads"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
-  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Web-brightgreen" alt="Platform">
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-brightgreen" alt="Platform">
+  <img src="https://img.shields.io/badge/Tauri-2-orange" alt="Tauri 2">
 </p>
 
+## 简介
 
+「别坐了」通过定时全屏遮罩提醒久坐用户起身活动。项目已从 Electron 迁移到
+**Tauri 2 + Vue 3 + TypeScript**：安装包从约 97 MB 降至 3–14 MB，常驻内存显著下降。
 
-## 功能特性
+当前 1.0 版本完成桌面技术底座与核心原生能力；提醒引擎、配置与统计的完整迁移见
+[架构与路线图](docs/architecture.md)。
 
-### 核心功能
-- **自定义时间段** - 设置工作时段（如 8:00 - 18:00），只在需要的时间段内提醒，支持跨天设置
-- **灵活提醒频率** - 10 ~ 300 分钟可调，步长 5 分钟，满足不同工作节奏
-- **强制锁屏模式** - 开启后弹框期间无法关闭，必须等待倒计时结束，真正强制活动
-- **可配置锁屏时长** - 1 ~ 30 分钟自由调节
-- **声音提示** - 提醒时播放蜂鸣音效，弹框期间每隔 3 秒循环提醒
-- **桌面通知** - 支持系统级通知，即使应用在后台运行也能收到提醒
-- **锁屏弹框** - 提醒时应用窗口自动弹到最前面，确保不会错过
+## 核心能力
 
-### 统计与反馈
-- **每日打卡统计** - 记录今日活动次数、连续打卡天数
-- **本周完成率** - 基于目标次数自动计算完成百分比（周一至周五，每天至少休息 8 次）
-- **下次提醒显示** - 实时显示下一次提醒的具体时间
-- **数据持久化** - 自动保存配置和统计记录，刷新不丢失
-
-### 用户体验
-- **精美视觉设计** - 渐变背景、毛玻璃效果、动画圆环进度条
-- **多端数据存储** - 浏览器环境使用 localStorage，桌面应用环境自动切换本地文件存储
-- **活动建议** - 提醒时提供简单的活动建议（走动、喝水、看远方）
-- **实时输入校验** - 输入超出范围自动修正，带错误提示
-- **响应式布局** - 完美适配手机、平板、电脑
-- **自动关闭提示** - 成功提示 3 秒后自动消失，带进度条动画
-
-
+- **强制提醒遮罩**：全屏、无边框、置顶、跳过任务栏，倒计时结束自动关闭
+- **全局键盘拦截**：Windows 低层键盘钩子，音量键放行，遮罩关闭即恢复
+- **声音提示**：WebView 无用户手势自动播放（Windows 通过 WebView2 启动参数启用）
+- **系统通知**：安装版可注册 Windows 通知（便携版受系统限制不显示）
+- **托盘与单实例**：托盘菜单、开机自启、二次启动聚焦已有窗口
+- **自动更新**：GitHub Release + `tauri-plugin-updater`，更新包签名校验
 
 ## 界面预览
 
-### 主界面
+![主界面](assets/screenshots-1.png)
 
-![image-20260425181747216](./assets/screenshots-1.png)
+![锁屏提醒](assets/screenshot-2.png)
 
-### 锁屏提醒界面
+## 技术栈
 
-<img src="./assets/screenshot-2.png" alt="screenshot-2" style="zoom:67%;" />
+| 层       | 技术                                                       |
+| -------- | ---------------------------------------------------------- |
+| 桌面容器 | Tauri 2（Rust）                                            |
+| 前端     | Vue 3 + TypeScript + Vite                                  |
+| UI       | 设计令牌 + 组件化 CSS，双入口（主窗口 / 锁屏）             |
+| 原生能力 | 托盘、单实例、自启、通知、更新插件 + 自研 Windows 键盘钩子 |
+| 质量     | vue-tsc、ESLint、Prettier、rustfmt、Clippy                 |
+| 构建发布 | GitHub Actions，三平台矩阵，NSIS / DMG / AppImage / DEB    |
 
+## 体积与资源
 
+| 构建                                  | 体积           |
+| ------------------------------------- | -------------- |
+| Windows NSIS 安装包（未签名测试构建） | **3.3 MB**     |
+| Windows 便携 exe                      | 14 MB          |
+| Electron 旧版安装包 / 安装后          | 97 MB / 306 MB |
+
+安装后实际占用与空载内存待 Windows 正式包实测后补充。
 
 ## 快速开始
 
-### 方式一：在线使用
+### 前置依赖
 
-访问 [定时提醒 - 拒绝久坐](https://remind.helpoke.com)，直接用浏览器打开即可使用。
+- Node.js 22+
+- Rust stable（`rust-toolchain.toml` 会安装 rustfmt / clippy）
+- 平台构建工具
+  - Windows：Visual Studio Build Tools（C++ 桌面开发）+ WebView2 Runtime
+  - macOS：Xcode Command Line Tools
+  - Linux：`libwebkit2gtk-4.1-dev`、`libayatana-appindicator3-dev`、`librsvg2-dev`、`patchelf`
 
-> 建议使用 Chrome/Edge/Safari 等现代浏览器，可获得最佳体验。
->
+### 开发与构建
 
-### 方式二：PWA 安装
+```bash
+npm install
+npm run tauri dev      # 启动 Tauri 开发窗口
+npm run tauri build    # 构建当前平台安装包
+```
 
-1. 访问 [定时提醒 - 拒绝久坐](https://remind.helpoke.com)，用 Chrome/Edge 打开网页
+仅调试前端：
 
-2. 点击地址栏右侧的「安装」图标
+```bash
+npm run dev            # 浏览器预览，原生能力禁用
+npm run typecheck
+npm run lint
+npm run build
+```
 
-3. 选择「安装」，即可像原生应用一样使用
+## 目录结构
 
-   <img src="./assets/image-20260413221538624.png" alt="image-20260413221538624" style="zoom:60%;" />
+```text
+.
+├── .github/workflows/     # CI / Release / 测试包
+├── assets/                # README 截图与图标源
+├── docs/                  # 架构、开发、发布文档
+├── public/audio/          # 提醒音效
+├── scripts/               # 版本同步、音效生成
+├── src/                   # Vue 渲染层
+│   ├── components/        # 基础组件与 features/ 特性卡片
+│   ├── composables/       # 跨组件状态与轮询
+│   ├── services/          # 唯一允许调用 Tauri invoke 的位置
+│   ├── styles/            # tokens / base / lock
+│   ├── types/             # 与 Rust 侧对应的类型
+│   ├── utils/             # 通用工具
+│   ├── views/             # 锁屏窗口页面
+│   ├── App.vue
+│   ├── main.ts / lock.ts  # 双入口
+│   └── env.d.ts
+├── src-tauri/             # Rust 主进程
+│   ├── src/               # lib / commands / lock / keyboard / tray / state
+│   ├── capabilities/      # 最小权限
+│   ├── icons/
+│   └── tauri.conf.json
+├── index.html / lock.html # 多页入口
+├── eslint.config.js
+├── rust-toolchain.toml / rustfmt.toml
+├── package.json           # 版本唯一来源
+└── vite.config.ts
+```
 
-### 方式三：安装桌面应用（推荐）
+## 常用命令
 
-下载安装 exe 软件：[GitHub Releases](https://github.com/neopen/active-break-clock/releases) 找最新稳定版下载
+| 命令                              | 作用                      |
+| --------------------------------- | ------------------------- |
+| `npm run tauri dev`               | 启动桌面开发窗口          |
+| `npm run tauri build`             | 构建当前平台安装包        |
+| `npm run dev`                     | 仅启动 Vite（浏览器预览） |
+| `npm run build`                   | 类型检查 + 前端生产构建   |
+| `npm run typecheck`               | `vue-tsc` 类型检查        |
+| `npm run lint` / `lint:fix`       | ESLint                    |
+| `npm run format` / `format:check` | Prettier                  |
+| `npm run version:sync`            | 同步版本到 Tauri / Cargo  |
+| `npm run version:check`           | 校验三处版本一致          |
+| `npm run audio:generate`          | 重新生成提醒音效          |
 
-支持平台：Windows（通过）、macOS（尚未测试）、Linux（尚未测试）
+## 版本与发布
 
+- 版本唯一来源：`package.json`，`npm version` 会自动同步 `tauri.conf.json` 与 `Cargo.toml`
+- 正式标签：`vX.Y.Z`，推送后触发三平台构建与 GitHub Release
+- 测试标签：`test-*`，仅构建未签名 Windows 安装包，不发布
 
+详细流程、更新密钥与 Secrets 配置见 [发布文档](docs/release.md)。
 
-## 使用说明
+## 已知限制
 
-### 基本设置
+- 全局键盘拦截目前仅实现 Windows；macOS（CGEventTap）与 Linux（X11 grab）为后续阶段
+- Windows 系统通知仅对已安装应用生效
+- `Ctrl+Alt+Del`、`Win+L` 属于系统安全序列，普通桌面应用无法拦截
+- macOS 自动更新要求应用完成签名与公证
 
-| 设置项   | 说明                               | 范围                   | 默认值  |
-| :------- | :--------------------------------- | :--------------------- | :------ |
-| 开始时间 | 每日提醒开始时间                   | 00:00 - 23:59          | 08:00   |
-| 结束时间 | 每日提醒结束时间                   | 00:00 - 23:59          | 18:00   |
-| 提醒频率 | 两次提醒之间的间隔                 | 10 ~ 300 分钟（步长5） | 40 分钟 |
-| 声音提示 | 时间到支持声音提醒                 | 开/关                  | 开      |
-| 桌面通知 | 系统级通知提醒（需要开启系统权限） | 开/关                  | 开      |
-| 锁屏通知 | 全屏锁定通知                       | 开/关                  | 关      |
-| 锁屏时长 | 每次提醒的锁屏时间                 | 1 ~ 30 分钟            | 5 分钟  |
-| 强制锁屏 | 开启后无法提前关闭弹框             | 开/关                  | 关      |
+## 文档
 
-> 开启**Windows 通知设置**：
->
-> 1. 打开 Windows 设置 → 系统 → 通知和操作
-> 2. 确保"获取来自应用和其他发送者的通知"已开启
-> 3. 在列表中找到您的应用，确保通知已开启
+- [架构与路线图](docs/architecture.md)
+- [开发指南](docs/development.md)
+- [发布与自动更新](docs/release.md)
 
+## 许可证
 
-
-### 统计卡片说明
-
-| 指标       | 说明                                                |
-| :--------- | :-------------------------------------------------- |
-| 今日活动   | 今日完成的活动提醒次数                              |
-| 连续打卡   | 连续完成活动的天数                                  |
-| 本周完成率 | 本周活动次数 / 本周目标次数 × 100%（目标：每天 8 次，每周 40 次） |
-
-### 运行状态
-
-| 状态   | 显示                       | 说明                        |
-| :----- | :------------------------- | :-------------------------- |
-| 未启动 | 暂停按钮置灰，启动按钮可点 | 可自由修改配置              |
-| 运行中 | 启动按钮置灰，暂停按钮可点 | 同时下方显示下次提醒时间    |
-| 锁屏中 | 全屏弹框                   | 强制/非强制模式，倒计时显示 |
-| 锁屏中 | 桌面通知                   | 消息通知，5秒后自动关闭     |
-
-
-
-## 常见问题
-
-### Q: 为什么倒计时结束了没有自动关闭弹框？
-
-A: 检查浏览器是否允许 JavaScript 运行，刷新页面重试。如果问题持续，请清除浏览器缓存。
-
-### Q: 强制锁屏模式下如何退出？
-
-A: 必须等待倒计时结束，无法提前关闭。这是设计初衷，目的是强制活动。如果确实需要紧急退出，可以刷新页面或关闭浏览器标签页。
-
-### Q: 关闭浏览器后闹铃还会运行吗？
-
-A: 不会。闹铃依赖于浏览器运行，关闭页面后闹铃会停止。建议：
-- 保持页面打开
-- 安装为 PWA 应用
-- 打包为桌面应用
-
-### Q: 可以设置跨天的时间段吗？
-
-A: 支持。例如 22:00 - 06:00，系统会自动处理跨天逻辑，提醒会正确安排在夜间时段。
-
-### Q: 桌面通知没有弹出怎么办？
-
-A: 
-1. 检查「桌面通知」开关是否开启
-2. 点击「测试」按钮验证
-3. 检查浏览器是否允许该网站的通知权限
-4. 系统设置中确认通知功能已开启
-
-### Q: 声音提示不工作？
-
-A:
-1. 检查「声音提示」开关是否开启
-2. 首次点击「启动」时需要用户交互才能启用音频
-3. 检查系统音量是否开启
-
-### Q: 提醒频率步长为什么是 10 分钟？
-
-A: 为了健康考虑，建议活动间隔至少 10 分钟以上。同时步长 10 分钟让设置更简洁。
-
-### Q: 打包后的桌面应用提醒时不能全屏置顶？
-
-A: 桌面应用使用应用内全屏遮罩 + 窗口自动前置的方式，已能有效提醒用户。如需系统级全屏置顶，建议使用 Electron 重新打包。
-
-### Q: 数据会丢失吗？
-
-A: 不会。配置和统计数据自动保存在浏览器 localStorage 或本地文件中，刷新页面或重启应用都不会丢失。
-
-### Q: 如何备份数据？
-
-A: 
-- 浏览器环境：导出备份功能（即将推出）
-- 桌面应用：数据自动保存在应用目录的 `user-data/` 文件夹中
-
-
-
-## 桌面端技术体系（Tauri 2）
-
-仓库正在并行推进新一代桌面端：`apps/desktop` 采用 **Tauri 2 + Vue 3 + TypeScript**，
-目标是把安装包从约 97 MB 降到 10 MB 以内，并显著降低常驻内存。
-
-- 技术体系与规范：[docs/desktop/README.md](docs/desktop/README.md)
-- 本地开发：`npm run desktop:install && npm run desktop:dev`
-- 发布标签：`desktop-vX.Y.Z`（与 Electron 旧线的 `vX.Y.Z` 并行）
-- 自动更新：GitHub Release + `tauri-plugin-updater`
-
-## 致谢
-
-感谢所有使用和反馈的用户，让这个工具变得更好！
-
----
-
-**如果觉得有用，请给个 ⭐ Star 支持一下！**
+[MIT](LICENSE) © 2026 neopen
