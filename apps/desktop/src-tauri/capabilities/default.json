@@ -5,6 +5,7 @@
   "windows": ["main", "lock"],
   "permissions": [
     "core:default",
+    "core:window:allow-close",
     "updater:default",
     "process:default",
     "notification:default",

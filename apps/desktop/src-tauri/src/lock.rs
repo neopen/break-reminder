@@ -34,7 +34,6 @@ pub fn open(app: &AppHandle, duration_secs: u64, force_lock: bool) -> Result<(),
         .decorations(false)
         .skip_taskbar(true)
         .resizable(false)
-        .closable(false)
         .focused(true)
         .visible(true)
         .build()
@@ -67,6 +66,19 @@ pub fn open(app: &AppHandle, duration_secs: u64, force_lock: bool) -> Result<(),
         }
     });
 
+    // 兜底关闭：即使渲染进程计时被节流或关闭请求失败，也保证按时结束。
+    let close_handle = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_secs(duration_secs.saturating_add(5)));
+
+        let state = close_handle.state::<AppState>();
+        if state.lock_generation.load(Ordering::SeqCst) != generation {
+            return;
+        }
+
+        close(&close_handle);
+    });
+
     Ok(())
 }
 
@@ -78,6 +90,9 @@ pub fn close(app: &AppHandle) {
     state.lock_generation.fetch_add(1, Ordering::SeqCst);
 
     if let Some(window) = app.get_webview_window("lock") {
-        let _ = window.destroy();
+        if let Err(error) = window.destroy() {
+            eprintln!("[lock] destroy 失败: {error}，尝试 close");
+            let _ = window.close();
+        }
     }
 }

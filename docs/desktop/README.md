@@ -138,10 +138,12 @@ git tag desktop-test-0.7.0.1
 git push origin desktop-test-0.7.0.1
 ```
 
-- 执行 `tauri build --no-bundle`，跳过安装包和更新签名。
-- 产出 `src-tauri/target/release/*.exe`，作为 artifact 保留 7 天。
-- 下载后可直接双击运行，用于验证托盘、遮罩、键盘拦截、音频自动播放。
-- 未签名 exe 可能触发 SmartScreen，选择“仍要运行”即可。
+- 构建 NSIS 安装版，并关闭 updater 产物，避免测试包依赖更新签名密钥。
+- 产出 `target/release/*.exe`（便携版）与 `target/release/bundle/nsis/*.exe`（安装版），
+  artifact 保留 7 天。
+- **系统通知必须用安装版验证**：Tauri 明确 Windows 通知仅对已安装应用生效，
+  便携版不显示通知。
+- 未签名安装包可能触发 SmartScreen，选择“仍要运行”即可。
 
 ### Release
 
@@ -237,10 +239,24 @@ npx tauri signer generate -w ~/.tauri/healthclock.key
 - [x] `cargo check` 三平台通过（GitHub Actions）
 - [ ] 托盘菜单可用
 - [ ] 遮罩全屏、置顶并覆盖任务栏
-- [ ] 字母键 / Win / Alt+Tab / Alt+F4 被拦截，音量键正常
-- [ ] 打包后锁屏页音频自动播放
-- [ ] 更新检查与安装闭环
+- [x] 字母键 / Win / Alt+Tab / Alt+F4 被拦截，音量键正常
+- [x] 打包后锁屏页音频自动播放
+- [ ] 倒计时结束自动关闭（已加前端截止时间 + Rust 兜底，待复测）
+- [ ] Windows 系统通知（需 NSIS 安装版）
+- [ ] 更新检查与安装闭环（需先发布 `desktop-v0.7.x`）
 - [ ] 安装包体积、空载内存实测并记录
+
+### 实测记录
+
+2026-11-19，Windows 10 19045，便携版 exe：
+
+| 项目 | 结果 |
+| --- | --- |
+| 全局键盘拦截 | 通过 |
+| 音频自动播放 | 通过 |
+| 系统通知 | 不显示（便携版限制，改用安装版复测） |
+| 自动更新 | `latest.json` 404（0.7.x 尚未发布，预期） |
+| 倒计时自动关闭 | 未生效，已修复并待复测 |
 
 ## 11. 常见问题
 

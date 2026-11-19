@@ -54,8 +54,12 @@ pub fn open_lock_window(
 }
 
 #[tauri::command]
-pub fn close_lock_window(app: AppHandle) -> Result<(), String> {
-    lock::close(&app);
+pub async fn close_lock_window(app: AppHandle) -> Result<(), String> {
+    // 异步命令先返回 IPC 响应，再销毁窗口，避免在窗口自身的调用里等待。
+    let handle = app.clone();
+    tauri::async_runtime::spawn(async move {
+        lock::close(&handle);
+    });
     Ok(())
 }
 

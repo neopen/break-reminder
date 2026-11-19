@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { emit } from '@tauri-apps/api/event'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 
 import AppButton from '@/components/AppButton.vue'
 import StatusPill from '@/components/StatusPill.vue'
@@ -25,6 +26,7 @@ const isDev = import.meta.env.DEV
 
 let tickTimer: number | undefined
 let toneTimer: number | undefined
+let deadlineTimer: number | undefined
 let audio: HTMLAudioElement | null = null
 let finishing = false
 
@@ -64,8 +66,10 @@ async function playTone(): Promise<void> {
 function stopTimers(): void {
   if (tickTimer) window.clearInterval(tickTimer)
   if (toneTimer) window.clearInterval(toneTimer)
+  if (deadlineTimer) window.clearTimeout(deadlineTimer)
   tickTimer = undefined
   toneTimer = undefined
+  deadlineTimer = undefined
 }
 
 async function finish(): Promise<void> {
@@ -73,6 +77,15 @@ async function finish(): Promise<void> {
   finishing = true
   stopTimers()
   audio?.pause()
+
+  // 优先让锁屏窗口直接关闭，避免依赖自定义命令的 IPC 往返。
+  try {
+    await getCurrentWindow().close()
+    return
+  } catch (cause) {
+    console.warn('[lock] 窗口 close 失败，回退到命令', cause)
+  }
+
   try {
     await closeLockWindow()
   } catch {
@@ -114,6 +127,11 @@ onMounted(async () => {
       void finish()
     }
   }, 1000)
+
+  // 绝对截止时间：即使显示计时被节流，也能按时关闭（Rust 侧还有兜底）。
+  deadlineTimer = window.setTimeout(() => {
+    void finish()
+  }, total.value * 1000)
 })
 
 onBeforeUnmount(() => {

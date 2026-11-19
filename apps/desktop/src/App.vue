@@ -191,7 +191,7 @@ async function testNotification(): Promise<void> {
       title: '别坐了',
       body: '这是一条来自 Tauri 2 桌面端的测试通知。',
     })
-    notice.value = '测试通知已发送。'
+    notice.value = '测试通知已发送。Windows 便携版可能不显示，安装版才会注册系统通知。'
   } catch (cause) {
     error.value = `发送通知失败：${describeError(cause)}`
   } finally {
@@ -215,8 +215,15 @@ async function checkForUpdates(): Promise<void> {
       updateMessage.value = '当前已是最新版本'
     }
   } catch (cause) {
-    updateState.value = 'idle'
-    error.value = `检查更新失败：${describeError(cause)}`
+    const message = describeError(cause)
+    if (/valid release JSON|not found|404/i.test(message)) {
+      availableUpdate.value = null
+      updateState.value = 'latest'
+      updateMessage.value = '当前没有可用的发布版本（测试包预期行为）'
+    } else {
+      updateState.value = 'idle'
+      error.value = `检查更新失败：${message}`
+    }
   }
 }
 
@@ -339,7 +346,7 @@ onBeforeUnmount(() => {
 
       <AppCard
         title="系统集成"
-        description="开机自启与系统通知，验证官方插件的接入方式。"
+        description="开机自启与系统通知。Windows 通知仅对已安装版本生效。"
       >
         <div class="result-row">
           <span class="result-row__label">开机自启</span>
