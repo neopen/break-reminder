@@ -264,7 +264,8 @@ jobs:
 
             | 平台 | 文件 |
             | --- | --- |
-            | Windows x64 | `Breakly-<version>-windows-x64-setup.exe` |
+            | Windows x64（安装版） | `Breakly-<version>-windows-x64-setup.exe` |
+            | Windows x64（免安装） | `Breakly-<version>-windows-x64-standalone.exe` |
             | macOS Universal | `Breakly-<version>-darwin-universal.dmg` |
             | Linux x64 | `Breakly-<version>-linux-x64.AppImage` / `.deb` |
 
@@ -273,7 +274,7 @@ jobs:
             - **Windows**：安装包未签名，SmartScreen 提示时选择「更多信息 → 仍要运行」。
             - **macOS**：未签名/未公证，首次打开需在「系统设置 → 隐私与安全性」中允许，或右键 → 打开。
             - **Linux**：AppImage 先 `chmod +x`；DEB 使用系统包管理器安装。
-            - Windows 系统通知仅对安装版生效，便携版不显示通知。
+            - 免安装版（standalone）无需安装，但不注册系统通知与自动更新；需要这些能力请使用 NSIS 安装版。
 
             ### 已知限制
 
@@ -325,3 +326,22 @@ jobs:
           # --------------------------------------------------
           uploadUpdaterJson: true
           uploadUpdaterSignatures: true
+
+      # --------------------------------------------------
+      # 10. Upload Windows portable executable
+      # 免安装版不写入 latest.json，自动更新仍使用 NSIS 安装包
+      # --------------------------------------------------
+      - name: Upload Windows portable
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          EXE=$(find src-tauri/target/release -maxdepth 1 -name '*.exe' ! -name 'Breakly-*-standalone.exe' | head -n 1)
+          if [ -z "$EXE" ]; then
+            echo "::error::Windows portable executable not found"
+            exit 1
+          fi
+          cp "$EXE" "Breakly-${VERSION}-windows-x64-standalone.exe"
+          gh release upload "${{ github.ref_name }}" "Breakly-${VERSION}-windows-x64-standalone.exe" --clobber
