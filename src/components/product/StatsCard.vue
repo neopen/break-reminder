@@ -32,7 +32,7 @@ async function resetToday(): Promise<void> {
 <template>
   <section class="stats-card">
     <header class="stats-card__header">
-      <span>📊 今日打卡</span>
+      <span>今日打卡</span>
       <button type="button" class="stats-card__reset" title="重置今日统计" @click="resetToday">
         ↻
       </button>

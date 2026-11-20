@@ -111,24 +111,25 @@ function removeBreak(index: number): void {
   <div class="dnd">
     <ToggleSwitch
       :model-value="modelValue.enabled"
-      label="启用免打扰"
+      label="免打扰"
+      description="午休和自定义时段内不提醒"
       @update:model-value="onEnabled"
     />
 
     <template v-if="modelValue.enabled">
       <div class="dnd__row">
-        <span class="dnd__label">午休时间段</span>
+        <span class="dnd__label">午休</span>
         <div class="dnd__times">
           <input type="time" :value="lunchStart" @change="onLunchChange('start', $event)" />
           <span>—</span>
           <input type="time" :value="lunchEnd" @change="onLunchChange('end', $event)" />
         </div>
       </div>
-      <p class="dnd__hint">午休需满足：结束晚于开始，时长 10 分钟到 5 小时。</p>
+      <p class="dnd__hint">结束晚于开始，时长 10 分钟到 5 小时。</p>
       <p v-if="lunchError" class="dnd__error">{{ lunchError }}</p>
 
       <div class="dnd__header">
-        <span class="dnd__label">自定义免打扰时段（最多 5 个）</span>
+        <span class="dnd__label">自定义时段</span>
         <button type="button" class="dnd__add" @click="addBreak">+ 添加</button>
       </div>
       <p class="dnd__hint">自定义时段支持跨天，例如 22:00–02:00。</p>

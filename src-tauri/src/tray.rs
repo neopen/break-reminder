@@ -1,11 +1,11 @@
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
-use tauri::tray::TrayIconBuilder;
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager};
 
 use crate::scheduler;
 use crate::state::AppState;
 
-/// 创建托盘图标与右键菜单。
+/// 创建托盘图标。左键弹出菜单，右键直接显示主窗口。
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
     let show_item = MenuItem::with_id(app, "show", "显示主窗口", true, None::<&str>)?;
     let start_item = MenuItem::with_id(app, "start", "开始提醒", true, None::<&str>)?;
@@ -43,44 +43,72 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
     )?;
 
     let mut builder = TrayIconBuilder::with_id("main-tray")
-        .menu(&menu)
-        .tooltip("Breakly - 拒绝久坐");
+        .tooltip("Breakly - 拒绝久坐")
+        .on_tray_icon_event(move |tray, event| {
+            let TrayIconEvent::Click {
+                button,
+                button_state,
+                ..
+            } = event
+            else {
+                return;
+            };
+
+            if !matches!(button_state, MouseButtonState::Up) {
+                return;
+            }
+
+            let app = tray.app_handle();
+            match button {
+                // 左键：在光标位置弹出菜单
+                MouseButton::Left => {
+                    if let Some(window) = app.get_window("main") {
+                        let _ = menu.popup(window);
+                    }
+                }
+                // 右键：直接打开主窗口
+                MouseButton::Right => show_main_window(app),
+                _ => {}
+            }
+        });
 
     if let Some(icon) = app.default_window_icon() {
         builder = builder.icon(icon.clone());
     }
 
-    builder
-        .on_menu_event(|app, event| match event.id.as_ref() {
-            "show" => show_main_window(app),
-            "start" => {
-                if let Err(error) = scheduler::start(app) {
-                    eprintln!("[tray] 启动提醒失败: {error}");
-                }
-            }
-            "stop" => scheduler::stop(app),
-            "skip" => {
-                if let Err(error) = scheduler::skip(app) {
-                    eprintln!("[tray] 跳过提醒失败: {error}");
-                }
-            }
-            id if id.starts_with("snooze-") => {
-                let minutes = id.trim_start_matches("snooze-").parse::<u32>().unwrap_or(5);
-                if let Err(error) = scheduler::snooze(app, minutes) {
-                    eprintln!("[tray] 稍后提醒失败: {error}");
-                }
-            }
-            "quit" => {
-                app.state::<AppState>()
-                    .quitting
-                    .store(true, std::sync::atomic::Ordering::SeqCst);
-                app.exit(0);
-            }
-            _ => {}
-        })
-        .build(app)?;
-
+    builder.build(app)?;
     Ok(())
+}
+
+/// 处理托盘菜单项事件。菜单通过左键手动弹出，因此使用应用级菜单事件。
+pub fn handle_menu_event(app: &AppHandle, id: &str) {
+    match id {
+        "show" => show_main_window(app),
+        "start" => {
+            if let Err(error) = scheduler::start(app) {
+                eprintln!("[tray] 启动提醒失败: {error}");
+            }
+        }
+        "stop" => scheduler::stop(app),
+        "skip" => {
+            if let Err(error) = scheduler::skip(app) {
+                eprintln!("[tray] 跳过提醒失败: {error}");
+            }
+        }
+        id if id.starts_with("snooze-") => {
+            let minutes = id.trim_start_matches("snooze-").parse::<u32>().unwrap_or(5);
+            if let Err(error) = scheduler::snooze(app, minutes) {
+                eprintln!("[tray] 稍后提醒失败: {error}");
+            }
+        }
+        "quit" => {
+            app.state::<AppState>()
+                .quitting
+                .store(true, std::sync::atomic::Ordering::SeqCst);
+            app.exit(0);
+        }
+        _ => {}
+    }
 }
 
 fn show_main_window(app: &AppHandle) {

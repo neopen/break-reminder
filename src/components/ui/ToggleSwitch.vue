@@ -2,6 +2,7 @@
 defineProps<{
   modelValue: boolean
   label?: string
+  description?: string
   disabled?: boolean
 }>()
 
@@ -16,7 +17,10 @@ function onChange(event: Event): void {
 
 <template>
   <label class="toggle" :class="{ 'toggle--disabled': disabled }">
-    <span v-if="label" class="toggle__label">{{ label }}</span>
+    <span class="toggle__text">
+      <span v-if="label" class="toggle__label">{{ label }}</span>
+      <span v-if="description" class="toggle__description">{{ description }}</span>
+    </span>
     <span class="toggle__control">
       <input type="checkbox" :checked="modelValue" :disabled="disabled" @change="onChange" />
       <span class="toggle__track" aria-hidden="true">
@@ -39,6 +43,19 @@ function onChange(event: Event): void {
 .toggle--disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.toggle__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.toggle__description {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--hc-color-text-muted);
 }
 
 .toggle__control {

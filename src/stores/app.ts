@@ -39,7 +39,7 @@ function defaultConfig(): AppConfig {
     forceLock: true,
     systemLock: false,
     soundEnabled: true,
-    notificationType: 'desktop',
+    notificationType: 'lock',
     doNotDisturb: {
       enabled: true,
       lunchBreak: { start: '12:00', end: '14:00' },

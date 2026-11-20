@@ -11,7 +11,7 @@ const { scheduler, countdownLabel, nextTimeLabel, loading } = storeToRefs(store)
   <section class="actions-card">
     <div v-if="scheduler.running" class="actions-card__next">
       <div>
-        <span class="actions-card__next-label">⏰ 下次提醒</span>
+        <span class="actions-card__next-label">下次提醒</span>
         <strong class="actions-card__next-time">{{ nextTimeLabel }}</strong>
       </div>
       <div class="actions-card__countdown" aria-live="polite">{{ countdownLabel }}</div>
@@ -25,7 +25,7 @@ const { scheduler, countdownLabel, nextTimeLabel, loading } = storeToRefs(store)
         :disabled="loading"
         @click="store.start()"
       >
-        ▶ 启动提醒
+        启动提醒
       </button>
       <button
         v-else
@@ -34,7 +34,7 @@ const { scheduler, countdownLabel, nextTimeLabel, loading } = storeToRefs(store)
         :disabled="loading"
         @click="store.stop()"
       >
-        ⏹️ 停止提醒
+        停止提醒
       </button>
     </div>
 

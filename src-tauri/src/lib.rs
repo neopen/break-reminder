@@ -107,6 +107,7 @@ pub fn run() {
             }
             _ => {}
         })
+        .on_menu_event(|app, event| tray::handle_menu_event(app, event.id.as_ref()))
         .run(tauri::generate_context!())
         .expect("运行 Tauri 应用失败");
 }
