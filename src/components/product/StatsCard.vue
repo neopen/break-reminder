@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 
 import { useAppStore } from '@/stores/app'
@@ -7,6 +8,11 @@ import { useConfirm } from '@/composables/useConfirm'
 const store = useAppStore()
 const { stats } = storeToRefs(store)
 const { confirm } = useConfirm()
+
+const dailyGoalPercent = computed(() => {
+  if (!stats.value.dailyTarget) return 0
+  return Math.min(100, Math.round((stats.value.todayCount / stats.value.dailyTarget) * 100))
+})
 
 async function resetToday(): Promise<void> {
   const confirmed = await confirm({
@@ -34,7 +40,9 @@ async function resetToday(): Promise<void> {
 
     <div class="stats-card__grid">
       <div class="stats-card__item">
-        <strong>{{ stats.todayCount }}</strong>
+        <strong>
+          {{ stats.todayCount }}<small class="stats-card__target">/{{ stats.dailyTarget }}</small>
+        </strong>
         <span>今日活动</span>
       </div>
       <div class="stats-card__item">
@@ -45,6 +53,10 @@ async function resetToday(): Promise<void> {
         <strong>{{ stats.weeklyRate }}%</strong>
         <span>本周完成率</span>
       </div>
+    </div>
+
+    <div class="stats-card__goal" :title="`今日目标 ${stats.todayCount}/${stats.dailyTarget}`">
+      <span :style="{ width: `${dailyGoalPercent}%` }" />
     </div>
   </section>
 </template>
@@ -103,5 +115,28 @@ async function resetToday(): Promise<void> {
   margin-top: 1px;
   font-size: 11px;
   opacity: 0.84;
+}
+
+.stats-card__target {
+  margin-left: 1px;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.stats-card__goal {
+  height: 3px;
+  margin-top: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+}
+
+.stats-card__goal span {
+  display: block;
+  height: 100%;
+  background: #fff;
+  border-radius: 999px;
+  transition: width var(--hc-duration-normal) var(--hc-ease);
 }
 </style>

@@ -14,7 +14,7 @@ const { scheduler, countdownLabel, nextTimeLabel, loading } = storeToRefs(store)
         <span class="actions-card__next-label">⏰ 下次提醒</span>
         <strong class="actions-card__next-time">{{ nextTimeLabel }}</strong>
       </div>
-      <div class="actions-card__countdown">{{ countdownLabel }}</div>
+      <div class="actions-card__countdown" aria-live="polite">{{ countdownLabel }}</div>
     </div>
 
     <div class="actions-card__main">
@@ -37,6 +37,10 @@ const { scheduler, countdownLabel, nextTimeLabel, loading } = storeToRefs(store)
         ⏹️ 停止提醒
       </button>
     </div>
+
+    <p v-if="!scheduler.running" class="actions-card__hint">
+      启动后会在工作时段内按间隔提醒；关闭窗口会隐藏到托盘。
+    </p>
 
     <div v-if="scheduler.running" class="actions-card__secondary">
       <button type="button" @click="store.snooze(5)">稍后 5 分钟</button>
@@ -138,5 +142,11 @@ const { scheduler, countdownLabel, nextTimeLabel, loading } = storeToRefs(store)
   border: 1px solid var(--hc-color-border);
   border-radius: var(--hc-radius-sm);
   font-size: 12px;
+}
+
+.actions-card__hint {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--hc-color-text-muted);
 }
 </style>

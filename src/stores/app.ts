@@ -72,9 +72,12 @@ export const useAppStore = defineStore('app', () => {
   })
   const autoLaunch = ref(false)
   const loading = ref(false)
+  const saving = ref(false)
+  const saved = ref(false)
   const now = ref(Date.now())
 
   let initialized = false
+  let savedTimer: number | undefined
   const unlisteners: UnlistenFn[] = []
 
   const remainingSeconds = computed(() => {
@@ -172,7 +175,8 @@ export const useAppStore = defineStore('app', () => {
   }
 
   async function patchConfig(patch: Partial<AppConfig>): Promise<boolean> {
-    loading.value = true
+    saving.value = true
+    saved.value = false
     try {
       const next: AppConfig = {
         ...config.value,
@@ -187,12 +191,17 @@ export const useAppStore = defineStore('app', () => {
       }
       config.value = await saveConfig(next)
       await loadStatus()
+      saved.value = true
+      if (savedTimer) window.clearTimeout(savedTimer)
+      savedTimer = window.setTimeout(() => {
+        saved.value = false
+      }, 1800)
       return true
     } catch (cause) {
       show(`保存设置失败：${describeError(cause)}`, 'danger')
       return false
     } finally {
-      loading.value = false
+      saving.value = false
     }
   }
 
@@ -315,6 +324,8 @@ export const useAppStore = defineStore('app', () => {
     scheduler,
     autoLaunch,
     loading,
+    saving,
+    saved,
     now,
     remainingSeconds,
     countdownLabel,

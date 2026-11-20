@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
+
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 import { useToast } from '@/composables/useToast'
-import type { CustomBreak, DoNotDisturb } from '@/types/desktop'
+import type { CustomBreak, DoNotDisturb, TimeRange } from '@/types/desktop'
 
 const props = defineProps<{
   modelValue: DoNotDisturb
@@ -12,6 +14,36 @@ const emit = defineEmits<{
 }>()
 
 const { show } = useToast()
+
+const lunchStart = ref(props.modelValue.lunchBreak.start)
+const lunchEnd = ref(props.modelValue.lunchBreak.end)
+const lunchError = ref('')
+
+watch(
+  () => props.modelValue.lunchBreak,
+  (range) => {
+    lunchStart.value = range.start
+    lunchEnd.value = range.end
+    lunchError.value = ''
+  },
+  { deep: true },
+)
+
+function toMinutes(value: string): number | null {
+  const [hours, minutes] = value.split(':').map(Number)
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return null
+  return hours * 60 + minutes
+}
+
+function validateLunch(range: TimeRange): string {
+  const start = toMinutes(range.start)
+  const end = toMinutes(range.end)
+  if (start === null || end === null) return '请填写完整的午休时间'
+  if (end <= start) return '结束时间必须晚于开始时间'
+  const duration = end - start
+  if (duration < 10 || duration > 300) return '午休时长需在 10 分钟到 5 小时之间'
+  return ''
+}
 
 function emitPatch(patch: Partial<DoNotDisturb>): void {
   emit('update:modelValue', {
@@ -31,12 +63,19 @@ function onEnabled(value: boolean): void {
 function onLunchChange(field: 'start' | 'end', event: Event): void {
   const value = (event.target as HTMLInputElement).value
   if (!value) return
-  emitPatch({
-    lunchBreak: {
-      ...props.modelValue.lunchBreak,
-      [field]: value,
-    },
-  })
+
+  if (field === 'start') lunchStart.value = value
+  else lunchEnd.value = value
+
+  const range = { start: lunchStart.value, end: lunchEnd.value }
+  const error = validateLunch(range)
+  if (error) {
+    lunchError.value = error
+    return
+  }
+
+  lunchError.value = ''
+  emitPatch({ lunchBreak: range })
 }
 
 function onBreakChange(index: number, field: keyof CustomBreak, event: Event): void {
@@ -80,25 +119,19 @@ function removeBreak(index: number): void {
       <div class="dnd__row">
         <span class="dnd__label">午休时间段</span>
         <div class="dnd__times">
-          <input
-            type="time"
-            :value="modelValue.lunchBreak.start"
-            @change="onLunchChange('start', $event)"
-          />
+          <input type="time" :value="lunchStart" @change="onLunchChange('start', $event)" />
           <span>—</span>
-          <input
-            type="time"
-            :value="modelValue.lunchBreak.end"
-            @change="onLunchChange('end', $event)"
-          />
+          <input type="time" :value="lunchEnd" @change="onLunchChange('end', $event)" />
         </div>
       </div>
       <p class="dnd__hint">午休需满足：结束晚于开始，时长 10 分钟到 5 小时。</p>
+      <p v-if="lunchError" class="dnd__error">{{ lunchError }}</p>
 
       <div class="dnd__header">
         <span class="dnd__label">自定义免打扰时段（最多 5 个）</span>
         <button type="button" class="dnd__add" @click="addBreak">+ 添加</button>
       </div>
+      <p class="dnd__hint">自定义时段支持跨天，例如 22:00–02:00。</p>
 
       <p v-if="modelValue.customBreaks.length === 0" class="dnd__empty">
         暂无自定义时段，点击 + 添加
@@ -171,6 +204,12 @@ function removeBreak(index: number): void {
   font-size: 11px;
   line-height: 1.5;
   color: var(--hc-color-text-muted);
+}
+
+.dnd__error {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--hc-color-danger);
 }
 
 .dnd__add {

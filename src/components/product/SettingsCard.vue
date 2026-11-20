@@ -10,7 +10,7 @@ import { useAppStore } from '@/stores/app'
 import type { AppConfig, DoNotDisturb, NotificationType } from '@/types/desktop'
 
 const store = useAppStore()
-const { config, autoLaunch } = storeToRefs(store)
+const { config, autoLaunch, saving, saved } = storeToRefs(store)
 const { confirm } = useConfirm()
 
 function onTime(field: 'startTime' | 'endTime', event: Event): void {
@@ -68,7 +68,13 @@ async function quit(): Promise<void> {
 
 <template>
   <section class="settings-card">
-    <AccordionSection title="提醒时间段" :default-open="true">
+    <div class="settings-head">
+      <span class="settings-head__title">提醒设置</span>
+      <span v-if="saving" class="settings-head__state">保存中…</span>
+      <span v-else-if="saved" class="settings-head__state settings-head__state--ok">已保存</span>
+    </div>
+
+    <AccordionSection title="⏱ 提醒时间段" :default-open="true">
       <div class="settings-row">
         <span class="settings-label">提醒时间段</span>
         <div class="settings-times">
@@ -77,6 +83,7 @@ async function quit(): Promise<void> {
           <input type="time" :value="config.endTime" @change="onTime('endTime', $event)" />
         </div>
       </div>
+      <p class="settings-hint">结束时间早于开始时间视为跨天，例如 22:00–06:00。</p>
 
       <div class="settings-row">
         <label class="settings-label" for="interval">每间隔</label>
@@ -98,7 +105,7 @@ async function quit(): Promise<void> {
       <DndEditor :model-value="config.doNotDisturb" @update:model-value="onDnd" />
     </AccordionSection>
 
-    <AccordionSection title="通知方式" :default-open="true">
+    <AccordionSection title="🔔 通知方式" :default-open="true">
       <ToggleSwitch
         :model-value="config.soundEnabled"
         label="🔊 开启声音提示"
@@ -116,6 +123,7 @@ async function quit(): Promise<void> {
           />
           <strong>桌面通知</strong>
           <span>弹窗提醒</span>
+          <span v-if="config.notificationType === 'desktop'" class="mode__check">✓</span>
         </label>
         <label class="mode" :class="{ 'mode--active': config.notificationType === 'lock' }">
           <input
@@ -127,6 +135,7 @@ async function quit(): Promise<void> {
           />
           <strong>锁屏通知</strong>
           <span>全屏强制休息</span>
+          <span v-if="config.notificationType === 'lock'" class="mode__check">✓</span>
         </label>
       </div>
 
@@ -165,7 +174,7 @@ async function quit(): Promise<void> {
       </template>
     </AccordionSection>
 
-    <AccordionSection title="其他设置" :default-open="false">
+    <AccordionSection title="⚙️ 其他设置" :default-open="false">
       <ToggleSwitch
         :model-value="autoLaunch"
         label="🖥️ 开机启动"
@@ -179,6 +188,7 @@ async function quit(): Promise<void> {
         @update:model-value="onToggle('systemLock', $event)"
       />
       <p class="settings-warning">⚠️ 倒计时结束后将启动系统锁屏。</p>
+      <p class="settings-hint">关闭窗口会隐藏到托盘；右键托盘图标可退出应用。</p>
 
       <button type="button" class="settings-quit" @click="quit">退出应用</button>
     </AccordionSection>
@@ -192,6 +202,24 @@ async function quit(): Promise<void> {
   border: 1px solid var(--hc-color-border);
   border-radius: 24px;
   box-shadow: var(--hc-shadow-soft);
+}
+
+.settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--hc-color-text-muted);
+}
+
+.settings-head__state {
+  font-weight: 500;
+}
+
+.settings-head__state--ok {
+  color: var(--hc-color-success);
 }
 
 .settings-row {
@@ -261,6 +289,7 @@ async function quit(): Promise<void> {
 }
 
 .mode {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -292,6 +321,21 @@ async function quit(): Promise<void> {
 .mode--active {
   background: #eef2ff;
   border-color: var(--hc-color-brand);
+}
+
+.mode__check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  color: #fff;
+  background: var(--hc-color-brand);
+  border-radius: 50%;
 }
 
 .settings-quit {
