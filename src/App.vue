@@ -28,9 +28,9 @@ onMounted(() => {
       message="当前在浏览器中运行，提醒与原生能力不可用。请使用 npm run tauri dev 启动桌面端。"
     />
 
+    <ActionsCard />
     <StatsCard />
     <SettingsCard />
-    <ActionsCard />
     <AboutBar />
   </main>
 

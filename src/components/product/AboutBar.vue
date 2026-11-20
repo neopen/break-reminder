@@ -2,16 +2,17 @@
 import { computed, onMounted, ref } from 'vue'
 
 import { getVersion } from '@tauri-apps/api/app'
+import { openUrl } from '@tauri-apps/plugin-opener'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { check, type Update } from '@tauri-apps/plugin-updater'
 
-import AppButton from '@/components/AppButton.vue'
 import { useToast } from '@/composables/useToast'
+import { isDesktopRuntime } from '@/services/desktop'
 import { describeError } from '@/utils/error'
 
 const { show } = useToast()
 
-const version = ref('1.0.0')
+const version = ref('1.0.1')
 const checking = ref(false)
 const installing = ref(false)
 const available = ref<{ version: string } | null>(null)
@@ -30,6 +31,19 @@ onMounted(async () => {
   }
 })
 
+async function openLink(url: string): Promise<void> {
+  if (isDesktopRuntime()) {
+    try {
+      await openUrl(url)
+    } catch (cause) {
+      show(`打开链接失败：${describeError(cause)}`, 'danger')
+    }
+    return
+  }
+
+  window.open(url, '_blank', 'noopener')
+}
+
 async function checkForUpdates(): Promise<void> {
   checking.value = true
   try {
@@ -47,7 +61,7 @@ async function checkForUpdates(): Promise<void> {
       available.value = null
       show('当前没有可用的发布版本', 'info')
     } else {
-      show(`检查更新失败：${detail}`, 'danger')
+      show('检查更新失败：网络异常，稍后再试', 'danger')
     }
   } finally {
     checking.value = false
@@ -72,39 +86,107 @@ async function installUpdate(): Promise<void> {
 <template>
   <footer class="about-bar">
     <span class="about-bar__brand">Breakly v{{ version }}</span>
-    <div class="about-bar__actions">
-      <AppButton variant="ghost" :loading="checking" @click="checkForUpdates"> 检查更新 </AppButton>
-      <AppButton v-if="available" :loading="installing" @click="installUpdate">
-        {{ installLabel }}
-      </AppButton>
+
+    <div class="about-bar__center">
+      <button type="button" class="about-bar__link" @click="openLink('https://helpenx.com/')">
+        关于我们
+      </button>
+      <span class="about-bar__sep" aria-hidden="true">·</span>
+      <button type="button" class="about-bar__link" @click="openLink('https://helpoke.com/')">
+        在线工具
+      </button>
+    </div>
+
+    <div class="about-bar__right">
+      <button
+        v-if="available"
+        type="button"
+        class="about-bar__link about-bar__link--strong"
+        :disabled="installing"
+        @click="installUpdate"
+      >
+        {{ installing ? '安装中…' : installLabel }}
+      </button>
+      <button type="button" class="about-bar__link" :disabled="checking" @click="checkForUpdates">
+        {{ checking ? '检查中…' : '检查更新' }}
+      </button>
     </div>
   </footer>
 </template>
 
 <style scoped>
 .about-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: var(--hc-space-3);
+  gap: 10px;
   padding: 0 var(--hc-space-1);
   font-size: 12px;
-  color: var(--hc-color-text-muted);
+  color: var(--hc-color-text-faint);
 }
 
 .about-bar__brand {
+  justify-self: start;
   font-weight: 600;
+  color: var(--hc-color-text-muted);
+  white-space: nowrap;
 }
 
-.about-bar__actions {
+.about-bar__center,
+.about-bar__right {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
 }
 
-.about-bar__actions :deep(.app-button) {
-  min-height: 30px;
-  padding: 0 10px;
+.about-bar__center {
+  justify-self: center;
+}
+
+.about-bar__right {
+  justify-self: end;
+}
+
+.about-bar__sep {
+  opacity: 0.45;
+}
+
+.about-bar__link {
+  padding: 0;
   font-size: 12px;
+  color: var(--hc-color-text-muted);
+  background: none;
+  border: none;
+  transition: color var(--hc-duration-fast) var(--hc-ease);
+}
+
+.about-bar__link:hover:not(:disabled) {
+  color: var(--hc-color-brand);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.about-bar__link:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.about-bar__link--strong {
+  font-weight: 600;
+  color: var(--hc-color-brand-deep);
+}
+
+@media (max-width: 520px) {
+  .about-bar {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 4px;
+  }
+
+  .about-bar__brand,
+  .about-bar__center,
+  .about-bar__right {
+    justify-self: center;
+  }
 }
 </style>

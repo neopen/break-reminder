@@ -1,6 +1,6 @@
 [package]
 name = "breakly"
-version = "1.0.0"
+version = "1.0.1"
 description = "Breakly - 健康提醒桌面应用"
 authors = ["neopen"]
 edition = "2021"
@@ -17,6 +17,7 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-notification = "2"
+tauri-plugin-opener = "2"
 tauri-plugin-process = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-updater = "2"

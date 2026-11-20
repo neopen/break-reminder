@@ -3,16 +3,22 @@ withDefaults(
   defineProps<{
     tone?: 'ok' | 'warn' | 'off' | 'danger'
     label: string
+    pulse?: boolean
   }>(),
   {
     tone: 'off',
+    pulse: false,
   },
 )
 </script>
 
 <template>
   <span class="status-pill" :class="`status-pill--${tone}`">
-    <span class="status-pill__dot" aria-hidden="true" />
+    <span
+      class="status-pill__dot"
+      :class="{ 'status-pill__dot--pulse': pulse }"
+      aria-hidden="true"
+    />
     {{ label }}
   </span>
 </template>
@@ -35,6 +41,22 @@ withDefaults(
   height: 6px;
   border-radius: 50%;
   background: currentColor;
+}
+
+.status-pill__dot--pulse {
+  animation: status-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.6);
+    opacity: 0.55;
+  }
 }
 
 .status-pill--ok {

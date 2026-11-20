@@ -12,8 +12,8 @@ pub const MAX_LOCK_MINUTES: u32 = 30;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum NotificationType {
-    #[default]
     Desktop,
+    #[default]
     Lock,
 }
 
@@ -128,7 +128,7 @@ impl Default for AppConfig {
             force_lock: true,
             system_lock: false,
             sound_enabled: true,
-            notification_type: NotificationType::Desktop,
+            notification_type: NotificationType::Lock,
             do_not_disturb: DoNotDisturb::default(),
             extra: Map::new(),
         }

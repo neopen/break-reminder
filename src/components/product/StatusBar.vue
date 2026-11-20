@@ -28,7 +28,11 @@ onMounted(async () => {
       <p class="status-bar__subtitle">起来走走 · 拒绝久坐</p>
     </div>
     <div class="status-bar__meta">
-      <StatusPill :tone="scheduler.running ? 'ok' : 'off'" :label="statusLabel" />
+      <StatusPill
+        :tone="scheduler.running ? 'ok' : 'off'"
+        :label="statusLabel"
+        :pulse="scheduler.running"
+      />
       <span class="status-bar__detail">{{ modeLabel }} · v{{ version }}</span>
     </div>
   </header>
@@ -36,6 +40,8 @@ onMounted(async () => {
 
 <style scoped>
 .status-bar {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -45,6 +51,23 @@ onMounted(async () => {
   background: var(--hc-gradient-brand);
   border-radius: 24px;
   box-shadow: var(--hc-shadow-soft);
+}
+
+.status-bar::after {
+  content: '';
+  position: absolute;
+  right: -40px;
+  bottom: -80px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+}
+
+.status-bar > * {
+  position: relative;
+  z-index: 1;
 }
 
 .status-bar__eyebrow {
