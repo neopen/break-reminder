@@ -1,7 +1,7 @@
 {
   "name": "breakly",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "Breakly - 健康提醒桌面应用（Tauri 2 + Vue 3 + TypeScript）",
   "license": "MIT",
