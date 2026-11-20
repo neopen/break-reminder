@@ -63,14 +63,13 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
                 // 左键：打开主窗口
                 MouseButton::Left => show_main_window(app),
                 // 右键：弹出菜单；锁屏期间完全禁用，防止绕过强制休息
-                MouseButton::Right => {
-                    if app.get_webview_window("lock").is_none() {
-                        if let Some(webview) = app.get_webview_window("main") {
-                            let window = webview.as_ref().window();
-                            let _ = menu.popup(window);
-                        }
+                MouseButton::Right if app.get_webview_window("lock").is_none() => {
+                    if let Some(webview) = app.get_webview_window("main") {
+                        let window = webview.as_ref().window();
+                        let _ = menu.popup(window);
                     }
                 }
+                MouseButton::Right => {}
                 _ => {}
             }
         });
