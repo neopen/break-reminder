@@ -204,7 +204,7 @@ function removeBreak(index: number): void {
 .dnd__empty {
   font-size: 11px;
   line-height: 1.5;
-  color: var(--hc-color-text-muted);
+  color: var(--hc-color-text-faint);
 }
 
 .dnd__error {

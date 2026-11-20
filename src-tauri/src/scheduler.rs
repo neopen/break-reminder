@@ -103,10 +103,7 @@ pub fn apply_config(app: &AppHandle, config: AppConfig) -> Result<AppConfig, Str
     let paths = store::init(app)?;
     store::save_config(&paths.config, &normalized)?;
 
-    let state = app.state::<AppState>();
-    if state.scheduler.running.load(Ordering::SeqCst) {
-        restart_loop(app, &normalized);
-    }
+    // 调整参数时保留当前的下次提醒时间，避免倒计时重新开始。
     emit_status(app);
 
     Ok(normalized)
@@ -243,22 +240,6 @@ fn spawn_loop(app: AppHandle, generation: u64) {
     tauri::async_runtime::spawn(async move {
         run_loop(app, generation).await;
     });
-}
-
-fn restart_loop(app: &AppHandle, config: &AppConfig) {
-    let state = app.state::<AppState>();
-    if !state.scheduler.running.load(Ordering::SeqCst) {
-        return;
-    }
-
-    let next = config.next_reminder_after(Local::now());
-    if let Ok(mut slot) = state.scheduler.next_at.lock() {
-        *slot = Some(next);
-    }
-
-    let generation = state.scheduler.generation.fetch_add(1, Ordering::SeqCst) + 1;
-    emit_status(app);
-    spawn_loop(app.clone(), generation);
 }
 
 async fn run_loop(app: AppHandle, generation: u64) {

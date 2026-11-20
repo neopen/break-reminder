@@ -52,10 +52,14 @@ function onChange(event: Event): void {
   min-width: 0;
 }
 
+.toggle__label {
+  font-weight: 500;
+}
+
 .toggle__description {
   font-size: 11px;
   line-height: 1.4;
-  color: var(--hc-color-text-muted);
+  color: var(--hc-color-text-faint);
 }
 
 .toggle__control {

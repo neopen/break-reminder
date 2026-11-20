@@ -5,7 +5,7 @@ use tauri::{AppHandle, Manager};
 use crate::scheduler;
 use crate::state::AppState;
 
-/// 创建托盘图标。左键弹出菜单，右键直接显示主窗口。
+/// 创建托盘图标。左键打开主窗口，右键弹出菜单；锁屏期间禁用菜单。
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
     let show_item = MenuItem::with_id(app, "show", "显示主窗口", true, None::<&str>)?;
     let start_item = MenuItem::with_id(app, "start", "开始提醒", true, None::<&str>)?;
@@ -60,15 +60,17 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
 
             let app = tray.app_handle();
             match button {
-                // 左键：在光标位置弹出菜单
-                MouseButton::Left => {
-                    if let Some(webview) = app.get_webview_window("main") {
-                        let window = webview.as_ref().window();
-                        let _ = menu.popup(window);
+                // 左键：打开主窗口
+                MouseButton::Left => show_main_window(app),
+                // 右键：弹出菜单；锁屏期间完全禁用，防止绕过强制休息
+                MouseButton::Right => {
+                    if app.get_webview_window("lock").is_none() {
+                        if let Some(webview) = app.get_webview_window("main") {
+                            let window = webview.as_ref().window();
+                            let _ = menu.popup(window);
+                        }
                     }
                 }
-                // 右键：直接打开主窗口
-                MouseButton::Right => show_main_window(app),
                 _ => {}
             }
         });
@@ -83,6 +85,11 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
 
 /// 处理托盘菜单项事件。菜单通过左键手动弹出，因此使用应用级菜单事件。
 pub fn handle_menu_event(app: &AppHandle, id: &str) {
+    // 锁屏提醒期间禁用托盘菜单的全部操作，避免用户强制关闭。
+    if app.get_webview_window("lock").is_some() {
+        return;
+    }
+
     match id {
         "show" => show_main_window(app),
         "start" => {

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 
+import { openUrl } from '@tauri-apps/plugin-opener'
+
 import InlineAlert from '@/components/InlineAlert.vue'
 import AboutBar from '@/components/product/AboutBar.vue'
 import ActionsCard from '@/components/product/ActionsCard.vue'
@@ -16,6 +18,19 @@ const store = useAppStore()
 onMounted(() => {
   void store.init()
 })
+
+async function openAbout(): Promise<void> {
+  const url = 'https://helpenx.com/'
+  if (store.desktop) {
+    try {
+      await openUrl(url)
+    } catch (cause) {
+      console.warn('[about] 打开链接失败', cause)
+    }
+  } else {
+    window.open(url, '_blank', 'noopener')
+  }
+}
 </script>
 
 <template>
@@ -32,6 +47,9 @@ onMounted(() => {
     <StatsCard />
     <SettingsCard />
     <AboutBar />
+    <div class="about-link">
+      <button type="button" @click="openAbout">关于我们</button>
+    </div>
   </main>
 
   <ConfirmDialog />
@@ -46,5 +64,26 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.about-link {
+  display: flex;
+  justify-content: center;
+  padding-top: 2px;
+}
+
+.about-link button {
+  padding: 0;
+  font-size: 12px;
+  color: var(--hc-color-text-faint);
+  background: none;
+  border: none;
+  transition: color var(--hc-duration-fast) var(--hc-ease);
+}
+
+.about-link button:hover {
+  color: var(--hc-color-brand);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 </style>

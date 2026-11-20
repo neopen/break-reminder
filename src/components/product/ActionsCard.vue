@@ -147,6 +147,6 @@ const { scheduler, countdownLabel, nextTimeLabel, loading } = storeToRefs(store)
 .actions-card__hint {
   font-size: 11px;
   line-height: 1.5;
-  color: var(--hc-color-text-muted);
+  color: var(--hc-color-text-faint);
 }
 </style>
