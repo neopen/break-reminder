@@ -1,4 +1,4 @@
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
+use tauri::menu::{ContextMenu, Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager};
 
@@ -62,7 +62,8 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
             match button {
                 // 左键：在光标位置弹出菜单
                 MouseButton::Left => {
-                    if let Some(window) = app.get_window("main") {
+                    if let Some(webview) = app.get_webview_window("main") {
+                        let window = webview.as_ref().window();
                         let _ = menu.popup(window);
                     }
                 }
