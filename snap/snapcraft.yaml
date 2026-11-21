@@ -1,3 +1,4 @@
+
 # ============================================================
 # Breakly Snapcraft configuration
 # Based on the official Tauri 2 Snapcraft packaging approach.
@@ -16,6 +17,7 @@ base: core22
 confinement: strict
 grade: stable
 
+# WebKitGTK runtime compatibility layouts.
 layout:
   /usr/libexec/webkit2gtk-4.1:
     symlink: $SNAP/usr/libexec/webkit2gtk-4.1
@@ -35,7 +37,10 @@ apps:
       - desktop-legacy
       - wayland
       - x11
+      - opengl
       - network
+      - network-bind
+      - home
 
 parts:
   build-app:
@@ -59,10 +64,39 @@ parts:
       - libwebkit2gtk-4.1-0
       - libayatana-appindicator3-1
     override-build: |
-      set -eu
+      set -euo pipefail
+
+      echo "Preparing Rust toolchain..."
+      rustup default stable
+
+      echo "Installing frontend dependencies..."
       npm ci
+
+      echo "Building Tauri Debian package..."
       npm run tauri build -- --bundles deb
-      dpkg -x src-tauri/target/release/bundle/deb/*.deb "$SNAPCRAFT_PART_INSTALL/"
-      if [ -f "$SNAPCRAFT_PART_INSTALL/usr/share/applications/breakly.desktop" ]; then
-        sed -i 's|Icon=breakly|Icon=/usr/share/icons/hicolor/32x32/apps/breakly.png|g' "$SNAPCRAFT_PART_INSTALL/usr/share/applications/breakly.desktop"
+
+      echo "Locating Debian package..."
+      shopt -s nullglob
+      DEB_FILES=(src-tauri/target/release/bundle/deb/*.deb)
+
+      if [ "${#DEB_FILES[@]}" -ne 1 ]; then
+        echo "Expected exactly one Debian package, found ${#DEB_FILES[@]}"
+        exit 1
       fi
+
+      echo "Extracting Debian package..."
+      dpkg -x "${DEB_FILES[0]}" "$SNAPCRAFT_PART_INSTALL"
+
+      echo "Validating application executable..."
+      if [ ! -x "$SNAPCRAFT_PART_INSTALL/usr/bin/breakly" ]; then
+        echo "Breakly executable not found or not executable"
+        exit 1
+      fi
+
+      echo "Validating desktop entry..."
+      if [ ! -f "$SNAPCRAFT_PART_INSTALL/usr/share/applications/breakly.desktop" ]; then
+        echo "Breakly desktop entry not found"
+        exit 1
+      fi
+
+      echo "Snap application files prepared successfully."
