@@ -12,7 +12,7 @@ import { openExternalLink } from '@/utils/openExternal'
 
 const { show } = useToast()
 
-const version = ref('1.0.1')
+const version = ref('1.1.0')
 const checking = ref(false)
 const installing = ref(false)
 const available = ref<{ version: string } | null>(null)

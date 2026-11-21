@@ -59,11 +59,23 @@ function emptyStats(): StatsSummary {
   }
 }
 
+/** 浏览器预览没有 Rust 后端，用演示数据展示完整界面 */
+function demoStats(): StatsSummary {
+  return {
+    todayCount: 5,
+    continuousDays: 12,
+    weeklyRate: 78,
+    weeklyCount: 31,
+    weeklyTarget: 40,
+    dailyTarget: 8,
+  }
+}
+
 export const useAppStore = defineStore('app', () => {
   const { show } = useToast()
 
   const config = ref<AppConfig>(defaultConfig())
-  const stats = ref<StatsSummary>(emptyStats())
+  const stats = ref<StatsSummary>(desktop ? emptyStats() : demoStats())
   const scheduler = ref<SchedulerStatus>({
     running: false,
     nextAt: null,
@@ -174,6 +186,25 @@ export const useAppStore = defineStore('app', () => {
     }
   }
 
+  function flashSaved(): void {
+    saved.value = true
+    if (savedTimer) window.clearTimeout(savedTimer)
+    savedTimer = window.setTimeout(() => {
+      saved.value = false
+    }, 1800)
+  }
+
+  /** 浏览器预览下用本地调度状态模拟提醒倒计时 */
+  function scheduleLocalReminder(minutes: number): void {
+    const target = new Date(Date.now() + minutes * 60_000)
+    scheduler.value = {
+      running: true,
+      nextAt: target.toTimeString().slice(0, 8),
+      nextAtIso: target.toISOString(),
+      lockOpen: false,
+    }
+  }
+
   async function patchConfig(patch: Partial<AppConfig>): Promise<boolean> {
     saving.value = true
     saved.value = false
@@ -189,13 +220,16 @@ export const useAppStore = defineStore('app', () => {
           customBreaks: patch.doNotDisturb.customBreaks.map((item) => ({ ...item })),
         }
       }
+
+      if (!desktop) {
+        config.value = next
+        flashSaved()
+        return true
+      }
+
       config.value = await saveConfig(next)
       await loadStatus()
-      saved.value = true
-      if (savedTimer) window.clearTimeout(savedTimer)
-      savedTimer = window.setTimeout(() => {
-        saved.value = false
-      }, 1800)
+      flashSaved()
       return true
     } catch (cause) {
       show(`保存设置失败：${describeError(cause)}`, 'danger')
@@ -217,7 +251,11 @@ export const useAppStore = defineStore('app', () => {
   }
 
   async function start(): Promise<void> {
-    if (!desktop) return
+    if (!desktop) {
+      scheduleLocalReminder(config.value.intervalMinutes)
+      show(`预览模式：提醒已启动，下次提醒 ${scheduler.value.nextAt ?? '--:--:--'}`, 'ok')
+      return
+    }
     loading.value = true
     try {
       if (config.value.notificationType === 'desktop') {
@@ -237,7 +275,11 @@ export const useAppStore = defineStore('app', () => {
   }
 
   async function stop(): Promise<void> {
-    if (!desktop) return
+    if (!desktop) {
+      scheduler.value = { running: false, nextAt: null, nextAtIso: null, lockOpen: false }
+      show('预览模式：提醒已停止', 'info')
+      return
+    }
     loading.value = true
     try {
       await stopReminders()
@@ -251,6 +293,11 @@ export const useAppStore = defineStore('app', () => {
   }
 
   async function snooze(minutes: number): Promise<void> {
+    if (!desktop) {
+      if (scheduler.value.running) scheduleLocalReminder(minutes)
+      show(`已稍后 ${minutes} 分钟`, 'ok')
+      return
+    }
     try {
       await snoozeReminder(minutes)
       await loadStatus()
@@ -261,6 +308,11 @@ export const useAppStore = defineStore('app', () => {
   }
 
   async function skip(): Promise<void> {
+    if (!desktop) {
+      if (scheduler.value.running) scheduleLocalReminder(config.value.intervalMinutes)
+      show('已跳过本次提醒', 'info')
+      return
+    }
     try {
       await skipReminder()
       await loadStatus()
@@ -271,6 +323,11 @@ export const useAppStore = defineStore('app', () => {
   }
 
   async function resetToday(): Promise<void> {
+    if (!desktop) {
+      stats.value = { ...stats.value, todayCount: 0 }
+      show('今日统计已重置', 'ok')
+      return
+    }
     try {
       stats.value = await resetTodayStats()
       show('今日统计已重置', 'ok')
@@ -280,6 +337,11 @@ export const useAppStore = defineStore('app', () => {
   }
 
   async function toggleAutostart(): Promise<void> {
+    if (!desktop) {
+      autoLaunch.value = !autoLaunch.value
+      show(autoLaunch.value ? '已开启开机启动' : '已关闭开机启动', autoLaunch.value ? 'ok' : 'info')
+      return
+    }
     try {
       if (autoLaunch.value) {
         await disableAutostart()

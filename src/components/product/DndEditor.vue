@@ -194,8 +194,9 @@ function removeBreak(index: number): void {
   width: 94px;
   padding: 6px 7px;
   font-size: 12px;
+  color: var(--hc-color-text);
   font-variant-numeric: tabular-nums;
-  background: #fff;
+  background: var(--hc-color-surface);
   border: 1px solid var(--hc-color-border);
   border-radius: 8px;
 }
@@ -218,8 +219,8 @@ function removeBreak(index: number): void {
   font-size: 11px;
   font-weight: 600;
   color: var(--hc-color-brand-deep);
-  background: #eef2ff;
-  border: 1px solid #ddd6fe;
+  background: rgba(124, 92, 255, 0.16);
+  border: 1px solid rgba(167, 139, 250, 0.35);
   border-radius: var(--hc-radius-pill);
 }
 
@@ -228,7 +229,7 @@ function removeBreak(index: number): void {
   align-items: center;
   gap: 6px;
   padding: 6px;
-  background: #fff;
+  background: var(--hc-color-surface);
   border: 1px solid var(--hc-color-border);
   border-radius: 8px;
 }
@@ -238,6 +239,7 @@ function removeBreak(index: number): void {
   min-width: 70px;
   padding: 6px;
   font-size: 12px;
+  color: var(--hc-color-text);
   background: var(--hc-color-surface-soft);
   border: 1px solid var(--hc-color-border);
   border-radius: 8px;

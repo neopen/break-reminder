@@ -104,9 +104,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   position: relative;
   width: min(380px, 100%);
   padding: var(--hc-space-6) var(--hc-space-5) var(--hc-space-5);
-  background: #fff;
+  color: #eef2ff;
+  background: linear-gradient(160deg, rgba(29, 34, 64, 0.98), rgba(13, 16, 32, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--hc-radius-lg);
-  box-shadow: var(--hc-shadow-card);
+  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.9);
   animation: feedback-in var(--hc-duration-normal) var(--hc-ease);
 }
 
@@ -118,7 +120,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   height: 30px;
   font-size: 20px;
   line-height: 1;
-  color: var(--hc-color-text-faint);
+  color: #8d94bd;
   background: none;
   border: none;
   border-radius: var(--hc-radius-pill);
@@ -126,7 +128,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 }
 
 .feedback__close:hover {
-  color: var(--hc-color-text);
+  color: #fff;
 }
 
 .feedback__title {
@@ -139,7 +141,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   margin-top: var(--hc-space-2);
   font-size: 13px;
   line-height: 1.7;
-  color: var(--hc-color-text-muted);
+  color: #8d94bd;
   text-align: center;
 }
 
@@ -157,8 +159,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   width: 100%;
   padding: var(--hc-space-3) var(--hc-space-4);
   text-align: left;
-  background: var(--hc-color-surface-soft);
-  border: 1px solid var(--hc-color-border);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: var(--hc-radius-md);
   transition:
     border-color var(--hc-duration-fast) var(--hc-ease),
@@ -167,12 +169,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
 .feedback__option:hover,
 .feedback__option:focus-visible {
-  background: #fff;
-  border-color: var(--hc-color-brand);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(167, 139, 250, 0.6);
 }
 
 .feedback__option:focus-visible {
-  outline: 2px solid var(--hc-color-brand);
+  outline: 2px solid #a78bfa;
   outline-offset: 1px;
 }
 
@@ -192,13 +194,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 .feedback__option-title {
   font-size: 15px;
   font-weight: 600;
-  color: var(--hc-color-text);
+  color: #f4f6ff;
 }
 
 .feedback__option-desc {
   overflow: hidden;
   font-size: 12px;
-  color: var(--hc-color-text-muted);
+  color: #8d94bd;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

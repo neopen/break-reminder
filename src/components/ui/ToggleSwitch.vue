@@ -80,7 +80,7 @@ function onChange(event: Event): void {
   width: 42px;
   height: 24px;
   border-radius: 999px;
-  background: #cbd5e1;
+  background: rgba(148, 163, 184, 0.4);
   transition: background var(--hc-duration-fast) var(--hc-ease);
 }
 
@@ -97,7 +97,7 @@ function onChange(event: Event): void {
 }
 
 .toggle__control input:checked + .toggle__track {
-  background: var(--hc-color-brand);
+  background: #7c6cff;
 }
 
 .toggle__control input:checked + .toggle__track .toggle__knob {
