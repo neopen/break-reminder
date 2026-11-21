@@ -309,7 +309,9 @@ async fn run_loop(app: AppHandle, generation: u64) {
         };
 
         let sleep_started = Local::now();
-        let wait_ms = (next - sleep_started).num_milliseconds().clamp(0, MAX_SLEEP_MS);
+        let wait_ms = (next - sleep_started)
+            .num_milliseconds()
+            .clamp(0, MAX_SLEEP_MS);
         tokio::time::sleep(StdDuration::from_millis((wait_ms + 50) as u64)).await;
         let woke_at = Local::now();
 
