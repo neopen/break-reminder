@@ -149,16 +149,12 @@ npm run build
 | `npm run version:check`           | 校验三处版本一致          |
 | `npm run audio:generate`          | 重新生成提醒音效          |
 
-
-
 ## 已知限制
 
 - 全局键盘拦截目前仅实现 Windows；macOS（CGEventTap）与 Linux（X11 grab）为后续阶段
 - Windows 系统通知仅对已安装应用生效
 - `Ctrl+Alt+Del`、`Win+L` 属于系统安全序列，普通桌面应用无法拦截
 - macOS 自动更新要求应用完成签名与公证
-
-
 
 ## 许可证
 
