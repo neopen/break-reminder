@@ -1,0 +1,68 @@
+# ============================================================
+# Breakly Snapcraft configuration
+# Based on the official Tauri 2 Snapcraft packaging approach.
+# Store name "breakly" must be registered in Snapcraft.
+# Version is overwritten from the release tag by CI.
+# ============================================================
+
+name: breakly
+title: Breakly
+summary: A desktop break reminder
+description: |
+  Breakly (别坐了) is a desktop break reminder application.
+  It helps users build healthier work habits with scheduled breaks.
+version: '1.0.0'
+base: core22
+confinement: strict
+grade: stable
+
+layout:
+  /usr/libexec/webkit2gtk-4.1:
+    symlink: $SNAP/usr/libexec/webkit2gtk-4.1
+  /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1:
+    symlink: $SNAP/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1
+  /usr/lib/aarch64-linux-gnu/webkit2gtk-4.1:
+    symlink: $SNAP/usr/lib/aarch64-linux-gnu/webkit2gtk-4.1
+  /usr/lib/webkit2gtk-4.1/injected-bundle:
+    symlink: $SNAP/usr/lib/webkit2gtk-4.1/injected-bundle
+
+apps:
+  breakly:
+    command: usr/bin/breakly
+    desktop: usr/share/applications/breakly.desktop
+    plugs:
+      - desktop
+      - desktop-legacy
+      - wayland
+      - x11
+      - network
+
+parts:
+  build-app:
+    plugin: dump
+    source: .
+    build-snaps:
+      - node/22/stable
+      - rustup/latest/stable
+    build-packages:
+      - libwebkit2gtk-4.1-dev
+      - build-essential
+      - curl
+      - wget
+      - file
+      - libxdo-dev
+      - libssl-dev
+      - libayatana-appindicator3-dev
+      - librsvg2-dev
+      - dpkg
+    stage-packages:
+      - libwebkit2gtk-4.1-0
+      - libayatana-appindicator3-1
+    override-build: |
+      set -eu
+      npm ci
+      npm run tauri build -- --bundles deb
+      dpkg -x src-tauri/target/release/bundle/deb/*.deb "$SNAPCRAFT_PART_INSTALL/"
+      if [ -f "$SNAPCRAFT_PART_INSTALL/usr/share/applications/breakly.desktop" ]; then
+        sed -i 's|Icon=breakly|Icon=/usr/share/icons/hicolor/32x32/apps/breakly.png|g' "$SNAPCRAFT_PART_INSTALL/usr/share/applications/breakly.desktop"
+      fi

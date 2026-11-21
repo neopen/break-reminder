@@ -1,0 +1,123 @@
+# ============================================================
+# Breakly - Market Publishing Workflow
+#
+# Automatically publish/update:
+#   - WinGet: submit/update package manifest PR
+#   - Snap Store: upload to candidate channel
+#
+# Trigger:
+#   - GitHub Release published
+#   - Manual dispatch (release tag required)
+# ============================================================
+
+name: Market Publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Published release tag (e.g. v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  # ==========================================================
+  # WinGet
+  # Submit a package update PR to microsoft/winget-pkgs.
+  # ==========================================================
+  winget:
+    name: Publish WinGet
+    runs-on: windows-latest
+    steps:
+      - name: Resolve release tag and version
+        id: release
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "release") {
+            $tag = "${{ github.event.release.tag_name }}"
+          } else {
+            $tag = "${{ inputs.tag }}"
+          }
+          if ($tag -notmatch '^v\d+\.\d+\.\d+$') { throw "Invalid stable release tag: $tag" }
+          $version = $tag.Substring(1)
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Download release installer and calculate SHA256
+        id: installer
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.release.outputs.tag }}"
+          $version = "${{ steps.release.outputs.version }}"
+          $asset = "Breakly-$version-windows-x64-setup.exe"
+          $url = "https://github.com/${{ github.repository }}/releases/download/$tag/$asset"
+          $file = Join-Path $env:TEMP $asset
+          Invoke-WebRequest -Uri $url -OutFile $file
+          $hash = (Get-FileHash -Path $file -Algorithm SHA256).Hash
+          "url=$url" >> $env:GITHUB_OUTPUT
+          "hash=$hash" >> $env:GITHUB_OUTPUT
+
+      # wingetcreate update generates and submits the manifest update PR.
+      # WINGET_PACKAGE_ID must be configured as a repository variable.
+      # WINGET_TOKEN must be configured as a repository secret.
+      - name: Update WinGet manifest
+        shell: pwsh
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+          PACKAGE_ID: ${{ vars.WINGET_PACKAGE_ID }}
+          VERSION: ${{ steps.release.outputs.version }}
+          URL: ${{ steps.installer.outputs.url }}
+          SHA256: ${{ steps.installer.outputs.hash }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINGET_TOKEN)) { throw "WINGET_TOKEN secret is not configured" }
+          if ([string]::IsNullOrWhiteSpace($env:PACKAGE_ID)) { throw "WINGET_PACKAGE_ID repository variable is not configured" }
+          $tool = Join-Path $env:TEMP "wingetcreate.exe"
+          Invoke-WebRequest -Uri "https://aka.ms/wingetcreate/latest" -OutFile $tool
+          & $tool update $env:PACKAGE_ID --version $env:VERSION --urls $env:URL --hash $env:SHA256 --submit --token $env:WINGET_TOKEN
+          if ($LASTEXITCODE -ne 0) { throw "wingetcreate update failed with exit code $LASTEXITCODE" }
+
+  # ==========================================================
+  # Snap Store
+  # Build using the Tauri/Snapcraft packaging approach.
+  # Upload to candidate; do not promote automatically to stable.
+  # ==========================================================
+  snap:
+    name: Publish Snap (candidate)
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Resolve release tag and version
+        id: release
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then TAG="${{ github.event.release.tag_name }}"; else TAG="${{ inputs.tag }}"; fi
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "::error::Invalid stable release tag: $TAG"; exit 1; fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+
+      - name: Install Snapcraft
+        run: sudo snap install snapcraft --classic
+
+      - name: Set Snap version from release tag
+        run: sed -i "s/^version: .*/version: '${SNAP_VERSION}'/" snap/snapcraft.yaml
+        env:
+          SNAP_VERSION: ${{ steps.release.outputs.version }}
+
+      - name: Build Snap
+        run: snapcraft --destructive-mode
+
+      - name: Upload Snap to candidate channel
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+        run: |
+          if [ -z "$SNAPCRAFT_STORE_CREDENTIALS" ]; then echo "::error::SNAPCRAFT_STORE_CREDENTIALS secret is not configured"; exit 1; fi
+          snapcraft upload --release=candidate *.snap
