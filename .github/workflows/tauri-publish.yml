@@ -108,7 +108,8 @@ jobs:
         run: sudo snap install snapcraft --classic
 
       - name: Set Snap version from release tag
-        run: sed -i "s/^version: .*/version: '${SNAP_VERSION}'/" snap/snapcraft.yaml
+        run: |
+          sed -i "s/^version: .*/version: '${SNAP_VERSION}'/" snap/snapcraft.yaml
         env:
           SNAP_VERSION: ${{ steps.release.outputs.version }}
 

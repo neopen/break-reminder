@@ -346,7 +346,6 @@ jobs:
           cp "$EXE" "Breakly-${VERSION}-windows-x64-standalone.exe"
           gh release upload "${{ github.ref_name }}" "Breakly-${VERSION}-windows-x64-standalone.exe" --clobber
 
-
   # ==========================================================
   # Finalize Release
   # Wait for all matrix builds to succeed before publishing.
