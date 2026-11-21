@@ -43,6 +43,12 @@ export interface StatsSummary {
   dailyTarget: number
 }
 
+/** 单日打卡记录，用于今日统计图与打卡日历 */
+export interface DailyRecord {
+  date: string
+  count: number
+}
+
 /** 与 Rust 侧 SchedulerStatus 一一对应 */
 export interface SchedulerStatus {
   running: boolean

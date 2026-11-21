@@ -13,6 +13,7 @@ import { isPermissionGranted, requestPermission } from '@tauri-apps/plugin-notif
 
 import {
   getConfig,
+  getDailyRecords,
   getSchedulerStatus,
   getStats,
   isDesktopRuntime,
@@ -23,7 +24,13 @@ import {
   startReminders,
   stopReminders,
 } from '@/services/desktop'
-import type { AppConfig, ReminderEvent, SchedulerStatus, StatsSummary } from '@/types/desktop'
+import type {
+  AppConfig,
+  DailyRecord,
+  ReminderEvent,
+  SchedulerStatus,
+  StatsSummary,
+} from '@/types/desktop'
 import { describeError } from '@/utils/error'
 
 import { useToast } from '@/composables/useToast'
@@ -60,6 +67,30 @@ function emptyStats(): StatsSummary {
   }
 }
 
+/** 浏览器预览没有 Rust 后端，生成近 400 天的演示打卡记录 */
+function demoHistory(): DailyRecord[] {
+  const records: DailyRecord[] = []
+  const today = new Date()
+
+  for (let offset = 400; offset >= 0; offset -= 1) {
+    const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - offset)
+    const key = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, '0'),
+      String(date.getDate()).padStart(2, '0'),
+    ].join('-')
+
+    let count = 0
+    if (offset === 0) count = 5
+    else if (offset <= 12) count = 3 + (offset % 4)
+    else if (offset % 4 !== 0) count = 2 + ((offset * 3) % 6)
+
+    if (count > 0) records.push({ date: key, count })
+  }
+
+  return records
+}
+
 /** 浏览器预览没有 Rust 后端，用演示数据展示完整界面 */
 function demoStats(): StatsSummary {
   return {
@@ -77,6 +108,7 @@ export const useAppStore = defineStore('app', () => {
 
   const config = ref<AppConfig>(defaultConfig())
   const stats = ref<StatsSummary>(desktop ? emptyStats() : demoStats())
+  const history = ref<DailyRecord[]>([])
   const scheduler = ref<SchedulerStatus>({
     running: false,
     nextAt: null,
@@ -177,6 +209,20 @@ export const useAppStore = defineStore('app', () => {
       stats.value = await getStats()
     } catch (cause) {
       console.warn('[app] 读取统计失败', cause)
+    }
+  }
+
+  /** 打开统计图或打卡日历时调用，获取最近两年的每日记录 */
+  async function loadHistory(): Promise<void> {
+    if (!desktop) {
+      history.value = demoHistory()
+      return
+    }
+
+    try {
+      history.value = await getDailyRecords()
+    } catch (cause) {
+      show(`读取打卡记录失败：${describeError(cause)}`, 'danger')
     }
   }
 
@@ -393,6 +439,7 @@ export const useAppStore = defineStore('app', () => {
     desktop,
     config,
     stats,
+    history,
     scheduler,
     autoLaunch,
     loading,
@@ -407,6 +454,7 @@ export const useAppStore = defineStore('app', () => {
     init,
     loadConfig,
     loadStats,
+    loadHistory,
     loadStatus,
     patchConfig,
     start,

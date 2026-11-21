@@ -5,6 +5,8 @@ import { storeToRefs } from 'pinia'
 import BrandLogo from '@/components/BrandLogo.vue'
 import AboutBar from '@/components/product/AboutBar.vue'
 import MainOrb from '@/components/product/MainOrb.vue'
+import StreakCalendarDialog from '@/components/product/StreakCalendarDialog.vue'
+import TodayStatsDialog from '@/components/product/TodayStatsDialog.vue'
 import StatusPill from '@/components/StatusPill.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import ParameterSheet from '@/components/ui/ParameterSheet.vue'
@@ -16,6 +18,8 @@ const store = useAppStore()
 const { scheduler, stats, statusLabel } = storeToRefs(store)
 
 const activeSheet = ref<ParameterKind | null>(null)
+const todayStatsOpen = ref(false)
+const streakOpen = ref(false)
 
 function openSheet(kind: ParameterKind): void {
   activeSheet.value = kind
@@ -57,13 +61,18 @@ onMounted(() => {
         </div>
 
         <div class="topbar__meta">
-          <button type="button" class="metric" @click="openSheet('system')">
+          <button
+            type="button"
+            class="metric"
+            title="查看今日活动统计"
+            @click="todayStatsOpen = true"
+          >
             <span>今日</span>
             <strong
               >{{ stats.todayCount }}<small>/{{ stats.dailyTarget }}</small></strong
             >
           </button>
-          <button type="button" class="metric" @click="openSheet('system')">
+          <button type="button" class="metric" title="查看打卡日历" @click="streakOpen = true">
             <span>连续</span>
             <strong>{{ stats.continuousDays }}<small>天</small></strong>
           </button>
@@ -101,6 +110,8 @@ onMounted(() => {
   </main>
 
   <ParameterSheet :kind="activeSheet" @close="activeSheet = null" />
+  <TodayStatsDialog v-model:open="todayStatsOpen" />
+  <StreakCalendarDialog v-model:open="streakOpen" />
   <ConfirmDialog />
   <ToastHost />
 </template>

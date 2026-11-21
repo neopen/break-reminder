@@ -228,6 +228,14 @@ pub fn refresh_stats(app: &AppHandle) -> crate::stats::StatsSummary {
     summary
 }
 
+pub fn daily_records(app: &AppHandle) -> Vec<crate::stats::DailyRecord> {
+    let state = app.state::<AppState>();
+    let Ok(stats) = state.stats.lock() else {
+        return Vec::new();
+    };
+    stats.recent_daily_records(Local::now(), 730)
+}
+
 pub fn reset_today(app: &AppHandle) -> crate::stats::StatsSummary {
     let state = app.state::<AppState>();
     let (summary, snapshot) = {

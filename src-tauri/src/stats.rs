@@ -27,6 +27,14 @@ pub struct StatsSummary {
     pub daily_target: u32,
 }
 
+/// 单日打卡记录，用于今日统计图与打卡日历。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DailyRecord {
+    pub date: String,
+    pub count: u32,
+}
+
 impl Stats {
     /// 跨天后把今日计数归零，但保留连续天数和历史记录。
     pub fn rollover(&mut self, now: DateTime<Local>) -> bool {
@@ -91,6 +99,20 @@ impl Stats {
     pub fn reset_today(&mut self, now: DateTime<Local>) {
         self.today_count = 0;
         self.daily_records.insert(date_key(now.date_naive()), 0);
+    }
+
+    /// 返回最近 `days` 天内（含今天）的每日打卡记录。
+    pub fn recent_daily_records(&self, now: DateTime<Local>, days: i64) -> Vec<DailyRecord> {
+        let start = date_key(now.date_naive() - Duration::days(days.max(0)));
+        let end = date_key(now.date_naive());
+
+        self.daily_records
+            .range(start..=end)
+            .map(|(date, count)| DailyRecord {
+                date: date.clone(),
+                count: *count,
+            })
+            .collect()
     }
 
     pub fn summary(&self, now: DateTime<Local>) -> StatsSummary {

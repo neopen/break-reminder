@@ -5,6 +5,7 @@ import { getVersion } from '@tauri-apps/api/app'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { check, type Update } from '@tauri-apps/plugin-updater'
 
+import PrivacyDialog from '@/components/product/PrivacyDialog.vue'
 import FeedbackDialog from '@/components/ui/FeedbackDialog.vue'
 import { useToast } from '@/composables/useToast'
 import { describeError } from '@/utils/error'
@@ -17,6 +18,7 @@ const checking = ref(false)
 const installing = ref(false)
 const available = ref<{ version: string } | null>(null)
 const feedbackOpen = ref(false)
+const privacyOpen = ref(false)
 
 let pendingUpdate: Update | null = null
 
@@ -93,6 +95,8 @@ async function installUpdate(): Promise<void> {
       </button>
       <span class="about-bar__sep" aria-hidden="true">·</span>
       <button type="button" class="about-bar__link" @click="feedbackOpen = true">功能反馈</button>
+      <span class="about-bar__sep" aria-hidden="true">·</span>
+      <button type="button" class="about-bar__link" @click="privacyOpen = true">隐私政策</button>
     </div>
 
     <div class="about-bar__right">
@@ -112,6 +116,7 @@ async function installUpdate(): Promise<void> {
   </footer>
 
   <FeedbackDialog v-model:open="feedbackOpen" />
+  <PrivacyDialog v-model:open="privacyOpen" />
 </template>
 
 <style scoped>

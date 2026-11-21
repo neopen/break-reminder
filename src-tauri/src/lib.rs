@@ -47,6 +47,7 @@ pub fn run() {
             commands::get_config,
             commands::save_config,
             commands::get_stats,
+            commands::get_daily_records,
             commands::reset_today_stats,
             commands::get_scheduler_status,
             commands::start_reminders,

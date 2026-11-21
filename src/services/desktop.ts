@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 
 import type {
   AppConfig,
+  DailyRecord,
   LockConfig,
   RuntimeStatus,
   SchedulerStatus,
@@ -27,6 +28,11 @@ export function saveConfig(config: AppConfig): Promise<AppConfig> {
 
 export function getStats(): Promise<StatsSummary> {
   return invoke<StatsSummary>('get_stats')
+}
+
+/** 最近两年的每日打卡记录 */
+export function getDailyRecords(): Promise<DailyRecord[]> {
+  return invoke<DailyRecord[]>('get_daily_records')
 }
 
 export function resetTodayStats(): Promise<StatsSummary> {
