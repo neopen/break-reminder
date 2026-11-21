@@ -229,3 +229,11 @@ fn range_contains(start: &str, end: &str, at: NaiveTime) -> bool {
         at >= start || at <= end
     }
 }
+
+fn default_start_time() -> NaiveTime {
+    NaiveTime::from_hms_opt(8, 0, 0).expect("valid default start time")
+}
+
+fn default_end_time() -> NaiveTime {
+    NaiveTime::from_hms_opt(18, 0, 0).expect("valid default end time")
+}
