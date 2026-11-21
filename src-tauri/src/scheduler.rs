@@ -59,6 +59,8 @@ pub fn start(app: &AppHandle) -> Result<(), String> {
         return Ok(());
     }
 
+    state.scheduler.resume_reminder.store(false, Ordering::SeqCst);
+
     let config = state
         .config
         .lock()
@@ -80,6 +82,7 @@ pub fn start(app: &AppHandle) -> Result<(), String> {
 pub fn stop(app: &AppHandle) {
     let state = app.state::<AppState>();
     state.scheduler.running.store(false, Ordering::SeqCst);
+    state.scheduler.resume_reminder.store(false, Ordering::SeqCst);
     state.scheduler.generation.fetch_add(1, Ordering::SeqCst);
 
     if let Ok(mut slot) = state.scheduler.next_at.lock() {
@@ -109,6 +112,7 @@ pub fn apply_config(app: &AppHandle, config: AppConfig) -> Result<AppConfig, Str
 
     // 调整参数后重新开始计时，让新设置立即生效。
     let state = app.state::<AppState>();
+    state.scheduler.resume_reminder.store(false, Ordering::SeqCst);
     if state.scheduler.running.load(Ordering::SeqCst) {
         schedule_next(app, &normalized, Local::now());
     } else {
@@ -281,12 +285,23 @@ fn handle_resume(app: &AppHandle) {
 
     if running {
         // 休眠时间不计入提醒间隔，从唤醒时刻重新计时。
-        schedule_next(app, &config, Local::now());
+        restart_interval(app, &config, Local::now());
     } else if config.auto_start_reminders {
         if let Err(error) = start(app) {
             eprintln!("[scheduler] 休眠唤醒后自动启动提醒失败: {error}");
+        } else {
+            restart_interval(app, &config, Local::now());
         }
     }
+}
+
+/// 休眠唤醒后从当前时刻重新开始一个完整间隔；首个提醒不再跳转到下一个工作时段。
+fn restart_interval(app: &AppHandle, config: &AppConfig, from: DateTime<Local>) {
+    set_next(app, from + Duration::minutes(config.interval_minutes as i64));
+    app.state::<AppState>()
+        .scheduler
+        .resume_reminder
+        .store(true, Ordering::SeqCst);
 }
 
 fn current_config(app: &AppHandle) -> AppConfig {
@@ -343,7 +358,7 @@ async fn run_loop(app: AppHandle, generation: u64) {
         // 休眠期间计时暂停：唤醒后不补发提醒，直接重新开始一个完整间隔。
         if (woke_at - sleep_started).num_milliseconds() > wait_ms + RESUME_GAP_MS {
             let config = current_config(&app);
-            schedule_next(&app, &config, woke_at);
+            restart_interval(&app, &config, woke_at);
             continue;
         }
 
@@ -357,13 +372,19 @@ async fn run_loop(app: AppHandle, generation: u64) {
 
         let config = current_config(&app);
         let now = Local::now();
+        // 休眠唤醒后的首个提醒允许越过工作时段检查，确保重新开始的间隔能按时触发。
+        let resume_reminder = app
+            .state::<AppState>()
+            .scheduler
+            .resume_reminder
+            .swap(false, Ordering::SeqCst);
 
         if config.do_not_disturb.is_active(now.time()) {
             schedule_next(&app, &config, now);
             continue;
         }
 
-        if !config.is_within_work_window(now) {
+        if !resume_reminder && !config.is_within_work_window(now) {
             schedule_next(&app, &config, now);
             continue;
         }

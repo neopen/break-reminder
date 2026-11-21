@@ -158,6 +158,14 @@ export const useAppStore = defineStore('app', () => {
       now.value = Date.now()
     }, 1000)
 
+    // 休眠/最小化期间定时器可能被节流，回到前台时立即校准倒计时。
+    window.addEventListener('focus', () => {
+      now.value = Date.now()
+    })
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) now.value = Date.now()
+    })
+
     if (!desktop) return
 
     await Promise.all([loadConfig(), loadStats(), loadStatus()])
@@ -181,6 +189,8 @@ export const useAppStore = defineStore('app', () => {
   async function setupListeners(): Promise<void> {
     unlisteners.push(
       await listen<SchedulerStatus>('scheduler-status', (event) => {
+        // 后端在唤醒后会重置下次时间，同步校准前端时钟。
+        now.value = Date.now()
         scheduler.value = event.payload
       }),
     )
