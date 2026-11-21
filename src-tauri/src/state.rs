@@ -38,8 +38,6 @@ pub struct SchedulerState {
     pub generation: AtomicU64,
     pub next_at: Mutex<Option<DateTime<Local>>>,
     pub lock_tx: Mutex<Option<oneshot::Sender<LockOutcome>>>,
-    /// 休眠唤醒后重新开始的第一个间隔，允许提醒不受工作时段限制。
-    pub resume_reminder: AtomicBool,
 }
 
 #[derive(Default)]

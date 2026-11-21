@@ -1,4 +1,4 @@
-use chrono::{DateTime, Duration, Local, LocalResult, NaiveDateTime, NaiveTime, TimeZone};
+use chrono::{DateTime, Duration, Local, NaiveDateTime, NaiveTime};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
@@ -174,33 +174,6 @@ impl AppConfig {
             .any(|window| current >= window.start && current <= window.end)
     }
 
-    /// 下一次提醒时间。跨天工作时段（例如 22:00–06:00）也能正确处理。
-    pub fn next_reminder_after(&self, now: DateTime<Local>) -> DateTime<Local> {
-        let interval = Duration::minutes(self.interval_minutes as i64);
-        let current = now.naive_local();
-        let windows = self.work_windows(current);
-
-        if let Some(window) = windows
-            .iter()
-            .find(|window| current >= window.start && current <= window.end)
-        {
-            let candidate = now + interval;
-            if candidate.naive_local() <= window.end {
-                return candidate;
-            }
-        }
-
-        if let Some(next_start) = windows
-            .iter()
-            .map(|window| window.start)
-            .filter(|start| *start > current)
-            .min()
-        {
-            return to_local(next_start + interval);
-        }
-
-        now + interval
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -255,22 +228,5 @@ fn range_contains(start: &str, end: &str, at: NaiveTime) -> bool {
     } else {
         // 跨天时段，例如 22:00–02:00
         at >= start || at <= end
-    }
-}
-
-fn default_start_time() -> NaiveTime {
-    NaiveTime::from_hms_opt(8, 0, 0).expect("valid default start time")
-}
-
-fn default_end_time() -> NaiveTime {
-    NaiveTime::from_hms_opt(18, 0, 0).expect("valid default end time")
-}
-
-fn to_local(naive: NaiveDateTime) -> DateTime<Local> {
-    match Local.from_local_datetime(&naive) {
-        LocalResult::Single(value) => value,
-        LocalResult::Ambiguous(value, _) => value,
-        // DST 跳变等极端情况，退化为当前时间，调度器会重新计算。
-        LocalResult::None => Local::now(),
     }
 }
