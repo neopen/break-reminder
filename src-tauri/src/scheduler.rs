@@ -59,7 +59,10 @@ pub fn start(app: &AppHandle) -> Result<(), String> {
         return Ok(());
     }
 
-    state.scheduler.resume_reminder.store(false, Ordering::SeqCst);
+    state
+        .scheduler
+        .resume_reminder
+        .store(false, Ordering::SeqCst);
 
     let config = state
         .config
@@ -82,7 +85,10 @@ pub fn start(app: &AppHandle) -> Result<(), String> {
 pub fn stop(app: &AppHandle) {
     let state = app.state::<AppState>();
     state.scheduler.running.store(false, Ordering::SeqCst);
-    state.scheduler.resume_reminder.store(false, Ordering::SeqCst);
+    state
+        .scheduler
+        .resume_reminder
+        .store(false, Ordering::SeqCst);
     state.scheduler.generation.fetch_add(1, Ordering::SeqCst);
 
     if let Ok(mut slot) = state.scheduler.next_at.lock() {
@@ -112,7 +118,10 @@ pub fn apply_config(app: &AppHandle, config: AppConfig) -> Result<AppConfig, Str
 
     // 调整参数后重新开始计时，让新设置立即生效。
     let state = app.state::<AppState>();
-    state.scheduler.resume_reminder.store(false, Ordering::SeqCst);
+    state
+        .scheduler
+        .resume_reminder
+        .store(false, Ordering::SeqCst);
     if state.scheduler.running.load(Ordering::SeqCst) {
         schedule_next(app, &normalized, Local::now());
     } else {
@@ -297,7 +306,10 @@ fn handle_resume(app: &AppHandle) {
 
 /// 休眠唤醒后从当前时刻重新开始一个完整间隔；首个提醒不再跳转到下一个工作时段。
 fn restart_interval(app: &AppHandle, config: &AppConfig, from: DateTime<Local>) {
-    set_next(app, from + Duration::minutes(config.interval_minutes as i64));
+    set_next(
+        app,
+        from + Duration::minutes(config.interval_minutes as i64),
+    );
     app.state::<AppState>()
         .scheduler
         .resume_reminder
