@@ -27,7 +27,7 @@ pub fn open(app: &AppHandle, duration_secs: u64, force_lock: bool) -> Result<(),
         let _ = existing.destroy();
     }
 
-    // 先创建隐藏窗口，等锁屏页完成挂载后再显示，避免出现空白页闪烁。
+    // 直接创建并显示窗口；lock.html 内置深色启动画面，避免加载期间白屏。
     let window = WebviewWindowBuilder::new(app, "lock", WebviewUrl::App("lock.html".into()))
         .title("健康提醒")
         .fullscreen(true)
@@ -35,22 +35,15 @@ pub fn open(app: &AppHandle, duration_secs: u64, force_lock: bool) -> Result<(),
         .decorations(false)
         .skip_taskbar(true)
         .resizable(false)
-        .focused(false)
-        .visible(false)
+        .focused(true)
+        .visible(true)
+        .background_color(tauri::window::Color(26, 26, 46, 255))
         .build()
         .map_err(|error| format!("创建锁屏窗口失败: {error}"))?;
 
+    let _ = window.show();
+    let _ = window.set_focus();
     let _ = window.set_always_on_top(true);
-
-    // 前端挂载完成后会调用 show_lock_window；若失败则兜底显示。
-    let reveal_handle = window.clone();
-    std::thread::spawn(move || {
-        std::thread::sleep(Duration::from_secs(3));
-        if !reveal_handle.is_visible().unwrap_or(false) {
-            let _ = reveal_handle.show();
-            let _ = reveal_handle.set_focus();
-        }
-    });
 
     keyboard::start()?;
 
@@ -69,10 +62,6 @@ pub fn open(app: &AppHandle, duration_secs: u64, force_lock: bool) -> Result<(),
             let Some(window) = handle.get_webview_window("lock") else {
                 break;
             };
-
-            if !window.is_visible().unwrap_or(false) {
-                continue;
-            }
 
             let _ = window.set_always_on_top(true);
             let _ = window.set_focus();

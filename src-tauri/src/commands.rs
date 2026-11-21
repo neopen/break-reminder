@@ -124,17 +124,6 @@ pub async fn close_lock_window(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn show_lock_window(app: AppHandle) -> Result<(), String> {
-    let Some(window) = app.get_webview_window("lock") else {
-        return Err("锁屏窗口不存在".to_string());
-    };
-
-    window.show().map_err(|error| error.to_string())?;
-    let _ = window.set_always_on_top(true);
-    window.set_focus().map_err(|error| error.to_string())
-}
-
-#[tauri::command]
 pub fn open_main_window(app: AppHandle) -> Result<(), String> {
     let Some(window) = app.get_webview_window("main") else {
         return Err("主窗口不存在".to_string());

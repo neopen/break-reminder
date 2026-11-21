@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import alertAudioUrl from '../../assets/audio/alert.wav'
 
@@ -11,7 +11,6 @@ import {
   getConfig,
   getLockConfig,
   isDesktopRuntime,
-  showLockWindow,
   skipReminder,
   snoozeReminder,
 } from '@/services/desktop'
@@ -175,16 +174,6 @@ onMounted(async () => {
   deadlineTimer = window.setTimeout(() => {
     void complete()
   }, total.value * 1000)
-
-  // 页面内容已挂载后再显示窗口，避免先出现空白页。
-  await nextTick()
-  if (isDesktopRuntime()) {
-    try {
-      await showLockWindow()
-    } catch (cause) {
-      console.warn('[lock] 显示锁屏窗口失败', cause)
-    }
-  }
 })
 
 onBeforeUnmount(() => {

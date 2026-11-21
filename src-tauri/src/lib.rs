@@ -58,7 +58,6 @@ pub fn run() {
             commands::set_keyboard_blocking,
             commands::open_lock_window,
             commands::close_lock_window,
-            commands::show_lock_window,
             commands::open_main_window,
             commands::quit_app,
         ])
