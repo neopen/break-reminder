@@ -11,6 +11,7 @@ mod tray;
 use std::sync::atomic::Ordering;
 
 use tauri::Manager;
+use tauri_plugin_autostart::ManagerExt as AutostartManagerExt;
 
 use state::AppState;
 
@@ -64,6 +65,16 @@ pub fn run() {
             let handle = app.handle();
             let paths = store::init(handle).map_err(std::io::Error::other)?;
 
+            // 首次运行默认开启开机启动；写入标记后，后续启动尊重用户的手动开关。
+            let autostart_marker = paths.config.with_file_name("autostart-defaulted");
+            if !autostart_marker.exists() {
+                let manager = handle.autolaunch();
+                let enabled = manager.is_enabled().unwrap_or(false) || manager.enable().is_ok();
+                if enabled {
+                    let _ = std::fs::write(&autostart_marker, b"1");
+                }
+            }
+
             let config = store::load_config(&paths.config);
             let mut stats = store::load_stats(&paths.stats);
             let now = chrono::Local::now();
@@ -73,6 +84,7 @@ pub fn run() {
                 let _ = store::save_stats(&paths.stats, &stats);
             }
 
+            let auto_start_reminders = config.auto_start_reminders;
             {
                 let state = handle.state::<AppState>();
                 *state
@@ -91,6 +103,14 @@ pub fn run() {
             }
 
             tray::create(handle)?;
+            scheduler::spawn_resume_watcher(handle.clone());
+
+            if auto_start_reminders {
+                if let Err(error) = scheduler::start(handle) {
+                    eprintln!("[scheduler] 开机后自动启动提醒失败: {error}");
+                }
+            }
+
             Ok(())
         })
         .on_window_event(|window, event| match event {

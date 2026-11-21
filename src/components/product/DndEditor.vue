@@ -86,16 +86,29 @@ function onBreakChange(index: number, field: keyof CustomBreak, event: Event): v
   emitPatch({ customBreaks: next })
 }
 
+/** 在 HH:mm 基础上顺延指定分钟数，跨过午夜时自动回绕 */
+function shiftTime(value: string, minutes: number): string {
+  const [hours, mins] = value.split(':').map(Number)
+  if (!Number.isInteger(hours) || !Number.isInteger(mins)) return '14:00'
+
+  const total = (hours * 60 + mins + minutes + 24 * 60) % (24 * 60)
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
+
 function addBreak(): void {
   if (props.modelValue.customBreaks.length >= 5) {
     show('最多只能添加 5 个自定义时段', 'warn')
     return
   }
 
+  const last = props.modelValue.customBreaks.at(-1)
+  const previousEnd = last?.end.trim() ?? ''
+  const start = /^\d{1,2}:\d{2}$/.test(previousEnd) ? previousEnd : '14:00'
+
   emitPatch({
     customBreaks: [
       ...props.modelValue.customBreaks,
-      { name: '新时段', start: '14:00', end: '15:00' },
+      { name: '新时段', start, end: shiftTime(start, 60) },
     ],
   })
 }

@@ -127,60 +127,64 @@ function openSettings(kind: ParameterKind): void {
   <section
     class="orb-stage"
     :class="{ 'orb-stage--open': orbitVisible, 'orb-stage--running': isRunning }"
-    @mouseenter="hovering = true"
-    @mouseleave="hovering = false"
-    @focusin="focusWithin = true"
-    @focusout="onFocusOut"
   >
-    <div class="orb-stage__halo" aria-hidden="true" />
-
-    <button
-      type="button"
-      class="orb"
-      :class="{ 'orb--running': isRunning }"
-      :aria-label="`${unitLabel}，${actionHint}`"
-      :disabled="loading"
-      @click="toggleReminder"
+    <div
+      class="orb-cluster"
+      @mouseenter="hovering = true"
+      @mouseleave="hovering = false"
+      @focusin="focusWithin = true"
+      @focusout="onFocusOut"
     >
-      <svg class="orb__ring" viewBox="0 0 240 240" aria-hidden="true">
-        <defs>
-          <linearGradient id="orb-ring-gradient" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#a78bfa" />
-            <stop offset="100%" stop-color="#38bdf8" />
-          </linearGradient>
-        </defs>
-        <circle class="orb__ring-track" cx="120" cy="120" :r="RING_RADIUS" />
-        <circle
-          class="orb__ring-progress"
-          cx="120"
-          cy="120"
-          :r="RING_RADIUS"
-          :style="{ strokeDashoffset: dashOffset }"
-        />
-      </svg>
+      <div class="orb-stage__halo" aria-hidden="true" />
 
-      <span class="orb__content">
-        <span class="orb__number">{{ displayValue }}</span>
-        <span class="orb__unit">{{ unitLabel }}</span>
-        <span class="orb__hint">{{ actionHint }}</span>
-      </span>
-    </button>
-
-    <div class="orbit">
       <button
-        v-for="chip in chips"
-        :key="chip.key"
         type="button"
-        class="chip"
-        :class="`chip--${chip.slot}`"
-        @click="openSettings(chip.key)"
+        class="orb"
+        :class="{ 'orb--running': isRunning }"
+        :aria-label="`${unitLabel}，${actionHint}`"
+        :disabled="loading"
+        @click="toggleReminder"
       >
-        <span class="chip__icon" aria-hidden="true">{{ chip.icon }}</span>
-        <span class="chip__text">
-          <span class="chip__label">{{ chip.label }}</span>
-          <span class="chip__value">{{ chip.value }}</span>
+        <svg class="orb__ring" viewBox="0 0 240 240" aria-hidden="true">
+          <defs>
+            <linearGradient id="orb-ring-gradient" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#a78bfa" />
+              <stop offset="100%" stop-color="#38bdf8" />
+            </linearGradient>
+          </defs>
+          <circle class="orb__ring-track" cx="120" cy="120" :r="RING_RADIUS" />
+          <circle
+            class="orb__ring-progress"
+            cx="120"
+            cy="120"
+            :r="RING_RADIUS"
+            :style="{ strokeDashoffset: dashOffset }"
+          />
+        </svg>
+
+        <span class="orb__content">
+          <span class="orb__number">{{ displayValue }}</span>
+          <span class="orb__unit">{{ unitLabel }}</span>
+          <span class="orb__hint">{{ actionHint }}</span>
         </span>
       </button>
+
+      <div class="orbit">
+        <button
+          v-for="chip in chips"
+          :key="chip.key"
+          type="button"
+          class="chip"
+          :class="`chip--${chip.slot}`"
+          @click="openSettings(chip.key)"
+        >
+          <span class="chip__icon" aria-hidden="true">{{ chip.icon }}</span>
+          <span class="chip__text">
+            <span class="chip__label">{{ chip.label }}</span>
+            <span class="chip__value">{{ chip.value }}</span>
+          </span>
+        </button>
+      </div>
     </div>
 
     <div v-if="isRunning" class="quick-actions">
@@ -200,6 +204,16 @@ function openSettings(kind: ParameterKind): void {
   justify-content: center;
   flex: 1;
   min-height: 440px;
+}
+
+/* 悬停热区：只覆盖圆球与参数胶囊的范围，上下移出后立即收起 */
+.orb-cluster {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 336px;
 }
 
 /* 圆形按钮背后的光晕 */
@@ -462,7 +476,7 @@ function openSettings(kind: ParameterKind): void {
 .quick-actions {
   position: absolute;
   right: 0;
-  bottom: 0;
+  bottom: 64px;
   left: 0;
   z-index: 2;
   display: flex;
@@ -505,16 +519,23 @@ function openSettings(kind: ParameterKind): void {
   .orb-stage {
     flex-direction: column;
     justify-content: flex-start;
-    gap: 22px;
     min-height: 0;
-    padding: 12px 0 56px;
+    padding: 12px 0 64px;
+  }
+
+  .orb-cluster {
+    flex-direction: column;
+    justify-content: flex-start;
+    height: auto;
+    gap: 22px;
   }
 
   .orb-stage__halo {
-    top: 50%;
+    top: 105px;
+    left: 50%;
     width: 320px;
     height: 320px;
-    transform: translateY(-58%);
+    margin: -160px 0 0 -160px;
   }
 
   .orb {
@@ -552,7 +573,7 @@ function openSettings(kind: ParameterKind): void {
   }
 
   .quick-actions {
-    bottom: 8px;
+    bottom: 24px;
   }
 }
 </style>

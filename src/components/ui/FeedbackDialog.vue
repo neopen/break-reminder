@@ -59,7 +59,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
     <div class="feedback" role="dialog" aria-modal="true" aria-labelledby="feedback-title">
       <button type="button" class="feedback__close" aria-label="关闭" @click="close">×</button>
       <h3 id="feedback-title" class="feedback__title">功能反馈</h3>
-      <p class="feedback__hint">遇到问题或有新的想法？欢迎通过以下任一方式告诉我们。</p>
+      <p class="feedback__hint">遇到问题或有新的想法？欢迎通过以下方式告诉我们。</p>
 
       <div class="feedback__options">
         <button

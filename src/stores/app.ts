@@ -40,6 +40,7 @@ function defaultConfig(): AppConfig {
     systemLock: false,
     soundEnabled: true,
     notificationType: 'lock',
+    autoStartReminders: true,
     doNotDisturb: {
       enabled: true,
       lunchBreak: { start: '12:00', end: '14:00' },
@@ -82,7 +83,8 @@ export const useAppStore = defineStore('app', () => {
     nextAtIso: null,
     lockOpen: false,
   })
-  const autoLaunch = ref(false)
+  // 浏览器预览默认展示“开机启动已开启”，与正式版首次运行的默认行为一致
+  const autoLaunch = ref(!desktop)
   const loading = ref(false)
   const saving = ref(false)
   const saved = ref(false)
@@ -129,6 +131,14 @@ export const useAppStore = defineStore('app', () => {
     await Promise.all([loadConfig(), loadStats(), loadStatus()])
     await loadAutostart()
     await setupListeners()
+
+    // 后端可能在启动时已自动开启提醒，确保桌面通知权限就绪。
+    if (
+      config.value.notificationType === 'desktop' &&
+      (scheduler.value.running || config.value.autoStartReminders)
+    ) {
+      void ensureNotificationPermission()
+    }
 
     window.setInterval(() => {
       void loadStats()

@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 
+import BrandLogo from '@/components/BrandLogo.vue'
 import AboutBar from '@/components/product/AboutBar.vue'
 import MainOrb from '@/components/product/MainOrb.vue'
 import StatusPill from '@/components/StatusPill.vue'
@@ -36,8 +37,11 @@ onMounted(() => {
     <div class="app-content">
       <header class="topbar">
         <div class="topbar__brand">
-          <span class="topbar__logo" aria-hidden="true" />
-          <span class="topbar__name">Breakly</span>
+          <BrandLogo />
+          <span class="topbar__name">
+            别坐了
+            <span class="topbar__name-en">Breakly</span>
+          </span>
           <StatusPill
             :tone="scheduler.running ? 'ok' : 'off'"
             :label="statusLabel"
@@ -214,21 +218,22 @@ onMounted(() => {
   min-width: 0;
 }
 
-.topbar__logo {
-  flex: none;
-  width: 22px;
-  height: 22px;
-  background:
-    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.9), transparent 32%),
-    var(--hc-gradient-brand);
-  border-radius: 8px;
-  box-shadow: 0 0 18px rgba(124, 92, 255, 0.55);
+.topbar__name {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
 }
 
-.topbar__name {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
+.topbar__name-en {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--hc-color-text-faint);
+  text-transform: uppercase;
 }
 
 .topbar__preview {

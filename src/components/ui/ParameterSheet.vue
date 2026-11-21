@@ -108,7 +108,10 @@ function applySchedule(start: string, end: string): void {
   void store.patchConfig({ startTime: start, endTime: end })
 }
 
-function onToggle(field: 'soundEnabled' | 'forceLock' | 'systemLock', value: boolean): void {
+function onToggle(
+  field: 'soundEnabled' | 'forceLock' | 'systemLock' | 'autoStartReminders',
+  value: boolean,
+): void {
   void store.patchConfig({ [field]: value } as Partial<AppConfig>)
 }
 
@@ -347,8 +350,15 @@ async function resetToday(): Promise<void> {
               <ToggleSwitch
                 :model-value="autoLaunch"
                 label="开机启动"
-                description="登录系统后自动运行（仅安装版生效）"
+                description="登录系统后自动运行应用（仅安装版生效）"
                 @update:model-value="store.toggleAutostart()"
+              />
+
+              <ToggleSwitch
+                :model-value="config.autoStartReminders"
+                label="自启动提醒"
+                description="每天开机或休眠唤醒后自动开启提醒"
+                @update:model-value="onToggle('autoStartReminders', $event)"
               />
 
               <ToggleSwitch

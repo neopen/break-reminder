@@ -27,6 +27,8 @@ export interface AppConfig {
   systemLock: boolean
   soundEnabled: boolean
   notificationType: NotificationType
+  /** 开机或休眠唤醒后自动开启提醒 */
+  autoStartReminders: boolean
   doNotDisturb: DoNotDisturb
   [key: string]: unknown
 }

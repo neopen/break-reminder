@@ -13,6 +13,10 @@ use crate::stats::Stats;
 use crate::store;
 
 const MAX_SLEEP_MS: i64 = 5 * 60 * 1000;
+/// 实际经过时间明显超过计划睡眠时间，视为系统休眠/挂起过。
+const RESUME_GAP_MS: i64 = 30 * 1000;
+/// 休眠检测轮询间隔；即使提醒未运行也能感知唤醒。
+const RESUME_WATCH_INTERVAL: StdDuration = StdDuration::from_secs(5);
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -236,6 +240,50 @@ pub fn reset_today(app: &AppHandle) -> crate::stats::StatsSummary {
     summary
 }
 
+/// 监听系统休眠：唤醒后重新开始计时；若开启自启动提醒则自动恢复运行。
+pub fn spawn_resume_watcher(app: AppHandle) {
+    tauri::async_runtime::spawn(async move {
+        let mut last_tick = Local::now();
+
+        loop {
+            tokio::time::sleep(RESUME_WATCH_INTERVAL).await;
+            let now = Local::now();
+            let gap = (now - last_tick).num_milliseconds();
+            last_tick = now;
+
+            if gap > RESUME_GAP_MS {
+                handle_resume(&app);
+            }
+        }
+    });
+}
+
+fn handle_resume(app: &AppHandle) {
+    let config = current_config(app);
+    let running = app
+        .state::<AppState>()
+        .scheduler
+        .running
+        .load(Ordering::SeqCst);
+
+    if running {
+        // 休眠时间不计入提醒间隔，从唤醒时刻重新计时。
+        schedule_next(app, &config, Local::now());
+    } else if config.auto_start_reminders {
+        if let Err(error) = start(app) {
+            eprintln!("[scheduler] 休眠唤醒后自动启动提醒失败: {error}");
+        }
+    }
+}
+
+fn current_config(app: &AppHandle) -> AppConfig {
+    app.state::<AppState>()
+        .config
+        .lock()
+        .map(|config| config.clone())
+        .unwrap_or_default()
+}
+
 fn spawn_loop(app: AppHandle, generation: u64) {
     tauri::async_runtime::spawn(async move {
         run_loop(app, generation).await;
@@ -260,32 +308,39 @@ async fn run_loop(app: AppHandle, generation: u64) {
             break;
         };
 
-        let now = Local::now();
-        let wait_ms = (next - now).num_milliseconds().clamp(0, MAX_SLEEP_MS);
+        let sleep_started = Local::now();
+        let wait_ms = (next - sleep_started).num_milliseconds().clamp(0, MAX_SLEEP_MS);
         tokio::time::sleep(StdDuration::from_millis((wait_ms + 50) as u64)).await;
+        let woke_at = Local::now();
 
-        let (running, current) = {
+        let (running, current, latest_next) = {
             let state = app.state::<AppState>();
             (
                 state.scheduler.running.load(Ordering::SeqCst),
                 state.scheduler.generation.load(Ordering::SeqCst),
+                state.scheduler.next_at.lock().ok().and_then(|slot| *slot),
             )
         };
         if !running || current != generation {
             break;
         }
+
+        // 休眠期间计时暂停：唤醒后不补发提醒，直接重新开始一个完整间隔。
+        if (woke_at - sleep_started).num_milliseconds() > wait_ms + RESUME_GAP_MS {
+            let config = current_config(&app);
+            schedule_next(&app, &config, woke_at);
+            continue;
+        }
+
+        // 稍后提醒、跳过或唤醒重置会改写下次时间，避免按旧计划误触发。
+        if latest_next != Some(next) {
+            continue;
+        }
         if Local::now() < next {
             continue;
         }
 
-        let config = {
-            let state = app.state::<AppState>();
-            state
-                .config
-                .lock()
-                .map(|config| config.clone())
-                .unwrap_or_default()
-        };
+        let config = current_config(&app);
         let now = Local::now();
 
         if config.do_not_disturb.is_active(now.time()) {

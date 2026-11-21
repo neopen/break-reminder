@@ -112,6 +112,8 @@ pub struct AppConfig {
     pub system_lock: bool,
     pub sound_enabled: bool,
     pub notification_type: NotificationType,
+    /// 开机或休眠唤醒后自动开启提醒
+    pub auto_start_reminders: bool,
     pub do_not_disturb: DoNotDisturb,
     /// 保留旧版本或未来版本新增的未知字段，避免保存时丢失。
     #[serde(flatten)]
@@ -129,6 +131,7 @@ impl Default for AppConfig {
             system_lock: false,
             sound_enabled: true,
             notification_type: NotificationType::Lock,
+            auto_start_reminders: true,
             do_not_disturb: DoNotDisturb::default(),
             extra: Map::new(),
         }
