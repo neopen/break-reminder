@@ -10,16 +10,20 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import * as prettier from 'prettier'
+
 const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const packagePath = resolve(appRoot, 'package.json')
 const tauriConfigPath = resolve(appRoot, 'src-tauri/tauri.conf.json')
 const cargoPath = resolve(appRoot, 'src-tauri/Cargo.toml')
 
-main()
+main().catch((error) => {
+  console.error(error)
+  process.exitCode = 1
+})
 
-function main() {
+async function main() {
   const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'))
-  const writeJson = (path, value) => writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`)
 
   const { version } = readJson(packagePath)
   if (typeof version !== 'string' || !version) {
@@ -29,7 +33,14 @@ function main() {
   const tauriConfig = readJson(tauriConfigPath)
   const previousTauriVersion = tauriConfig.version
   tauriConfig.version = version
-  writeJson(tauriConfigPath, tauriConfig)
+
+  // 与 Prettier 保持一致，避免 version 同步后 format:check 失败。
+  const prettierOptions = await prettier.resolveConfig(tauriConfigPath)
+  const formattedConfig = await prettier.format(JSON.stringify(tauriConfig, null, 2), {
+    ...prettierOptions,
+    parser: 'json',
+  })
+  writeFileSync(tauriConfigPath, formattedConfig)
 
   const cargoSource = readFileSync(cargoPath, 'utf8')
   const cargoOutput = replaceCargoVersion(cargoSource, version)
