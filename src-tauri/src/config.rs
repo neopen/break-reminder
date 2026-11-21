@@ -173,7 +173,6 @@ impl AppConfig {
             .iter()
             .any(|window| current >= window.start && current <= window.end)
     }
-
 }
 
 #[derive(Debug, Clone)]
