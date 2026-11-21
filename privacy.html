@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>隐私政策 · 别坐了 Breakly</title>
+    <meta
+      name="description"
+      content="Breakly（别坐了）隐私政策：设置与打卡数据仅保存在本机，不收集个人信息，不含广告与统计 SDK。"
+    />
+    <meta name="theme-color" content="#0a0d1b" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://breakly.helpoke.com/privacy.html" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="隐私政策 · 别坐了 Breakly" />
+    <meta
+      property="og:description"
+      content="设置与打卡数据仅保存在本机，不收集个人信息，不含广告与统计 SDK。"
+    />
+    <meta property="og:url" content="https://breakly.helpoke.com/privacy.html" />
+
+    <style>
+      :root {
+        --bg: #080b16;
+        --text: #eef2ff;
+        --muted: #a9b0d4;
+        --faint: #7e86a8;
+        --brand: #a78bfa;
+        --brand-strong: #8b7cff;
+        --cyan: #38bdf8;
+        --line: rgba(255, 255, 255, 0.09);
+        --panel: rgba(20, 24, 45, 0.62);
+        --radius: 22px;
+        --font:
+          system-ui, -apple-system, 'Segoe UI', 'PingFang SC',
+          'Microsoft YaHei', sans-serif;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        font-family: var(--font);
+        color: var(--text);
+        background: var(--bg);
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      a {
+        color: var(--brand);
+        text-underline-offset: 3px;
+      }
+
+      .aurora {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        overflow: hidden;
+        pointer-events: none;
+        background:
+          radial-gradient(circle at 50% 12%, rgba(124, 92, 255, 0.16), transparent 46%),
+          radial-gradient(circle at 84% 92%, rgba(56, 189, 248, 0.09), transparent 42%),
+          linear-gradient(160deg, #0b0e1f 0%, #070a14 58%, #0a0e1c 100%);
+      }
+
+      .aurora::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 50% 42%, transparent 45%, rgba(2, 4, 10, 0.55) 100%);
+      }
+
+      .aurora__blob {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.55;
+        filter: blur(80px);
+        animation: drift 24s ease-in-out infinite alternate;
+      }
+
+      .aurora__blob--violet {
+        top: -180px;
+        left: -120px;
+        width: 520px;
+        height: 520px;
+        background: radial-gradient(circle, rgba(124, 92, 255, 0.55), transparent 70%);
+      }
+
+      .aurora__blob--cyan {
+        right: -180px;
+        bottom: -200px;
+        width: 480px;
+        height: 480px;
+        background: radial-gradient(circle, rgba(56, 189, 248, 0.3), transparent 70%);
+        animation-delay: -9s;
+      }
+
+      @keyframes drift {
+        from {
+          transform: translate3d(0, 0, 0) scale(1);
+        }
+        to {
+          transform: translate3d(20px, -24px, 0) scale(1.06);
+        }
+      }
+
+      .site-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        width: min(820px, 100%);
+        margin: 0 auto;
+        padding: 26px 24px 0;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text);
+        text-decoration: none;
+      }
+
+      .brand__logo {
+        width: 30px;
+        height: 30px;
+        flex: none;
+        filter: drop-shadow(0 0 12px rgba(124, 92, 255, 0.55));
+      }
+
+      .brand__name {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+      }
+
+      .brand__name em {
+        font-style: normal;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        color: var(--faint);
+        text-transform: uppercase;
+        margin-left: 4px;
+      }
+
+      .install {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 9px 18px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #fff;
+        text-decoration: none;
+        background: linear-gradient(135deg, #8b7cff, #38bdf8);
+        border-radius: 999px;
+        box-shadow: 0 10px 28px -12px rgba(124, 92, 255, 0.9);
+        transition:
+          transform 0.18s ease,
+          box-shadow 0.18s ease;
+      }
+
+      .install:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 14px 34px -12px rgba(124, 92, 255, 1);
+      }
+
+      .install svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .page {
+        width: min(760px, 100%);
+        margin: 0 auto;
+        padding: 56px 24px 24px;
+      }
+
+      .eyebrow {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.22em;
+        color: var(--brand);
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 10px 0 0;
+        font-size: clamp(34px, 6vw, 48px);
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        line-height: 1.15;
+      }
+
+      .meta {
+        margin: 14px 0 0;
+        font-size: 12px;
+        line-height: 1.7;
+        color: var(--faint);
+      }
+
+      .lead {
+        margin: 28px 0 0;
+        padding: 18px 20px;
+        font-size: 14px;
+        line-height: 1.9;
+        color: var(--muted);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--brand-strong);
+        border-radius: 14px;
+        backdrop-filter: blur(14px);
+      }
+
+      .lead strong {
+        color: var(--text);
+      }
+
+      .policy {
+        margin-top: 40px;
+        padding: 8px 0 8px;
+      }
+
+      .policy section {
+        padding: 26px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .policy section:first-child {
+        border-top: none;
+        padding-top: 0;
+      }
+
+      .policy h2 {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin: 0 0 10px;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+
+      .policy h2 span {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        color: var(--faint);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .policy p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.9;
+        color: var(--muted);
+      }
+
+      .policy p + p {
+        margin-top: 10px;
+      }
+
+      .policy strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .policy ul {
+        margin: 10px 0 0;
+        padding-left: 20px;
+        color: var(--muted);
+      }
+
+      .policy li {
+        margin-top: 6px;
+        font-size: 14px;
+        line-height: 1.8;
+      }
+
+      .policy li::marker {
+        color: var(--brand-strong);
+      }
+
+      .policy code {
+        padding: 1px 6px;
+        font-size: 12px;
+        color: var(--brand);
+        background: rgba(124, 92, 255, 0.14);
+        border-radius: 6px;
+      }
+
+      .policy a {
+        color: var(--brand);
+      }
+
+      .updated {
+        margin: 8px 0 0;
+        padding-top: 24px;
+        font-size: 12px;
+        color: var(--faint);
+        border-top: 1px solid var(--line);
+      }
+
+      .site-foot {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        width: min(760px, 100%);
+        margin: 0 auto;
+        padding: 26px 24px 40px;
+        font-size: 12px;
+        color: var(--faint);
+      }
+
+      .site-foot nav {
+        display: flex;
+        gap: 16px;
+      }
+
+      .site-foot a {
+        color: var(--muted);
+        text-decoration: none;
+      }
+
+      .site-foot a:hover {
+        color: var(--text);
+        text-decoration: underline;
+      }
+
+      @media (max-width: 560px) {
+        .site-head {
+          padding: 20px 18px 0;
+        }
+
+        .page {
+          padding: 40px 18px 20px;
+        }
+
+        .brand__name em {
+          display: none;
+        }
+
+        .install {
+          padding: 8px 14px;
+        }
+
+        .site-foot {
+          padding: 22px 18px 32px;
+        }
+      }
+
+      @media print {
+        body {
+          color: #1f2430;
+          background: #fff;
+        }
+
+        .aurora,
+        .site-head .install,
+        .site-foot nav {
+          display: none;
+        }
+
+        .site-head,
+        .page,
+        .site-foot {
+          width: 100%;
+          max-width: none;
+          padding-left: 0;
+          padding-right: 0;
+        }
+
+        .page {
+          padding-top: 24px;
+        }
+
+        .brand {
+          color: #1f2430;
+        }
+
+        .brand__name em,
+        .eyebrow,
+        .meta,
+        .lead,
+        .policy p,
+        .policy ul,
+        .updated,
+        .site-foot {
+          color: #444b63;
+        }
+
+        .lead {
+          background: #f6f7fb;
+          border-color: #e3e6ef;
+          border-left-color: #764ba2;
+        }
+
+        .policy h2,
+        .policy strong,
+        .policy a {
+          color: #1f2430;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="aurora" aria-hidden="true">
+      <span class="aurora__blob aurora__blob--violet"></span>
+      <span class="aurora__blob aurora__blob--cyan"></span>
+    </div>
+
+    <header class="site-head">
+      <a class="brand" href="https://breakly.helpoke.com/">
+        <svg class="brand__logo" viewBox="0 0 32 32" role="img" aria-label="别坐了 Breakly">
+          <defs>
+            <linearGradient id="brand-gradient" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#8b7cff" />
+              <stop offset="100%" stop-color="#38bdf8" />
+            </linearGradient>
+          </defs>
+          <rect width="32" height="32" rx="9.5" fill="url(#brand-gradient)" />
+          <circle
+            cx="16"
+            cy="16"
+            r="10.4"
+            fill="none"
+            stroke="rgba(255, 255, 255, 0.42)"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-dasharray="52 13"
+            transform="rotate(-90 16 16)"
+          />
+          <circle cx="16" cy="10.1" r="2.2" fill="#fff" />
+          <path d="M16 12.8v5.4" stroke="#fff" stroke-width="2.2" stroke-linecap="round" />
+          <path d="M16 14.1 11.6 11.2M16 14.1l4.4-2.9" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+          <path d="M16 18.2 13.4 22.7M16 18.2l2.6 4.5" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <span class="brand__name">别坐了 <em>Breakly</em></span>
+      </a>
+
+      <a
+        class="install"
+        href="https://github.com/neopen/break-reminder/releases"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v12" />
+          <path d="m7 10 5 5 5-5" />
+          <path d="M5 21h14" />
+        </svg>
+        安装桌面版
+      </a>
+    </header>
+
+    <main class="page">
+      <p class="eyebrow">Privacy Policy</p>
+      <h1>隐私政策</h1>
+      <p class="meta">
+        生效日期：2026-11-21 · 适用于 Breakly（别坐了）桌面应用 v1.1.0 及后续版本
+      </p>
+
+      <p class="lead">
+        感谢使用 Breakly（别坐了）。本政策说明应用在你使用过程中如何处理信息。核心原则很简单：
+        <strong>你的设置和打卡数据只保存在本机，我们不会收集或上传。</strong>
+      </p>
+
+      <div class="policy">
+        <section>
+          <h2><span>01</span>我们处理的信息</h2>
+          <p>应用仅在本机处理以下数据，用于提供提醒与统计功能：</p>
+          <ul>
+            <li>提醒设置：提醒间隔、休息时长、工作时段、免打扰时段、提醒方式、声音开关等；</li>
+            <li>活动统计：每日与每周的活动次数、连续打卡天数；</li>
+            <li>系统偏好：开机启动、自启动提醒、系统锁屏等开关状态。</li>
+          </ul>
+          <p>
+            我们<strong>不收集</strong>姓名、账号、手机号、位置、通讯录、剪贴板、设备标识、使用行为分析或任何可识别个人身份的信息，也不包含广告或第三方统计 SDK。
+          </p>
+        </section>
+
+        <section>
+          <h2><span>02</span>数据存储与删除</h2>
+          <p>
+            上述数据保存在你电脑的本地应用数据目录（<code>config.json</code> 与
+            <code>stats.json</code>），不会同步到云端。卸载应用或手动清除应用数据后，相关记录即被删除。
+          </p>
+        </section>
+
+        <section>
+          <h2><span>03</span>网络访问</h2>
+          <p>应用仅在以下场景访问网络，且不会附带你的设置或打卡数据：</p>
+          <ul>
+            <li>检查更新：访问 GitHub Releases 获取版本信息；</li>
+            <li>在线反馈、关于我们、在线工具：通过系统默认浏览器打开对应网页；</li>
+            <li>发送邮件：调用系统默认邮件客户端，邮件内容由你自行决定。</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2><span>04</span>系统权限</h2>
+          <ul>
+            <li>通知：仅在桌面通知模式下请求，用于弹出休息提醒；</li>
+            <li>开机启动：可在「系统与统计」中随时关闭；</li>
+            <li>全局键盘拦截：仅在锁屏休息窗口期间启用，用于防止跳过强制休息；</li>
+            <li>系统锁屏：仅在你开启「系统锁屏」后，于休息结束时调用系统锁屏。</li>
+          </ul>
+          <p>所有权限均只在对应功能启用时使用。</p>
+        </section>
+
+        <section>
+          <h2><span>05</span>第三方服务</h2>
+          <p>
+            应用可能通过 GitHub 提供版本更新与问题反馈，通过系统通知服务展示提醒，通过系统邮件客户端发送反馈。这些服务由相应提供方运营，适用其各自的隐私政策。
+          </p>
+        </section>
+
+        <section>
+          <h2><span>06</span>数据安全</h2>
+          <p>
+            数据保存在本机，应用不会建立云端账户。请妥善保护你的系统账户与设备安全；共享电脑上的本地数据可能被其他使用者看到。
+          </p>
+        </section>
+
+        <section>
+          <h2><span>07</span>未成年人</h2>
+          <p>本应用不面向未成年人单独收集个人信息，也不会主动收集任何个人身份信息。</p>
+        </section>
+
+        <section>
+          <h2><span>08</span>政策更新</h2>
+          <p>
+            隐私政策可能随功能更新而调整。重大变更会通过应用版本说明或在应用内提示。继续使用即表示你接受更新后的政策。
+          </p>
+        </section>
+
+        <section>
+          <h2><span>09</span>联系我们</h2>
+          <p>
+            如对本政策有任何疑问，可通过邮件
+            <a href="mailto:helpenx@gmail.com">helpenx@gmail.com</a>
+            或应用底部「功能反馈」与我们联系。
+          </p>
+        </section>
+      </div>
+
+      <p class="updated">生效日期：2026-11-21 · Breakly（别坐了）</p>
+    </main>
+
+    <footer class="site-foot">
+      <span>© 2026 neopen · 别坐了 Breakly</span>
+      <nav>
+        <a href="https://breakly.helpoke.com/">返回首页</a>
+        <a href="https://github.com/neopen/break-reminder/releases" target="_blank" rel="noopener noreferrer">
+          下载应用
+        </a>
+      </nav>
+    </footer>
+  </body>
+</html>
