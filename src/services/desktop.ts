@@ -73,6 +73,11 @@ export function closeLockWindow(): Promise<void> {
   return invoke<void>('close_lock_window')
 }
 
+/** 锁屏页挂载完成后调用，显示已预加载的锁屏窗口 */
+export function showLockWindow(): Promise<void> {
+  return invoke<void>('show_lock_window')
+}
+
 export function openMainWindow(): Promise<void> {
   return invoke<void>('open_main_window')
 }

@@ -107,8 +107,13 @@ pub fn apply_config(app: &AppHandle, config: AppConfig) -> Result<AppConfig, Str
     let paths = store::init(app)?;
     store::save_config(&paths.config, &normalized)?;
 
-    // 调整参数时保留当前的下次提醒时间，避免倒计时重新开始。
-    emit_status(app);
+    // 调整参数后重新开始计时，让新设置立即生效。
+    let state = app.state::<AppState>();
+    if state.scheduler.running.load(Ordering::SeqCst) {
+        schedule_next(app, &normalized, Local::now());
+    } else {
+        emit_status(app);
+    }
 
     Ok(normalized)
 }
