@@ -43,6 +43,7 @@ concurrency:
   group: market-publish-${{ github.event.release.tag_name || inputs.tag }}
   cancel-in-progress: false
 
+  
 jobs:
   # ==========================================================
   # Resolve Release
@@ -116,6 +117,7 @@ jobs:
   # ==========================================================
   winget:
     name: Publish WinGet
+    if: ${{ vars.WINGET_ENABLED == 'true' }}
     runs-on: windows-latest
     needs: release
 
