@@ -54,6 +54,11 @@ pub fn reset_today_stats(app: AppHandle) -> StatsSummary {
 }
 
 #[tauri::command]
+pub fn get_daily_records(app: AppHandle) -> Vec<crate::stats::DailyRecord> {
+    scheduler::daily_records(&app)
+}
+
+#[tauri::command]
 pub fn get_scheduler_status(app: AppHandle) -> SchedulerStatus {
     scheduler::status(&app)
 }

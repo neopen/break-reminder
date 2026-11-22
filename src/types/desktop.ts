@@ -27,6 +27,8 @@ export interface AppConfig {
   systemLock: boolean
   soundEnabled: boolean
   notificationType: NotificationType
+  /** 开机或休眠唤醒后自动开启提醒 */
+  autoStartReminders: boolean
   doNotDisturb: DoNotDisturb
   [key: string]: unknown
 }
@@ -39,6 +41,12 @@ export interface StatsSummary {
   weeklyCount: number
   weeklyTarget: number
   dailyTarget: number
+}
+
+/** 单日打卡记录，用于今日统计图与打卡日历 */
+export interface DailyRecord {
+  date: string
+  count: number
 }
 
 /** 与 Rust 侧 SchedulerStatus 一一对应 */

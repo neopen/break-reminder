@@ -27,6 +27,7 @@ pub fn open(app: &AppHandle, duration_secs: u64, force_lock: bool) -> Result<(),
         let _ = existing.destroy();
     }
 
+    // 直接创建并显示窗口；lock.html 内置深色启动画面，避免加载期间白屏。
     let window = WebviewWindowBuilder::new(app, "lock", WebviewUrl::App("lock.html".into()))
         .title("健康提醒")
         .fullscreen(true)
@@ -36,6 +37,7 @@ pub fn open(app: &AppHandle, duration_secs: u64, force_lock: bool) -> Result<(),
         .resizable(false)
         .focused(true)
         .visible(true)
+        .background_color(tauri::window::Color(26, 26, 46, 255))
         .build()
         .map_err(|error| format!("创建锁屏窗口失败: {error}"))?;
 

@@ -86,16 +86,29 @@ function onBreakChange(index: number, field: keyof CustomBreak, event: Event): v
   emitPatch({ customBreaks: next })
 }
 
+/** 在 HH:mm 基础上顺延指定分钟数，跨过午夜时自动回绕 */
+function shiftTime(value: string, minutes: number): string {
+  const [hours, mins] = value.split(':').map(Number)
+  if (!Number.isInteger(hours) || !Number.isInteger(mins)) return '14:00'
+
+  const total = (hours * 60 + mins + minutes + 24 * 60) % (24 * 60)
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
+
 function addBreak(): void {
   if (props.modelValue.customBreaks.length >= 5) {
     show('最多只能添加 5 个自定义时段', 'warn')
     return
   }
 
+  const last = props.modelValue.customBreaks.at(-1)
+  const previousEnd = last?.end.trim() ?? ''
+  const start = /^\d{1,2}:\d{2}$/.test(previousEnd) ? previousEnd : '14:00'
+
   emitPatch({
     customBreaks: [
       ...props.modelValue.customBreaks,
-      { name: '新时段', start: '14:00', end: '15:00' },
+      { name: '新时段', start, end: shiftTime(start, 60) },
     ],
   })
 }
@@ -194,8 +207,9 @@ function removeBreak(index: number): void {
   width: 94px;
   padding: 6px 7px;
   font-size: 12px;
+  color: var(--hc-color-text);
   font-variant-numeric: tabular-nums;
-  background: #fff;
+  background: var(--hc-color-surface);
   border: 1px solid var(--hc-color-border);
   border-radius: 8px;
 }
@@ -218,8 +232,8 @@ function removeBreak(index: number): void {
   font-size: 11px;
   font-weight: 600;
   color: var(--hc-color-brand-deep);
-  background: #eef2ff;
-  border: 1px solid #ddd6fe;
+  background: rgba(124, 92, 255, 0.16);
+  border: 1px solid rgba(167, 139, 250, 0.35);
   border-radius: var(--hc-radius-pill);
 }
 
@@ -228,7 +242,7 @@ function removeBreak(index: number): void {
   align-items: center;
   gap: 6px;
   padding: 6px;
-  background: #fff;
+  background: var(--hc-color-surface);
   border: 1px solid var(--hc-color-border);
   border-radius: 8px;
 }
@@ -238,6 +252,7 @@ function removeBreak(index: number): void {
   min-width: 70px;
   padding: 6px;
   font-size: 12px;
+  color: var(--hc-color-text);
   background: var(--hc-color-surface-soft);
   border: 1px solid var(--hc-color-border);
   border-radius: 8px;

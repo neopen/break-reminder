@@ -289,7 +289,7 @@ jobs:
             - 问题反馈：https://github.com/neopen/break-reminder/issues
 
           # 正式发布，不使用 Draft
-          releaseDraft: false
+          releaseDraft: true
 
           # 当前只发布稳定版本
           prerelease: false
@@ -345,3 +345,18 @@ jobs:
           fi
           cp "$EXE" "Breakly-${VERSION}-windows-x64-standalone.exe"
           gh release upload "${{ github.ref_name }}" "Breakly-${VERSION}-windows-x64-standalone.exe" --clobber
+
+  # ==========================================================
+  # Finalize Release
+  # Wait for all matrix builds to succeed before publishing.
+  # ==========================================================
+  finalize-release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: gh release edit "$TAG" --draft=false

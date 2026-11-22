@@ -44,9 +44,11 @@ const { state, resolve } = useConfirm()
   width: min(360px, 100%);
   padding: var(--hc-space-6) var(--hc-space-5);
   text-align: center;
-  background: #fff;
+  color: #eef2ff;
+  background: linear-gradient(160deg, rgba(29, 34, 64, 0.98), rgba(13, 16, 32, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--hc-radius-lg);
-  box-shadow: var(--hc-shadow-card);
+  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.9);
   animation: dialog-in var(--hc-duration-normal) var(--hc-ease);
 }
 
@@ -65,7 +67,7 @@ const { state, resolve } = useConfirm()
   margin-top: var(--hc-space-2);
   font-size: 14px;
   line-height: 1.7;
-  color: var(--hc-color-text-muted);
+  color: #a5adcf;
   white-space: pre-line;
 }
 
@@ -80,9 +82,9 @@ const { state, resolve } = useConfirm()
   min-height: 42px;
   font-size: 15px;
   font-weight: 600;
-  color: var(--hc-color-text-muted);
-  background: var(--hc-color-surface-soft);
-  border: 1px solid var(--hc-color-border);
+  color: #c7cdf0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--hc-radius-md);
 }
 

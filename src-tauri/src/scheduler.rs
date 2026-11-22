@@ -13,6 +13,10 @@ use crate::stats::Stats;
 use crate::store;
 
 const MAX_SLEEP_MS: i64 = 5 * 60 * 1000;
+/// 实际经过时间明显超过计划睡眠时间，视为系统休眠/挂起过。
+const RESUME_GAP_MS: i64 = 30 * 1000;
+/// 休眠检测轮询间隔；即使提醒未运行也能感知唤醒。
+const RESUME_WATCH_INTERVAL: StdDuration = StdDuration::from_secs(5);
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -50,17 +54,27 @@ pub fn emit_status(app: &AppHandle) {
 
 pub fn start(app: &AppHandle) -> Result<(), String> {
     let state = app.state::<AppState>();
-    if state.scheduler.running.swap(true, Ordering::SeqCst) {
-        emit_status(app);
-        return Ok(());
-    }
-
     let config = state
         .config
         .lock()
         .map_err(|_| "配置状态已损坏".to_string())?
         .clone();
-    let next = config.next_reminder_after(Local::now());
+    let now = Local::now();
+
+    // 只在工作时段内启动；免打扰时段不影响该判断。
+    if !config.is_within_work_window(now) {
+        return Err(format!(
+            "当前不在工作时段（{}–{}），提醒未启动",
+            config.start_time, config.end_time
+        ));
+    }
+
+    if state.scheduler.running.swap(true, Ordering::SeqCst) {
+        emit_status(app);
+        return Ok(());
+    }
+
+    let next = now + Duration::minutes(config.interval_minutes as i64);
     *state
         .scheduler
         .next_at
@@ -92,19 +106,36 @@ pub fn stop(app: &AppHandle) {
 pub fn apply_config(app: &AppHandle, config: AppConfig) -> Result<AppConfig, String> {
     let normalized = config.normalize();
 
-    {
+    let previous_interval = {
         let state = app.state::<AppState>();
-        *state
+        let mut slot = state
             .config
             .lock()
-            .map_err(|_| "配置状态已损坏".to_string())? = normalized.clone();
-    }
+            .map_err(|_| "配置状态已损坏".to_string())?;
+        let previous = slot.interval_minutes;
+        *slot = normalized.clone();
+        previous
+    };
 
     let paths = store::init(app)?;
     store::save_config(&paths.config, &normalized)?;
 
-    // 调整参数时保留当前的下次提醒时间，避免倒计时重新开始。
-    emit_status(app);
+    // 只有修改提醒间隔才重置倒计时；其他参数在下一轮触发时读取新配置。
+    let state = app.state::<AppState>();
+    if state.scheduler.running.load(Ordering::SeqCst) {
+        if normalized.interval_minutes != previous_interval {
+            let now = Local::now();
+            if normalized.is_within_work_window(now) {
+                schedule_next(app, &normalized, now);
+            } else {
+                stop(app);
+            }
+        } else {
+            emit_status(app);
+        }
+    } else {
+        emit_status(app);
+    }
 
     Ok(normalized)
 }
@@ -219,6 +250,14 @@ pub fn refresh_stats(app: &AppHandle) -> crate::stats::StatsSummary {
     summary
 }
 
+pub fn daily_records(app: &AppHandle) -> Vec<crate::stats::DailyRecord> {
+    let state = app.state::<AppState>();
+    let Ok(stats) = state.stats.lock() else {
+        return Vec::new();
+    };
+    stats.recent_daily_records(Local::now(), 730)
+}
+
 pub fn reset_today(app: &AppHandle) -> crate::stats::StatsSummary {
     let state = app.state::<AppState>();
     let (summary, snapshot) = {
@@ -234,6 +273,81 @@ pub fn reset_today(app: &AppHandle) -> crate::stats::StatsSummary {
     save_stats(app, &snapshot);
     let _ = app.emit("stats-updated", summary.clone());
     summary
+}
+
+/// 监听系统休眠：唤醒后重新开始计时；若开启自启动提醒则自动恢复运行。
+pub fn spawn_resume_watcher(app: AppHandle) {
+    tauri::async_runtime::spawn(async move {
+        let mut last_tick = Local::now();
+
+        loop {
+            tokio::time::sleep(RESUME_WATCH_INTERVAL).await;
+            let now = Local::now();
+            let gap = (now - last_tick).num_milliseconds();
+            last_tick = now;
+
+            if gap > RESUME_GAP_MS {
+                handle_resume(&app);
+                continue;
+            }
+
+            // 离开工作时段后立即停止提醒，避免显示跨天的大倒计时。
+            let running = app
+                .state::<AppState>()
+                .scheduler
+                .running
+                .load(Ordering::SeqCst);
+            if running {
+                let config = current_config(&app);
+                if !config.is_within_work_window(now) {
+                    stop(&app);
+                }
+            }
+        }
+    });
+}
+
+fn handle_resume(app: &AppHandle) {
+    let config = current_config(app);
+    let running = app
+        .state::<AppState>()
+        .scheduler
+        .running
+        .load(Ordering::SeqCst);
+    let now = Local::now();
+
+    // 非工作时段不启动提醒；若正在运行则直接停止。
+    if !config.is_within_work_window(now) {
+        if running {
+            stop(app);
+        }
+        return;
+    }
+
+    if running {
+        // 休眠时间不计入提醒间隔，从唤醒时刻重新计时。
+        restart_interval(app, &config, now);
+    } else if config.auto_start_reminders {
+        if let Err(error) = start(app) {
+            eprintln!("[scheduler] 休眠唤醒后自动启动提醒失败: {error}");
+        }
+    }
+}
+
+/// 从当前时刻重新开始一个完整间隔。
+fn restart_interval(app: &AppHandle, config: &AppConfig, from: DateTime<Local>) {
+    set_next(
+        app,
+        from + Duration::minutes(config.interval_minutes as i64),
+    );
+}
+
+fn current_config(app: &AppHandle) -> AppConfig {
+    app.state::<AppState>()
+        .config
+        .lock()
+        .map(|config| config.clone())
+        .unwrap_or_default()
 }
 
 fn spawn_loop(app: AppHandle, generation: u64) {
@@ -260,33 +374,53 @@ async fn run_loop(app: AppHandle, generation: u64) {
             break;
         };
 
-        let now = Local::now();
-        let wait_ms = (next - now).num_milliseconds().clamp(0, MAX_SLEEP_MS);
+        let sleep_started = Local::now();
+        let wait_ms = (next - sleep_started)
+            .num_milliseconds()
+            .clamp(0, MAX_SLEEP_MS);
         tokio::time::sleep(StdDuration::from_millis((wait_ms + 50) as u64)).await;
+        let woke_at = Local::now();
 
-        let (running, current) = {
+        let (running, current, latest_next) = {
             let state = app.state::<AppState>();
             (
                 state.scheduler.running.load(Ordering::SeqCst),
                 state.scheduler.generation.load(Ordering::SeqCst),
+                state.scheduler.next_at.lock().ok().and_then(|slot| *slot),
             )
         };
         if !running || current != generation {
             break;
         }
+
+        // 休眠期间计时暂停：唤醒后不补发提醒，直接重新开始一个完整间隔。
+        if (woke_at - sleep_started).num_milliseconds() > wait_ms + RESUME_GAP_MS {
+            let config = current_config(&app);
+            if config.is_within_work_window(woke_at) {
+                restart_interval(&app, &config, woke_at);
+            } else {
+                stop(&app);
+                break;
+            }
+            continue;
+        }
+
+        // 稍后提醒、跳过或唤醒重置会改写下次时间，避免按旧计划误触发。
+        if latest_next != Some(next) {
+            continue;
+        }
         if Local::now() < next {
             continue;
         }
 
-        let config = {
-            let state = app.state::<AppState>();
-            state
-                .config
-                .lock()
-                .map(|config| config.clone())
-                .unwrap_or_default()
-        };
+        let config = current_config(&app);
         let now = Local::now();
+
+        // 锁屏期间跳过本次提醒，不弹窗也不计入统计。
+        if is_system_locked() {
+            schedule_next(&app, &config, now);
+            continue;
+        }
 
         if config.do_not_disturb.is_active(now.time()) {
             schedule_next(&app, &config, now);
@@ -294,8 +428,8 @@ async fn run_loop(app: AppHandle, generation: u64) {
         }
 
         if !config.is_within_work_window(now) {
-            schedule_next(&app, &config, now);
-            continue;
+            stop(&app);
+            break;
         }
 
         match config.notification_type {
@@ -367,8 +501,35 @@ async fn run_lock(app: &AppHandle, duration_secs: u64, force_lock: bool) -> Lock
     outcome
 }
 
+/// 当前 Windows 工作站是否已锁屏。
+/// 通过打开输入桌面判断：锁屏时输入桌面被安全桌面占用，无法打开。
+#[cfg(target_os = "windows")]
+fn is_system_locked() -> bool {
+    use windows_sys::Win32::System::StationsAndDesktops::{
+        CloseDesktop, OpenInputDesktop, DESKTOP_READOBJECTS, DESKTOP_SWITCHDESKTOP,
+    };
+
+    unsafe {
+        let desktop = OpenInputDesktop(0, 0, DESKTOP_READOBJECTS | DESKTOP_SWITCHDESKTOP);
+        if desktop.is_null() {
+            true
+        } else {
+            let _ = CloseDesktop(desktop);
+            false
+        }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn is_system_locked() -> bool {
+    false
+}
+
 fn schedule_next(app: &AppHandle, config: &AppConfig, from: DateTime<Local>) {
-    set_next(app, config.next_reminder_after(from));
+    set_next(
+        app,
+        from + Duration::minutes(config.interval_minutes as i64),
+    );
 }
 
 fn set_next(app: &AppHandle, next: DateTime<Local>) {

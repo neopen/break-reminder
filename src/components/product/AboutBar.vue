@@ -2,20 +2,23 @@
 import { computed, onMounted, ref } from 'vue'
 
 import { getVersion } from '@tauri-apps/api/app'
-import { openUrl } from '@tauri-apps/plugin-opener'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { check, type Update } from '@tauri-apps/plugin-updater'
 
+import PrivacyDialog from '@/components/product/PrivacyDialog.vue'
+import FeedbackDialog from '@/components/ui/FeedbackDialog.vue'
 import { useToast } from '@/composables/useToast'
-import { isDesktopRuntime } from '@/services/desktop'
 import { describeError } from '@/utils/error'
+import { openExternalLink } from '@/utils/openExternal'
 
 const { show } = useToast()
 
-const version = ref('1.0.1')
+const version = ref('1.1.0')
 const checking = ref(false)
 const installing = ref(false)
 const available = ref<{ version: string } | null>(null)
+const feedbackOpen = ref(false)
+const privacyOpen = ref(false)
 
 let pendingUpdate: Update | null = null
 
@@ -32,16 +35,11 @@ onMounted(async () => {
 })
 
 async function openLink(url: string): Promise<void> {
-  if (isDesktopRuntime()) {
-    try {
-      await openUrl(url)
-    } catch (cause) {
-      show(`打开链接失败：${describeError(cause)}`, 'danger')
-    }
-    return
+  try {
+    await openExternalLink(url)
+  } catch (cause) {
+    show(`打开链接失败：${describeError(cause)}`, 'danger')
   }
-
-  window.open(url, '_blank', 'noopener')
 }
 
 async function checkForUpdates(): Promise<void> {
@@ -95,6 +93,10 @@ async function installUpdate(): Promise<void> {
       <button type="button" class="about-bar__link" @click="openLink('https://helpoke.com/')">
         在线工具
       </button>
+      <span class="about-bar__sep" aria-hidden="true">·</span>
+      <button type="button" class="about-bar__link" @click="feedbackOpen = true">功能反馈</button>
+      <span class="about-bar__sep" aria-hidden="true">·</span>
+      <button type="button" class="about-bar__link" @click="privacyOpen = true">隐私政策</button>
     </div>
 
     <div class="about-bar__right">
@@ -112,6 +114,9 @@ async function installUpdate(): Promise<void> {
       </button>
     </div>
   </footer>
+
+  <FeedbackDialog v-model:open="feedbackOpen" />
+  <PrivacyDialog v-model:open="privacyOpen" />
 </template>
 
 <style scoped>

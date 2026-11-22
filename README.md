@@ -27,13 +27,13 @@
 
 主界面
 
-![image-20261119141826298](assets/imgs/image-20261119141826298.png)
+<img src="assets/imgs/image-20261121113029654.png" alt="image-20261121113029654" style="zoom:67%;" />
 
 提醒界面
 
 ![image-20261119141641593](assets/imgs/image-20261119141641593.png)
 
-## 快速开始
+## 安装使用
 
 ### 方式一：在线体验
 
@@ -43,7 +43,7 @@
 
 ### 方式二：安装桌面应用（推荐）
 
-下载安装软件：[GitHub Releases](https://github.com/neopen/break-reminder/releases) 找最新稳定版（1.0 之前的版本体积较大，建议选择 1.0之后的安装）。
+下载安装软件：[GitHub Releases](https://github.com/neopen/break-reminder/releases) 最新稳定版（1.0 之前的版本体积较大，建议选择最新版安装）。
 
 支持平台：Windows（通过）、macOS（尚未测试）、Linux（尚未测试）
 
@@ -149,26 +149,12 @@ npm run build
 | `npm run version:check`           | 校验三处版本一致          |
 | `npm run audio:generate`          | 重新生成提醒音效          |
 
-## 版本与发布
-
-- 版本唯一来源：`package.json`，`npm version` 会自动同步 `tauri.conf.json` 与 `Cargo.toml`
-- 正式标签：`vX.Y.Z`，推送后触发三平台构建与 GitHub Release
-- 测试标签：`test-*`，仅构建未签名 Windows 安装包，不发布
-
-详细流程、更新密钥与 Secrets 配置见 [发布文档](docs/release.md)。
-
 ## 已知限制
 
 - 全局键盘拦截目前仅实现 Windows；macOS（CGEventTap）与 Linux（X11 grab）为后续阶段
 - Windows 系统通知仅对已安装应用生效
 - `Ctrl+Alt+Del`、`Win+L` 属于系统安全序列，普通桌面应用无法拦截
 - macOS 自动更新要求应用完成签名与公证
-
-## 文档
-
-- [架构与路线图](docs/architecture.md)
-- [开发指南](docs/development.md)
-- [发布与自动更新](docs/release.md)
 
 ## 许可证
 

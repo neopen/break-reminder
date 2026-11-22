@@ -4,9 +4,86 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>该起来活动了</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #1a1a2e;
+      }
+
+      /* Vue 挂载前的启动画面，避免窗口出现空白页 */
+      .boot-screen {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        color: #fff;
+        font-family:
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          'Microsoft YaHei',
+          sans-serif;
+        background:
+          radial-gradient(circle at 18% 12%, rgba(167, 139, 250, 0.28), transparent 38%),
+          radial-gradient(circle at 82% 88%, rgba(34, 197, 94, 0.16), transparent 42%),
+          linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      }
+
+      .boot-card {
+        text-align: center;
+      }
+
+      .boot-emoji {
+        font-size: 56px;
+        line-height: 1;
+        animation: boot-bounce 1.6s ease-in-out infinite;
+      }
+
+      .boot-eyebrow {
+        margin-top: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        opacity: 0.72;
+      }
+
+      .boot-title {
+        margin-top: 10px;
+        font-size: 34px;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+      }
+
+      .boot-hint {
+        margin-top: 12px;
+        font-size: 13px;
+        opacity: 0.6;
+      }
+
+      @keyframes boot-bounce {
+        0%,
+        100% {
+          transform: translateY(0) scale(1);
+        }
+        50% {
+          transform: translateY(-8px) scale(1.04);
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="lock-app"></div>
+    <div id="lock-app">
+      <div class="boot-screen">
+        <div class="boot-card">
+          <div class="boot-emoji">🧘</div>
+          <p class="boot-eyebrow">锁屏提醒</p>
+          <h1 class="boot-title">该活动啦！</h1>
+          <p class="boot-hint">正在打开休息提醒…</p>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/lock.ts"></script>
   </body>
 </html>

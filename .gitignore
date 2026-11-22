@@ -29,3 +29,6 @@ Thumbs.db
 
 # 本机 Claude 配置
 .claude/settings.local.json
+
+# 本地单文件预览产物
+preview.html
