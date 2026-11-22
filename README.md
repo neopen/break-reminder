@@ -5,7 +5,6 @@
 <strong>基于 Tauri 2 + Vue 3 + TypeScript 的健康提醒桌面应用，提供全屏提醒遮罩、全局键盘拦截、系统通知与自动锁屏。</strong>
 </p>
 
-
 <p align="center">
   <a href="https://github.com/neopen/break-reminder/releases"><img src="https://img.shields.io/github/v/release/neopen/break-reminder?label=Version&color=blue" alt="Version"></a>
   <a href="https://github.com/neopen/break-reminder/releases"><img src="https://img.shields.io/github/downloads/neopen/break-reminder/total?label=Downloads&logo=github&color=blue" alt="Downloads"></a>
