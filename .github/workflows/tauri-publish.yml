@@ -231,6 +231,28 @@ jobs:
         with:
           ref: ${{ needs.release.outputs.tag }}
 
+      # Snap 构建不需要更新签名产物，关闭后可避免依赖 TAURI_SIGNING_PRIVATE_KEY
+      - name: Disable updater artifacts for Snap build
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('snap/snapcraft.yaml')
+          source = path.read_text()
+          old = 'npm run tauri build -- --bundles deb'
+          new = "npm run tauri build -- --bundles deb --config '{\"bundle\":{\"createUpdaterArtifacts\":false}}'"
+
+          if old not in source:
+              raise SystemExit('tauri build command not found in snapcraft.yaml')
+
+          path.write_text(source.replace(old, new, 1))
+          PY
+
+          grep -n 'tauri build' snap/snapcraft.yaml
+
       - name: Verify Snapcraft configuration
         shell: bash
         run: |
