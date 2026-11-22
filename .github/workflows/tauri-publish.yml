@@ -43,7 +43,6 @@ concurrency:
   group: market-publish-${{ github.event.release.tag_name || inputs.tag }}
   cancel-in-progress: false
 
-  
 jobs:
   # ==========================================================
   # Resolve Release
