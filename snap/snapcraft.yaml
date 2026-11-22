@@ -92,6 +92,16 @@ parts:
         exit 1
       fi
 
+      echo "Preparing desktop entry..."
+      DESKTOP_FILES=("$SNAPCRAFT_PART_INSTALL"/usr/share/applications/*.desktop)
+      if [ "${#DESKTOP_FILES[@]}" -ne 1 ]; then
+        echo "Expected exactly one desktop entry, found ${#DESKTOP_FILES[@]}"
+        exit 1
+      fi
+      if [ "${DESKTOP_FILES[0]}" != "$SNAPCRAFT_PART_INSTALL/usr/share/applications/breakly.desktop" ]; then
+        mv "${DESKTOP_FILES[0]}" "$SNAPCRAFT_PART_INSTALL/usr/share/applications/breakly.desktop"
+      fi
+
       echo "Validating desktop entry..."
       if [ ! -f "$SNAPCRAFT_PART_INSTALL/usr/share/applications/breakly.desktop" ]; then
         echo "Breakly desktop entry not found"
