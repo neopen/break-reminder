@@ -2,8 +2,9 @@
 <h2 align="center">定时提醒 · 拒绝久坐</h2>
 
 <p align="center">
-<strong>基于 Tauri 2 + Vue 3 + TypeScript 的健康提醒桌面应用，提供全屏提醒遮罩、全局键盘拦截、系统通知与自动更新。</strong>
+<strong>基于 Tauri 2 + Vue 3 + TypeScript 的健康提醒桌面应用，提供全屏提醒遮罩、全局键盘拦截、系统通知与自动锁屏。</strong>
 </p>
+
 
 <p align="center">
   <a href="https://github.com/neopen/break-reminder/releases"><img src="https://img.shields.io/github/v/release/neopen/break-reminder?label=Version&color=blue" alt="Version"></a>
@@ -27,7 +28,7 @@
 
 主界面
 
-<img src="assets/imgs/image-20261121113029654.png" alt="image-20261121113029654" style="zoom:67%;" />
+<img src="assets/imgs/image-20261121113029654.png" alt="image-20261121113029654" style="zoom:47%;" />
 
 提醒界面
 
@@ -37,7 +38,7 @@
 
 ### 方式一：在线体验
 
-访问 [定时提醒 - 拒绝久坐](https://breakly.helpoke.com/)，直接用浏览器打开即可使用。
+访问 [定时提醒 - 拒绝久坐](https://breakly.helpoke.com/)，直接用浏览器打开即可预览。
 
 > 建议使用 Chrome/Edge/Safari 等现代浏览器，可获得最佳体验。
 
