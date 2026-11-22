@@ -106,25 +106,32 @@ pub fn stop(app: &AppHandle) {
 pub fn apply_config(app: &AppHandle, config: AppConfig) -> Result<AppConfig, String> {
     let normalized = config.normalize();
 
-    {
+    let previous_interval = {
         let state = app.state::<AppState>();
-        *state
+        let mut slot = state
             .config
             .lock()
-            .map_err(|_| "配置状态已损坏".to_string())? = normalized.clone();
-    }
+            .map_err(|_| "配置状态已损坏".to_string())?;
+        let previous = slot.interval_minutes;
+        *slot = normalized.clone();
+        previous
+    };
 
     let paths = store::init(app)?;
     store::save_config(&paths.config, &normalized)?;
 
-    // 调整参数后重新开始计时；若当前已不在工作时段则直接停止。
+    // 只有修改提醒间隔才重置倒计时；其他参数在下一轮触发时读取新配置。
     let state = app.state::<AppState>();
     if state.scheduler.running.load(Ordering::SeqCst) {
-        let now = Local::now();
-        if normalized.is_within_work_window(now) {
-            schedule_next(app, &normalized, now);
+        if normalized.interval_minutes != previous_interval {
+            let now = Local::now();
+            if normalized.is_within_work_window(now) {
+                schedule_next(app, &normalized, now);
+            } else {
+                stop(app);
+            }
         } else {
-            stop(app);
+            emit_status(app);
         }
     } else {
         emit_status(app);
