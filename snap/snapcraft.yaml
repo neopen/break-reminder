@@ -102,6 +102,10 @@ parts:
         mv "${DESKTOP_FILES[0]}" "$SNAPCRAFT_PART_INSTALL/usr/share/applications/breakly.desktop"
       fi
 
+      mkdir -p "$SNAPCRAFT_PART_INSTALL/meta/gui"
+      cp "$SNAPCRAFT_PART_INSTALL/usr/share/icons/hicolor/128x128/apps/breakly.png" "$SNAPCRAFT_PART_INSTALL/meta/gui/icon.png"
+      sed -i 's|^Icon=.*|Icon=${SNAP}/meta/gui/icon.png|' "$SNAPCRAFT_PART_INSTALL/usr/share/applications/breakly.desktop"
+
       echo "Validating desktop entry..."
       if [ ! -f "$SNAPCRAFT_PART_INSTALL/usr/share/applications/breakly.desktop" ]; then
         echo "Breakly desktop entry not found"

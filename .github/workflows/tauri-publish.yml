@@ -264,6 +264,9 @@ jobs:
               '      if [ "${DESKTOP_FILES[0]}" != "$SNAPCRAFT_PART_INSTALL/usr/share/applications/breakly.desktop" ]; then\n'
               '        mv "${DESKTOP_FILES[0]}" "$SNAPCRAFT_PART_INSTALL/usr/share/applications/breakly.desktop"\n'
               '      fi\n'
+              '      mkdir -p "$SNAPCRAFT_PART_INSTALL/meta/gui"\n'
+              '      cp "$SNAPCRAFT_PART_INSTALL/usr/share/icons/hicolor/128x128/apps/breakly.png" "$SNAPCRAFT_PART_INSTALL/meta/gui/icon.png"\n'
+              '      sed -i \'s|^Icon=.*|Icon=${SNAP}/meta/gui/icon.png|\' "$SNAPCRAFT_PART_INSTALL/usr/share/applications/breakly.desktop"\n'
               '\n'
           )
           if 'Preparing desktop entry' not in source:
