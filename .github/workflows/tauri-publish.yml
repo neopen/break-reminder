@@ -270,7 +270,16 @@ jobs:
         run: |
           set -euo pipefail
 
-          snapcraft --destructive-mode
+          # build-packages 需要 root 权限；同时保留 runner 的 Node / Rust 环境
+          sudo env \
+            "PATH=$PATH" \
+            "HOME=$HOME" \
+            "CARGO_HOME=${CARGO_HOME:-$HOME/.cargo}" \
+            "RUSTUP_HOME=${RUSTUP_HOME:-$HOME/.rustup}" \
+            snapcraft --destructive-mode
+
+          # 生成的文件归 root 所有，交给 runner 用户以便后续上传
+          sudo chown "$USER:$USER" ./*.snap
 
           shopt -s nullglob
           SNAP_FILES=( *.snap )
