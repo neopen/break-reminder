@@ -416,6 +416,12 @@ async fn run_loop(app: AppHandle, generation: u64) {
         let config = current_config(&app);
         let now = Local::now();
 
+        // 锁屏期间跳过本次提醒，不弹窗也不计入统计。
+        if is_system_locked() {
+            schedule_next(&app, &config, now);
+            continue;
+        }
+
         if config.do_not_disturb.is_active(now.time()) {
             schedule_next(&app, &config, now);
             continue;
@@ -493,6 +499,30 @@ async fn run_lock(app: &AppHandle, duration_secs: u64, force_lock: bool) -> Lock
 
     lock::close(app);
     outcome
+}
+
+/// 当前 Windows 工作站是否已锁屏。
+/// 通过打开输入桌面判断：锁屏时输入桌面被安全桌面占用，无法打开。
+#[cfg(target_os = "windows")]
+fn is_system_locked() -> bool {
+    use windows_sys::Win32::System::StationsAndDesktops::{
+        CloseDesktop, OpenInputDesktop, DESKTOP_READOBJECTS, DESKTOP_SWITCHDESKTOP,
+    };
+
+    unsafe {
+        let desktop = OpenInputDesktop(0, 0, DESKTOP_READOBJECTS | DESKTOP_SWITCHDESKTOP);
+        if desktop.is_null() {
+            true
+        } else {
+            let _ = CloseDesktop(desktop);
+            false
+        }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn is_system_locked() -> bool {
+    false
 }
 
 fn schedule_next(app: &AppHandle, config: &AppConfig, from: DateTime<Local>) {
