@@ -323,8 +323,9 @@ jobs:
             "RUSTUP_HOME=${RUSTUP_HOME:-$HOME/.rustup}" \
             snapcraft --destructive-mode
 
-          # 生成的文件归 root 所有，交给 runner 用户以便后续上传
+          # 生成的文件与 snapcraft 状态目录归 root 所有，交给 runner 用户以便后续上传
           sudo chown "$USER:$USER" ./*.snap
+          sudo chown -R "$USER:$USER" "$HOME/.local/state/snapcraft" "$HOME/.cache/snapcraft" 2>/dev/null || true
 
           shopt -s nullglob
           SNAP_FILES=( *.snap )
