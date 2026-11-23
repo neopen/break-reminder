@@ -27,7 +27,7 @@
 
 主界面
 
-<img src="assets/imgs/image-20261121113029654.png" alt="image-20261121113029654" style="zoom:47%;" />
+<img src="assets/imgs/image-20261121113029654.png" alt="image-20261121113029654" width="512px" style="zoom:37%;" />
 
 提醒界面
 
