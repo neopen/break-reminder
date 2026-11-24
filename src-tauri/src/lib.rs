@@ -24,6 +24,9 @@ pub fn run() {
         "--autoplay-policy=no-user-gesture-required",
     );
 
+    // 开机自启由插件附加 --autostart 参数，用于区分静默启动与手动启动。
+    let launched_at_login = std::env::args().any(|arg| arg == "--autostart");
+
     tauri::Builder::default()
         // 单实例插件必须最先注册
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
@@ -101,6 +104,11 @@ pub fn run() {
             // 仅缩放主窗口；锁屏页保持原始比例。
             if let Some(window) = handle.get_webview_window("main") {
                 let _ = window.set_zoom(0.85);
+                // 开机自启时静默驻留托盘，不展开主界面；手动启动则正常显示。
+                if !launched_at_login {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
             }
 
             tray::create(handle)?;
