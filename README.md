@@ -8,7 +8,7 @@
 <p align="center">
   <a href="https://github.com/neopen/break-reminder/releases"><img src="https://img.shields.io/github/v/release/neopen/break-reminder?label=Version&color=blue" alt="Version"></a>
   <a href="https://github.com/neopen/break-reminder/releases"><img src="https://img.shields.io/github/downloads/neopen/break-reminder/total?label=Downloads&logo=github&color=blue" alt="Downloads"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-blue.svg" alt="License"></a>
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-brightgreen" alt="Platform">
   <img src="https://img.shields.io/badge/Tauri-2-orange" alt="Tauri 2">
   <a href="https://breakly.helpoke.com"><img src="https://img.shields.io/badge/Website-breakly.helpoke.com-blue" alt="Website"></a>
