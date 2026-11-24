@@ -1,5 +1,6 @@
 dist/
 node_modules/
+about.hbs
 package-lock.json
 src-tauri/target/
 src-tauri/gen/

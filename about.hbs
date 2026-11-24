@@ -1,0 +1,30 @@
+# Rust 第三方依赖许可声明
+
+本文件由 [cargo-about](https://github.com/EmbarkStudios/cargo-about) 根据 `src-tauri/Cargo.lock`
+自动生成，请勿手动修改。如需更新，请在 `src-tauri` 目录执行：
+
+```bash
+cargo about generate ../about.hbs --output-file ../THIRD-PARTY-NOTICES-rust.md
+```
+
+共 {{licenses.length}} 项许可证，涵盖以下依赖：
+
+{{#each licenses}}
+
+## {{name}}
+
+- SPDX 标识：`{{id}}`
+
+### 使用该许可证的依赖
+
+{{#each used_by}}
+- [{{crate.name}} {{crate.version}}]({{#if crate.repository}}{{crate.repository}}{{else}}https://crates.io/crates/{{crate.name}}{{/if}})
+{{/each}}
+
+### 许可证全文
+
+```
+{{{text}}}
+```
+
+{{/each}}
