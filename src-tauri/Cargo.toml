@@ -1,7 +1,6 @@
 [package]
 name = "breakly"
 version = "1.0.1"
-description = "Breakly - 健康提醒桌面应用"
 authors = ["neopen"]
 edition = "2021"
 rust-version = "1.77.2"
