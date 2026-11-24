@@ -170,7 +170,6 @@ npm run build
 - [开发指南](docs/development.md)
 - [发布与自动更新](docs/release.md)
 
-
 ## 许可证
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)

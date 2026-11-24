@@ -34,11 +34,7 @@
     "createUpdaterArtifacts": true,
     "publisher": "neopen",
     "licenseFile": "../LICENSE",
-    "resources": [
-      "../NOTICE",
-      "../THIRD-PARTY-NOTICES-npm.txt",
-      "../THIRD-PARTY-NOTICES-rust.md"
-    ],
+    "resources": ["../NOTICE", "../THIRD-PARTY-NOTICES-npm.txt", "../THIRD-PARTY-NOTICES-rust.md"],
     "homepage": "https://breakly.helpoke.com",
     "copyright": "Copyright © 2026 neopen",
     "shortDescription": "健康提醒与强制活动桌面应用",
@@ -54,10 +50,7 @@
     "windows": {
       "nsis": {
         "installMode": "currentUser",
-        "languages": [
-          "SimpChinese",
-          "English"
-        ],
+        "languages": ["SimpChinese", "English"],
         "displayLanguageSelector": false
       }
     },
@@ -66,20 +59,14 @@
     },
     "linux": {
       "deb": {
-        "depends": [
-          "libwebkit2gtk-4.1-0",
-          "libgtk-3-0",
-          "libayatana-appindicator3-1"
-        ]
+        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0", "libayatana-appindicator3-1"]
       }
     }
   },
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IENGNDZEQjQ5NkY3RENDRUMKUldUc3pIMXZTZHRHenhSeXBNeng1dVBxdUoydFFiRThJVUd6NDF3alpUWWhUZ2VSUEI0WlVub3AK",
-      "endpoints": [
-        "https://github.com/neopen/break-reminder/releases/latest/download/latest.json"
-      ]
+      "endpoints": ["https://github.com/neopen/break-reminder/releases/latest/download/latest.json"]
     }
   }
 }
