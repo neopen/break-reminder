@@ -1,0 +1,7 @@
+# cargo-about 配置：生成 THIRD-PARTY-NOTICES-rust.md 时使用的许可证判定规则
+[licenses]
+# 允许所有 OSI 与 FSF 认可的许可证（MIT、Apache-2.0、MPL-2.0 等）
+allow-osi-fsf-free = "both"
+# 本文件仅用于生成第三方依赖声明，不用于限制依赖中的 copyleft 许可
+copyleft = "allow"
+confidence-threshold = 0.8
