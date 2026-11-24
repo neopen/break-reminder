@@ -1,6 +1,8 @@
 dist/
 node_modules/
 about.hbs
+# 自动生成的第三方依赖声明
+THIRD-PARTY-NOTICES-*
 package-lock.json
 src-tauri/target/
 src-tauri/gen/
