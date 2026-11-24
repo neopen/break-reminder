@@ -32,7 +32,7 @@ jobs:
           npx license-checker --production --plainVertical > THIRD-PARTY-NOTICES-npm.txt
 
       - name: Install cargo-about
-        run: cargo install cargo-about --version 0.8.4
+        run: cargo install cargo-about --features cli
 
       - name: Generate Rust notices
         working-directory: src-tauri
