@@ -5,6 +5,9 @@ description = "Breakly - 健康提醒桌面应用"
 authors = ["neopen"]
 edition = "2021"
 rust-version = "1.77.2"
+license = "Apache-2.0"
+description = "Breakly 别坐了 - 定时提醒 · 拒绝久坐"
+repository = "https://github.com/neopen/break-reminder"
 
 [lib]
 name = "breakly_lib"

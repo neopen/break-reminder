@@ -1,0 +1,50 @@
+name: Generate Third-Party Notices
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'package-lock.json'
+      - 'src-tauri/Cargo.lock'
+      - '.github/workflows/generate-notices.yml'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Generate npm notices
+        run: |
+          npx license-checker --production --json > THIRD-PARTY-NOTICES-npm.json
+          npx license-checker --production --plainVertical > THIRD-PARTY-NOTICES-npm.txt
+
+      - name: Install cargo-about
+        run: cargo install cargo-about
+
+      - name: Generate Rust notices
+        working-directory: src-tauri
+        run: |
+          cargo about generate ../about.hbs \
+            --output-file ../THIRD-PARTY-NOTICES-rust.md
+
+      - name: Commit and push
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update third-party notices"
+          file_pattern: |
+            THIRD-PARTY-NOTICES-npm.json
+            THIRD-PARTY-NOTICES-npm.txt
+            THIRD-PARTY-NOTICES-rust.md

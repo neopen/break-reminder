@@ -170,6 +170,18 @@ npm run build
 - [开发指南](docs/development.md)
 - [发布与自动更新](docs/release.md)
 
+
 ## 许可证
 
-[MIT](LICENSE) © 2026 neopen
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
+本项目基于 **Apache License 2.0** 开源。完整协议文本见 [LICENSE](LICENSE)，第三方组件声明见 [NOTICE](NOTICE)。
+
+版权所有 2026 neopen。
+
+### 这对你意味着什么
+
+- 你可以将 Breakly 用于**商业和个人用途**，包括闭源分发。
+- 你需要保留版权声明、许可证声明和 NOTICE 文件。
+- 本协议包含贡献者授予的**明确专利许可**。
+- "Breakly" / "别坐了" 及项目 Logo 为项目所有者商标，**不在** Apache License 2.0 的授权范围内。
