@@ -9,6 +9,11 @@ on:
       - 'src-tauri/Cargo.lock'
       - '.github/workflows/generate-notices.yml'
 
+# 同一时间只允许一个生成任务，避免并发提交互相覆盖
+concurrency:
+  group: generate-notices
+  cancel-in-progress: false
+
 jobs:
   generate:
     runs-on: ubuntu-latest
