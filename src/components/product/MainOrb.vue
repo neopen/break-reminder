@@ -10,7 +10,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useAppStore()
-const { config, scheduler, remainingSeconds, loading } = storeToRefs(store)
+const { config, scheduler, remainingSeconds, loading, nextTimeLabel } = storeToRefs(store)
 
 const hovering = ref(false)
 const focusWithin = ref(false)
@@ -185,6 +185,10 @@ function openSettings(kind: ParameterKind): void {
           </span>
         </button>
       </div>
+
+      <p v-if="isRunning" class="next-reminder">
+        下次提醒 <strong>{{ nextTimeLabel }}</strong>
+      </p>
     </div>
 
     <div v-if="isRunning" class="quick-actions">
@@ -199,21 +203,40 @@ function openSettings(kind: ParameterKind): void {
 <style scoped>
 .orb-stage {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex: 1;
   min-height: 440px;
 }
 
 /* 悬停热区：只覆盖圆球与参数胶囊的范围，上下移出后立即收起 */
 .orb-cluster {
-  position: relative;
+  position: absolute;
+  top: 40%;
+  right: 0;
+  left: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
   height: 336px;
+  transform: translateY(-50%);
+}
+
+/* 圆球下方的下次提醒时间 */
+.next-reminder {
+  position: absolute;
+  top: calc(50% + 128px);
+  right: 0;
+  left: 0;
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: rgba(199, 205, 240, 0.62);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.next-reminder strong {
+  font-weight: 600;
+  color: #f4f6ff;
 }
 
 /* 圆形按钮背后的光晕 */
@@ -524,10 +547,18 @@ function openSettings(kind: ParameterKind): void {
   }
 
   .orb-cluster {
+    position: static;
     flex-direction: column;
     justify-content: flex-start;
     height: auto;
     gap: 22px;
+    transform: none;
+  }
+
+  .next-reminder {
+    position: static;
+    order: 1;
+    margin: -10px 0 0;
   }
 
   .orb-stage__halo {
@@ -549,6 +580,7 @@ function openSettings(kind: ParameterKind): void {
 
   .orbit {
     position: static;
+    order: 2;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
