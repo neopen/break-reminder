@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "别坐了",
   "mainBinaryName": "breakly",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "identifier": "com.neopen.breakly",
   "build": {
     "beforeDevCommand": "npm run dev",

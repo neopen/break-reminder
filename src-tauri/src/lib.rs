@@ -24,9 +24,6 @@ pub fn run() {
         "--autoplay-policy=no-user-gesture-required",
     );
 
-    // 开机自启由插件附加 --autostart 参数，用于区分静默启动与手动启动。
-    let launched_at_login = std::env::args().any(|arg| arg == "--autostart");
-
     tauri::Builder::default()
         // 单实例插件必须最先注册
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
@@ -66,6 +63,8 @@ pub fn run() {
             commands::quit_app,
         ])
         .setup(|app| {
+            // 开机自启由插件附加 --autostart 参数，用于区分静默启动与手动启动。
+            let launched_at_login = std::env::args().any(|arg| arg == "--autostart");
             let handle = app.handle();
             let paths = store::init(handle).map_err(std::io::Error::other)?;
 
