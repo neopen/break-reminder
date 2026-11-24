@@ -33,6 +33,8 @@
     "targets": "all",
     "createUpdaterArtifacts": true,
     "publisher": "neopen",
+    "licenseFile": "../LICENSE",
+    "resources": ["../NOTICE", "../THIRD-PARTY-NOTICES-npm.txt", "../THIRD-PARTY-NOTICES-rust.md"],
     "homepage": "https://breakly.helpoke.com",
     "copyright": "Copyright © 2026 neopen",
     "shortDescription": "健康提醒与强制活动桌面应用",

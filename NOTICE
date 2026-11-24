@@ -1,0 +1,46 @@
+Breakly 别坐了 (break-reminder)
+Copyright 2026 neopen
+
+This product is licensed under the Apache License, Version 2.0.
+See the LICENSE file for the full license text.
+
+---------------------------------------------------------------------------
+Third-Party Components
+---------------------------------------------------------------------------
+
+This product depends on the following third-party components. They are
+used as-is (linked as dependencies) and have not been modified by this
+project, unless explicitly stated otherwise.
+
+- Tauri 2
+  License: MIT OR Apache-2.0 (dual-licensed)
+  Copyright: Tauri Contributors
+  https://tauri.app/
+
+- Vue 3
+  License: MIT
+  Copyright: Evan You and Vue Contributors
+  https://vuejs.org/
+
+- TypeScript
+  License: Apache-2.0
+  Copyright: Microsoft Corporation
+  https://www.typescriptlang.org/
+
+- Vite
+  License: MIT
+  Copyright: Evan You and Vite Contributors
+  https://vitejs.dev/
+
+- Other Rust crates and npm packages
+  See Cargo.lock / package-lock.json and the generated third-party
+  license report for the full list.
+
+---------------------------------------------------------------------------
+Trademarks
+---------------------------------------------------------------------------
+
+"Breakly" / "别坐了" and the project logo are trademarks of the project
+owner. The Apache License 2.0 does not grant permission to use these
+names or marks, except for reasonable and customary use in describing
+the origin of the work.
