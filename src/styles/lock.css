@@ -27,16 +27,62 @@ body {
     linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
 }
 
-/* 背景插画层：白线稿 + 纯黑底，用 screen 混合让黑底透明，只保留极淡线条 */
+/* 背景插画层：左右各一张不同画面，白线稿用 screen 混合去掉黑底，缓慢漂移营造呼吸感 */
 .lock-backdrop {
   position: absolute;
   inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.lock-backdrop--left {
+  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 30%, transparent 55%);
+  mask-image: linear-gradient(to right, #000 0%, #000 30%, transparent 55%);
+}
+
+.lock-backdrop--right {
+  -webkit-mask-image: linear-gradient(to left, #000 0%, #000 30%, transparent 55%);
+  mask-image: linear-gradient(to left, #000 0%, #000 30%, transparent 55%);
+}
+
+.lock-backdrop-art {
+  position: absolute;
+  inset: -4%;
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
-  mix-blend-mode: screen;
   opacity: 0.16;
-  pointer-events: none;
+  mix-blend-mode: screen;
+  animation: lock-drift 24s ease-in-out infinite alternate;
+}
+
+.lock-backdrop--left .lock-backdrop-art {
+  animation: lock-drift-flipped 28s ease-in-out infinite alternate;
+}
+
+/* 仅用 transform 动画，由合成器处理，避免触发重绘 */
+@keyframes lock-drift {
+  from {
+    transform: translate3d(0, -10px, 0) scale(1.02);
+  }
+  to {
+    transform: translate3d(0, 10px, 0) scale(1.06);
+  }
+}
+
+@keyframes lock-drift-flipped {
+  from {
+    transform: scaleX(-1) translate3d(0, -8px, 0) scale(1.02);
+  }
+  to {
+    transform: scaleX(-1) translate3d(0, 8px, 0) scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lock-backdrop-art {
+    animation: none;
+  }
 }
 
 .lock-glow {

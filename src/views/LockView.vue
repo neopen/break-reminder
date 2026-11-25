@@ -27,19 +27,23 @@ const finished = ref(false)
 
 const { confirm } = useConfirm()
 
-/** 锁屏背景：远眺 / 伸懒腰 / 肩颈拉伸，按提醒次数轮换（静态图，不额外消耗 GPU） */
+/** 锁屏背景：远眺 / 伸懒腰 / 肩颈拉伸，左右各一张不同画面，按提醒次数轮换 */
 const LOCK_BACKGROUNDS = [lockGazeBg, lockStretchBg, lockNeckBg]
 const LOCK_BG_STORAGE_KEY = 'breakly:lock-bg-index'
-const background = ref(LOCK_BACKGROUNDS[0])
+const backgroundIndex = ref(0)
+const leftBackground = computed(
+  () => LOCK_BACKGROUNDS[(backgroundIndex.value + 1) % LOCK_BACKGROUNDS.length],
+)
+const rightBackground = computed(() => LOCK_BACKGROUNDS[backgroundIndex.value])
 
-function nextBackground(): string {
+function nextBackgroundIndex(): number {
   try {
     const stored = Number.parseInt(window.localStorage.getItem(LOCK_BG_STORAGE_KEY) ?? '0', 10)
     const index = Number.isFinite(stored) && stored >= 0 ? stored : 0
     window.localStorage.setItem(LOCK_BG_STORAGE_KEY, String((index + 1) % LOCK_BACKGROUNDS.length))
-    return LOCK_BACKGROUNDS[index % LOCK_BACKGROUNDS.length]
+    return index % LOCK_BACKGROUNDS.length
   } catch {
-    return LOCK_BACKGROUNDS[0]
+    return 0
   }
 }
 
@@ -156,7 +160,7 @@ async function skip(): Promise<void> {
 }
 
 onMounted(async () => {
-  background.value = nextBackground()
+  backgroundIndex.value = nextBackgroundIndex()
 
   if (isDesktopRuntime()) {
     try {
@@ -206,7 +210,12 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="lock-screen">
-    <div class="lock-backdrop" :style="{ backgroundImage: `url(${background})` }" />
+    <div class="lock-backdrop lock-backdrop--left" aria-hidden="true">
+      <div class="lock-backdrop-art" :style="{ backgroundImage: `url(${leftBackground})` }" />
+    </div>
+    <div class="lock-backdrop lock-backdrop--right" aria-hidden="true">
+      <div class="lock-backdrop-art" :style="{ backgroundImage: `url(${rightBackground})` }" />
+    </div>
     <div class="lock-glow lock-glow--one" />
     <div class="lock-glow lock-glow--two" />
 
