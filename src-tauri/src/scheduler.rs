@@ -15,8 +15,8 @@ use crate::store;
 const MAX_SLEEP_MS: i64 = 5 * 60 * 1000;
 /// 实际经过时间明显超过计划睡眠时间，视为系统休眠/挂起过。
 const RESUME_GAP_MS: i64 = 30 * 1000;
-/// 休眠检测轮询间隔；即使提醒未运行也能感知唤醒。
-const RESUME_WATCH_INTERVAL: StdDuration = StdDuration::from_secs(5);
+/// 休眠/锁屏检测轮询间隔；即使提醒未运行也能感知唤醒。
+const RESUME_WATCH_INTERVAL: StdDuration = StdDuration::from_secs(2);
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -275,16 +275,21 @@ pub fn reset_today(app: &AppHandle) -> crate::stats::StatsSummary {
     summary
 }
 
-/// 监听系统休眠：唤醒后重新开始计时；若开启自启动提醒则自动恢复运行。
+/// 监听系统休眠与锁屏：唤醒/解锁后重新开始计时；若开启自启动提醒则自动恢复运行。
 pub fn spawn_resume_watcher(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         let mut last_tick = Local::now();
+        let mut system_locked = is_system_locked();
 
         loop {
             tokio::time::sleep(RESUME_WATCH_INTERVAL).await;
             let now = Local::now();
             let gap = (now - last_tick).num_milliseconds();
             last_tick = now;
+
+            let locked_now = is_system_locked();
+            let lock_changed = locked_now != system_locked;
+            system_locked = locked_now;
 
             if gap > RESUME_GAP_MS {
                 handle_resume(&app);
@@ -297,17 +302,38 @@ pub fn spawn_resume_watcher(app: AppHandle) {
                 .scheduler
                 .running
                 .load(Ordering::SeqCst);
-            if running {
-                let config = current_config(&app);
-                if !config.is_within_work_window(now) {
-                    stop(&app);
+            if !running {
+                continue;
+            }
+
+            let config = current_config(&app);
+            if !config.is_within_work_window(now) {
+                stop(&app);
+                continue;
+            }
+
+            if !lock_changed {
+                continue;
+            }
+
+            // 锁屏状态变化：锁屏时收起应用内锁屏并暂停计时，解锁后重新开始完整间隔。
+            if locked_now {
+                if app.get_webview_window("lock").is_some() {
+                    resolve_lock(&app, LockOutcome::Skipped);
                 }
+            } else {
+                restart_interval(&app, &config, now);
             }
         }
     });
 }
 
 fn handle_resume(app: &AppHandle) {
+    // 锁屏期间不重新计时，等解锁时由监视循环统一恢复。
+    if is_system_locked() {
+        return;
+    }
+
     let config = current_config(app);
     let running = app
         .state::<AppState>()
@@ -502,14 +528,14 @@ async fn run_lock(app: &AppHandle, duration_secs: u64, force_lock: bool) -> Lock
 }
 
 /// 当前 Windows 工作站是否已锁屏。
-/// 通过打开输入桌面判断：锁屏时输入桌面被安全桌面占用，无法打开。
+/// 输入桌面被安全桌面占用时无法打开；再叠加 WTS 会话锁屏标志，避免个别场景漏判。
 #[cfg(target_os = "windows")]
 fn is_system_locked() -> bool {
     use windows_sys::Win32::System::StationsAndDesktops::{
         CloseDesktop, OpenInputDesktop, DESKTOP_READOBJECTS, DESKTOP_SWITCHDESKTOP,
     };
 
-    unsafe {
+    let desktop_locked = unsafe {
         let desktop = OpenInputDesktop(0, 0, DESKTOP_READOBJECTS | DESKTOP_SWITCHDESKTOP);
         if desktop.is_null() {
             true
@@ -517,6 +543,37 @@ fn is_system_locked() -> bool {
             let _ = CloseDesktop(desktop);
             false
         }
+    };
+
+    desktop_locked || session_locked()
+}
+
+/// 读取 WTS 会话信息中的锁屏标志（WTSINFOEX 的 SessionFlags 最低位为 0 表示已锁屏）。
+#[cfg(target_os = "windows")]
+fn session_locked() -> bool {
+    use windows_sys::Win32::System::RemoteDesktop::{
+        WTSFreeMemory, WTSQuerySessionInformationW, WTS_CURRENT_SESSION, WTSINFOEXW,
+        WTSSessionInfoEx,
+    };
+
+    unsafe {
+        let mut buffer: *mut u16 = std::ptr::null_mut();
+        let mut bytes: u32 = 0;
+        let ok = WTSQuerySessionInformationW(
+            std::ptr::null_mut(),
+            WTS_CURRENT_SESSION,
+            WTSSessionInfoEx,
+            &mut buffer,
+            &mut bytes,
+        );
+        if ok == 0 || buffer.is_null() {
+            return false;
+        }
+
+        let info = &*(buffer as *const WTSINFOEXW);
+        let locked = info.Level == 1 && (info.Data.WTSInfoExLevel1.SessionFlags & 1) == 0;
+        WTSFreeMemory(buffer as _);
+        locked
     }
 }
 
