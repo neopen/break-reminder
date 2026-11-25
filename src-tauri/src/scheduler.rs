@@ -465,9 +465,10 @@ async fn run_loop(app: AppHandle, generation: u64) {
                     if resume <= now.naive_local() {
                         resume += Duration::days(1);
                     }
+                    let wait = resume - now.naive_local();
                     set_next(
                         &app,
-                        resume + Duration::minutes(config.interval_minutes as i64),
+                        now + wait + Duration::minutes(config.interval_minutes as i64),
                     );
                 }
                 None => schedule_next(&app, &config, now),
