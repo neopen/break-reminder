@@ -118,7 +118,7 @@ impl DoNotDisturb {
             // 跨零点时段按“剩余分钟数”比较，取最晚结束的那个时段。
             let minutes = (end_at - at).num_minutes().rem_euclid(24 * 60);
             let minutes = if minutes == 0 { 24 * 60 } else { minutes };
-            if latest_minutes.is_none_or(|best| minutes > best) {
+            if latest_minutes.map_or(true, |best| minutes > best) {
                 latest_minutes = Some(minutes);
                 latest_end = Some(end_at);
             }
