@@ -27,6 +27,18 @@ body {
     linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
 }
 
+/* 背景插画层：白线稿 + 纯黑底，用 screen 混合让黑底透明，只保留极淡线条 */
+.lock-backdrop {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  mix-blend-mode: screen;
+  opacity: 0.16;
+  pointer-events: none;
+}
+
 .lock-glow {
   position: absolute;
   border-radius: 50%;

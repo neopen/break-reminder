@@ -2,6 +2,9 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import alertAudioUrl from '../../assets/audio/alert.wav'
+import lockGazeBg from '../../assets/images/lock/lock-gaze.jpg'
+import lockNeckBg from '../../assets/images/lock/lock-neck.jpg'
+import lockStretchBg from '../../assets/images/lock/lock-stretch.jpg'
 
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useConfirm } from '@/composables/useConfirm'
@@ -23,6 +26,22 @@ const total = ref(60)
 const finished = ref(false)
 
 const { confirm } = useConfirm()
+
+/** 锁屏背景：远眺 / 伸懒腰 / 肩颈拉伸，按提醒次数轮换（静态图，不额外消耗 GPU） */
+const LOCK_BACKGROUNDS = [lockGazeBg, lockStretchBg, lockNeckBg]
+const LOCK_BG_STORAGE_KEY = 'breakly:lock-bg-index'
+const background = ref(LOCK_BACKGROUNDS[0])
+
+function nextBackground(): string {
+  try {
+    const stored = Number.parseInt(window.localStorage.getItem(LOCK_BG_STORAGE_KEY) ?? '0', 10)
+    const index = Number.isFinite(stored) && stored >= 0 ? stored : 0
+    window.localStorage.setItem(LOCK_BG_STORAGE_KEY, String((index + 1) % LOCK_BACKGROUNDS.length))
+    return LOCK_BACKGROUNDS[index % LOCK_BACKGROUNDS.length]
+  } catch {
+    return LOCK_BACKGROUNDS[0]
+  }
+}
 
 let tickTimer: number | undefined
 let toneTimer: number | undefined
@@ -137,6 +156,8 @@ async function skip(): Promise<void> {
 }
 
 onMounted(async () => {
+  background.value = nextBackground()
+
   if (isDesktopRuntime()) {
     try {
       lockConfig.value = await getLockConfig()
@@ -185,6 +206,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="lock-screen">
+    <div class="lock-backdrop" :style="{ backgroundImage: `url(${background})` }" />
     <div class="lock-glow lock-glow--one" />
     <div class="lock-glow lock-glow--two" />
 
