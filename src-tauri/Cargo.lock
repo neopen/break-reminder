@@ -329,6 +329,7 @@ name = "breakly"
 version = "1.2.0"
 dependencies = [
  "chrono",
+ "core-foundation 0.10.1",
  "serde",
  "serde_json",
  "tauri",

@@ -280,6 +280,7 @@ pub fn spawn_resume_watcher(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         let mut last_tick = Local::now();
         let mut system_locked = is_system_locked();
+        let mut lock_known = true;
 
         loop {
             tokio::time::sleep(RESUME_WATCH_INTERVAL).await;
@@ -287,12 +288,10 @@ pub fn spawn_resume_watcher(app: AppHandle) {
             let gap = (now - last_tick).num_milliseconds();
             last_tick = now;
 
-            let locked_now = is_system_locked();
-            let lock_changed = locked_now != system_locked;
-            system_locked = locked_now;
-
             if gap > RESUME_GAP_MS {
                 handle_resume(&app);
+                system_locked = is_system_locked();
+                lock_known = true;
                 continue;
             }
 
@@ -303,18 +302,28 @@ pub fn spawn_resume_watcher(app: AppHandle) {
                 .running
                 .load(Ordering::SeqCst);
             if !running {
+                // 提醒未运行时不检测锁屏，减少无谓开销。
+                lock_known = false;
                 continue;
             }
 
             let config = current_config(&app);
             if !config.is_within_work_window(now) {
                 stop(&app);
+                lock_known = false;
                 continue;
             }
 
-            if !lock_changed {
+            let locked_now = is_system_locked();
+            if !lock_known {
+                lock_known = true;
+                system_locked = locked_now;
                 continue;
             }
+            if locked_now == system_locked {
+                continue;
+            }
+            system_locked = locked_now;
 
             // 锁屏状态变化：锁屏时收起应用内锁屏并暂停计时，解锁后重新开始完整间隔。
             if locked_now {
@@ -577,7 +586,56 @@ fn session_locked() -> bool {
     }
 }
 
-#[cfg(not(target_os = "windows"))]
+/// macOS：读取 CoreGraphics 会话字典中的 CGSSessionScreenIsLocked 标志。
+#[cfg(target_os = "macos")]
+fn is_system_locked() -> bool {
+    use core_foundation::base::TCFType;
+    use core_foundation::string::CFString;
+
+    type CfRef = *const std::ffi::c_void;
+
+    #[link(name = "CoreGraphics", kind = "framework")]
+    extern "C" {
+        fn CGSessionCopyCurrentDictionary() -> CfRef;
+    }
+
+    extern "C" {
+        fn CFDictionaryGetValue(dict: CfRef, key: CfRef) -> CfRef;
+        fn CFBooleanGetValue(value: CfRef) -> u8;
+        fn CFRelease(value: CfRef);
+    }
+
+    unsafe {
+        let dict = CGSessionCopyCurrentDictionary();
+        if dict.is_null() {
+            return false;
+        }
+
+        let key = CFString::new("CGSSessionScreenIsLocked");
+        let key_ref = key.as_concrete_TypeRef() as CfRef;
+        let value = CFDictionaryGetValue(dict, key_ref);
+        let locked = !value.is_null() && CFBooleanGetValue(value) != 0;
+        CFRelease(dict);
+        locked
+    }
+}
+
+/// Linux：通过 loginctl 查询当前会话的 LockedHint，查询失败时按未锁屏处理。
+#[cfg(target_os = "linux")]
+fn is_system_locked() -> bool {
+    let output = std::process::Command::new("loginctl")
+        .args(["show-session", "auto", "--property=LockedHint", "--value"])
+        .output();
+
+    match output {
+        Ok(output) if output.status.success() => {
+            String::from_utf8_lossy(&output.stdout).trim() == "yes"
+        }
+        _ => false,
+    }
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
 fn is_system_locked() -> bool {
     false
 }
