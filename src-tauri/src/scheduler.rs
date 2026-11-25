@@ -552,8 +552,8 @@ fn is_system_locked() -> bool {
 #[cfg(target_os = "windows")]
 fn session_locked() -> bool {
     use windows_sys::Win32::System::RemoteDesktop::{
-        WTSFreeMemory, WTSQuerySessionInformationW, WTS_CURRENT_SESSION, WTSINFOEXW,
-        WTSSessionInfoEx,
+        WTSFreeMemory, WTSQuerySessionInformationW, WTSSessionInfoEx, WTSINFOEXW,
+        WTS_CURRENT_SESSION,
     };
 
     unsafe {
