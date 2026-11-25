@@ -498,13 +498,14 @@ function openSettings(kind: ParameterKind): void {
 /* ---------- 运行中的快捷操作 ---------- */
 .quick-actions {
   position: absolute;
+  top: calc(70% + 58px);
   right: 0;
-  bottom: 64px;
   left: 0;
   z-index: 2;
   display: flex;
   justify-content: center;
   gap: 8px;
+  transform: translateY(-50%);
 }
 
 .quick-actions button {
@@ -605,7 +606,9 @@ function openSettings(kind: ParameterKind): void {
   }
 
   .quick-actions {
+    top: auto;
     bottom: 24px;
+    transform: none;
   }
 }
 </style>

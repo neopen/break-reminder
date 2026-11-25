@@ -457,8 +457,18 @@ async fn run_loop(app: AppHandle, generation: u64) {
             continue;
         }
 
+        // 免打扰期间暂停计时：从免打扰结束时刻起重新开始一个完整间隔。
         if config.do_not_disturb.is_active(now.time()) {
-            schedule_next(&app, &config, now);
+            match config.do_not_disturb.active_end_at(now.time()) {
+                Some(end) => {
+                    let mut resume = now.date_naive().and_time(end);
+                    if resume <= now.naive_local() {
+                        resume += Duration::days(1);
+                    }
+                    set_next(&app, resume + Duration::minutes(config.interval_minutes as i64));
+                }
+                None => schedule_next(&app, &config, now),
+            }
             continue;
         }
 

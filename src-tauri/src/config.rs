@@ -99,6 +99,37 @@ impl DoNotDisturb {
             .iter()
             .any(|item| range_contains(&item.start, &item.end, at))
     }
+
+    /// 当前所在免打扰时段中最晚的结束时间；未处于免打扰时返回 None。
+    pub fn active_end_at(&self, at: NaiveTime) -> Option<NaiveTime> {
+        if !self.enabled {
+            return None;
+        }
+
+        let mut latest_minutes: Option<i64> = None;
+        let mut latest_end = None;
+        let mut check = |start: &str, end: &str| {
+            if !range_contains(start, end, at) {
+                return;
+            }
+            let Some(end_at) = parse_hhmm(end) else {
+                return;
+            };
+            // 跨零点时段按“剩余分钟数”比较，取最晚结束的那个时段。
+            let minutes = (end_at - at).num_minutes().rem_euclid(24 * 60);
+            let minutes = if minutes == 0 { 24 * 60 } else { minutes };
+            if latest_minutes.is_none_or(|best| minutes > best) {
+                latest_minutes = Some(minutes);
+                latest_end = Some(end_at);
+            }
+        };
+
+        check(&self.lunch_break.start, &self.lunch_break.end);
+        for item in &self.custom_breaks {
+            check(&item.start, &item.end);
+        }
+        latest_end
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
