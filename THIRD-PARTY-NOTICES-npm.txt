@@ -142,7 +142,7 @@
 │  ├─ email: anthonyfu117@hotmail.com
 │  ├─ path: /home/runner/work/break-reminder/break-reminder/node_modules/birpc
 │  └─ licenseFile: /home/runner/work/break-reminder/break-reminder/node_modules/birpc/LICENSE
-├─ breakly@1.1.0
+├─ breakly@1.2.0
 │  ├─ licenses: UNLICENSED
 │  ├─ private: true
 │  ├─ repository: https://github.com/neopen/break-reminder

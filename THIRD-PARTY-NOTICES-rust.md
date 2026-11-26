@@ -8757,7 +8757,7 @@ limitations under the License.
 
 ### 使用该许可证的依赖
 
-- [breakly 1.1.0](https://github.com/neopen/break-reminder)
+- [breakly 1.2.0](https://github.com/neopen/break-reminder)
 - [android_system_properties 0.1.6](https://github.com/nical/android_system_properties)
 - [anyhow 1.0.104](https://github.com/dtolnay/anyhow)
 - [async-trait 0.1.92](https://github.com/dtolnay/async-trait)
