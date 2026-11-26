@@ -130,6 +130,8 @@ body {
   border-radius: 48px;
   box-shadow: 0 32px 80px -30px rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(20px);
+  /* 整体略上移，避免在小屏或高 DPI 下贴住屏幕下缘 */
+  transform: translateY(-4vh);
 }
 
 .lock-emoji {

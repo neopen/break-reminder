@@ -88,6 +88,20 @@ function stopTimers(): void {
   backdropTimer = undefined
 }
 
+/** 锁屏期间禁用右键菜单与刷新快捷键，避免页面重载导致倒计时被重置。 */
+function blockContextMenu(event: MouseEvent): void {
+  event.preventDefault()
+}
+
+function blockRefreshShortcut(event: KeyboardEvent): void {
+  const key = event.key.toLowerCase()
+  const withModifier = event.ctrlKey || event.metaKey
+  if (key === 'f5' || (withModifier && key === 'r')) {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+}
+
 async function playTone(): Promise<void> {
   if (!audio) return
   try {
@@ -168,6 +182,8 @@ async function skip(): Promise<void> {
 
 onMounted(async () => {
   backgroundIndex.value = nextBackgroundIndex()
+  window.addEventListener('contextmenu', blockContextMenu)
+  window.addEventListener('keydown', blockRefreshShortcut, true)
 
   if (isDesktopRuntime()) {
     try {
@@ -213,6 +229,8 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('contextmenu', blockContextMenu)
+  window.removeEventListener('keydown', blockRefreshShortcut, true)
   stopTimers()
   audio?.pause()
   audio = null

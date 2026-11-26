@@ -317,35 +317,40 @@ function openSettings(kind: ParameterKind): void {
   pointer-events: none;
 }
 
-/* 运行中：沿圆球外缘旋转的跑马灯光弧 */
+/* 运行中：贴在外缘的柔和光环，缓慢呼吸 */
 .orb-marquee {
   position: absolute;
-  inset: -13px;
+  inset: -16px;
   border-radius: 50%;
-  background: conic-gradient(
-    from 0deg,
-    transparent 0deg,
-    transparent 195deg,
-    rgba(139, 124, 255, 0.55) 285deg,
-    rgba(56, 189, 248, 0.92) 342deg,
-    transparent 360deg
+  background: radial-gradient(
+    closest-side,
+    transparent 58%,
+    rgba(139, 124, 255, 0.42) 72%,
+    rgba(56, 189, 248, 0.22) 84%,
+    transparent 100%
   );
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
-  filter: drop-shadow(0 0 6px rgba(139, 124, 255, 0.5));
-  animation: orb-marquee-spin 4s linear infinite;
+  filter: blur(3px);
+  animation: orb-breathe 4.8s ease-in-out infinite;
   pointer-events: none;
 }
 
-@keyframes orb-marquee-spin {
-  to {
-    transform: rotate(360deg);
+@keyframes orb-breathe {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.985);
+  }
+
+  50% {
+    opacity: 0.72;
+    transform: scale(1.03);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .orb-marquee {
     animation: none;
+    opacity: 0.5;
   }
 }
 
