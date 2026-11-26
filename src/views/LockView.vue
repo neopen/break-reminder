@@ -33,6 +33,8 @@ const { confirm } = useConfirm()
 /** 锁屏背景场景：远眺 / 伸懒腰 / 肩颈拉伸 / 眼保健操 / 走动 / 侧弯腰，每 10 秒淡入切换一次 */
 const LOCK_BACKGROUNDS = [lockGazeBg, lockStretchBg, lockNeckBg, lockEyeBg, lockWalkBg, lockTwistBg]
 const LOCK_BG_STORAGE_KEY = 'breakly:lock-bg-index'
+const LOCK_DEADLINE_KEY = 'breakly:lock-deadline'
+const LOCK_TOTAL_KEY = 'breakly:lock-total'
 const LOCK_BG_ROTATE_MS = 10_000
 const backgroundIndex = ref(0)
 const leftBackground = computed(
@@ -88,6 +90,41 @@ function stopTimers(): void {
   backdropTimer = undefined
 }
 
+/** 通过 sessionStorage 记录倒计时截止时刻，页面意外重载后可以接着走。 */
+function persistDeadline(secs: number): void {
+  try {
+    window.sessionStorage.setItem(LOCK_DEADLINE_KEY, String(Date.now() + secs * 1000))
+    window.sessionStorage.setItem(LOCK_TOTAL_KEY, String(secs))
+  } catch {
+    // 存储不可用时退化为仅内存计时。
+  }
+}
+
+function restoreCountdown(): boolean {
+  try {
+    const deadline = Number(window.sessionStorage.getItem(LOCK_DEADLINE_KEY))
+    const storedTotal = Number(window.sessionStorage.getItem(LOCK_TOTAL_KEY))
+    if (!Number.isFinite(deadline) || deadline <= Date.now()) return false
+
+    const left = Math.ceil((deadline - Date.now()) / 1000)
+    if (left <= 0) return false
+    if (Number.isFinite(storedTotal) && storedTotal > 0) total.value = storedTotal
+    remaining.value = Math.min(left, total.value)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function clearDeadline(): void {
+  try {
+    window.sessionStorage.removeItem(LOCK_DEADLINE_KEY)
+    window.sessionStorage.removeItem(LOCK_TOTAL_KEY)
+  } catch {
+    // 忽略存储异常。
+  }
+}
+
 /** 锁屏期间禁用右键菜单与刷新快捷键，避免页面重载导致倒计时被重置。 */
 function blockContextMenu(event: MouseEvent): void {
   event.preventDefault()
@@ -116,6 +153,7 @@ async function complete(): Promise<void> {
   if (finished.value) return
   finished.value = true
   stopTimers()
+  clearDeadline()
   audio?.pause()
 
   try {
@@ -139,6 +177,7 @@ async function earlyEnd(): Promise<void> {
 
   finished.value = true
   stopTimers()
+  clearDeadline()
   audio?.pause()
   await closeLockWindow().catch(() => undefined)
 }
@@ -148,6 +187,7 @@ async function snooze(): Promise<void> {
 
   finished.value = true
   stopTimers()
+  clearDeadline()
   audio?.pause()
 
   try {
@@ -171,6 +211,7 @@ async function skip(): Promise<void> {
 
   finished.value = true
   stopTimers()
+  clearDeadline()
   audio?.pause()
 
   try {
@@ -200,7 +241,10 @@ onMounted(async () => {
   }
 
   total.value = Math.max(1, lockConfig.value.durationSecs)
-  remaining.value = total.value
+  if (!restoreCountdown()) {
+    remaining.value = total.value
+    persistDeadline(total.value)
+  }
 
   if (soundEnabled.value) {
     audio = new Audio(alertAudioUrl)
@@ -221,7 +265,7 @@ onMounted(async () => {
 
   deadlineTimer = window.setTimeout(() => {
     void complete()
-  }, total.value * 1000)
+  }, remaining.value * 1000)
 
   backdropTimer = window.setInterval(() => {
     backgroundIndex.value = (backgroundIndex.value + 1) % LOCK_BACKGROUNDS.length
