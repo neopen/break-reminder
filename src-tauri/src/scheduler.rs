@@ -15,8 +15,8 @@ use crate::store;
 const MAX_SLEEP_MS: i64 = 5 * 60 * 1000;
 /// 实际经过时间明显超过计划睡眠时间，视为系统休眠/挂起过。
 const RESUME_GAP_MS: i64 = 30 * 1000;
-/// 休眠检测轮询间隔；即使提醒未运行也能感知唤醒。
-const RESUME_WATCH_INTERVAL: StdDuration = StdDuration::from_secs(5);
+/// 休眠/锁屏检测轮询间隔；即使提醒未运行也能感知唤醒。
+const RESUME_WATCH_INTERVAL: StdDuration = StdDuration::from_secs(2);
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -275,10 +275,12 @@ pub fn reset_today(app: &AppHandle) -> crate::stats::StatsSummary {
     summary
 }
 
-/// 监听系统休眠：唤醒后重新开始计时；若开启自启动提醒则自动恢复运行。
+/// 监听系统休眠与锁屏：唤醒/解锁后重新开始计时；若开启自启动提醒则自动恢复运行。
 pub fn spawn_resume_watcher(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         let mut last_tick = Local::now();
+        let mut system_locked = is_system_locked();
+        let mut lock_known = true;
 
         loop {
             tokio::time::sleep(RESUME_WATCH_INTERVAL).await;
@@ -288,6 +290,8 @@ pub fn spawn_resume_watcher(app: AppHandle) {
 
             if gap > RESUME_GAP_MS {
                 handle_resume(&app);
+                system_locked = is_system_locked();
+                lock_known = true;
                 continue;
             }
 
@@ -297,10 +301,41 @@ pub fn spawn_resume_watcher(app: AppHandle) {
                 .scheduler
                 .running
                 .load(Ordering::SeqCst);
-            if running {
-                let config = current_config(&app);
-                if !config.is_within_work_window(now) {
-                    stop(&app);
+            if !running {
+                // 提醒未运行时不检测锁屏，减少无谓开销。
+                lock_known = false;
+                continue;
+            }
+
+            let config = current_config(&app);
+            if !config.is_within_work_window(now) {
+                stop(&app);
+                lock_known = false;
+                continue;
+            }
+
+            let locked_now = is_system_locked();
+            if !lock_known {
+                lock_known = true;
+                system_locked = locked_now;
+                continue;
+            }
+            if locked_now == system_locked {
+                continue;
+            }
+            system_locked = locked_now;
+
+            // 锁屏状态变化：锁屏时收起应用内锁屏并暂停计时，解锁后重新开始完整间隔。
+            if locked_now {
+                if app.get_webview_window("lock").is_some() {
+                    resolve_lock(&app, LockOutcome::Skipped);
+                }
+            } else if running {
+                restart_interval(&app, &config, now);
+            } else if config.auto_start_reminders {
+                // 解锁后提醒未运行（例如休眠期间停止或此前未启动）时，自动开始倒计时。
+                if let Err(error) = start(&app) {
+                    eprintln!("[scheduler] 解锁后自动启动提醒失败: {error}");
                 }
             }
         }
@@ -308,6 +343,11 @@ pub fn spawn_resume_watcher(app: AppHandle) {
 }
 
 fn handle_resume(app: &AppHandle) {
+    // 锁屏期间不重新计时，等解锁时由监视循环统一恢复。
+    if is_system_locked() {
+        return;
+    }
+
     let config = current_config(app);
     let running = app
         .state::<AppState>()
@@ -422,8 +462,22 @@ async fn run_loop(app: AppHandle, generation: u64) {
             continue;
         }
 
+        // 免打扰期间暂停计时：从免打扰结束时刻起重新开始一个完整间隔。
         if config.do_not_disturb.is_active(now.time()) {
-            schedule_next(&app, &config, now);
+            match config.do_not_disturb.active_end_at(now.time()) {
+                Some(end) => {
+                    let mut resume = now.date_naive().and_time(end);
+                    if resume <= now.naive_local() {
+                        resume += Duration::days(1);
+                    }
+                    let wait = resume - now.naive_local();
+                    set_next(
+                        &app,
+                        now + wait + Duration::minutes(config.interval_minutes as i64),
+                    );
+                }
+                None => schedule_next(&app, &config, now),
+            }
             continue;
         }
 
@@ -502,14 +556,14 @@ async fn run_lock(app: &AppHandle, duration_secs: u64, force_lock: bool) -> Lock
 }
 
 /// 当前 Windows 工作站是否已锁屏。
-/// 通过打开输入桌面判断：锁屏时输入桌面被安全桌面占用，无法打开。
+/// 输入桌面被安全桌面占用时无法打开；再叠加 WTS 会话锁屏标志，避免个别场景漏判。
 #[cfg(target_os = "windows")]
 fn is_system_locked() -> bool {
     use windows_sys::Win32::System::StationsAndDesktops::{
         CloseDesktop, OpenInputDesktop, DESKTOP_READOBJECTS, DESKTOP_SWITCHDESKTOP,
     };
 
-    unsafe {
+    let desktop_locked = unsafe {
         let desktop = OpenInputDesktop(0, 0, DESKTOP_READOBJECTS | DESKTOP_SWITCHDESKTOP);
         if desktop.is_null() {
             true
@@ -517,10 +571,90 @@ fn is_system_locked() -> bool {
             let _ = CloseDesktop(desktop);
             false
         }
+    };
+
+    desktop_locked || session_locked()
+}
+
+/// 读取 WTS 会话信息中的锁屏标志（WTSINFOEX 的 SessionFlags 最低位为 0 表示已锁屏）。
+#[cfg(target_os = "windows")]
+fn session_locked() -> bool {
+    use windows_sys::Win32::System::RemoteDesktop::{
+        WTSFreeMemory, WTSQuerySessionInformationW, WTSSessionInfoEx, WTSINFOEXW,
+        WTS_CURRENT_SESSION,
+    };
+
+    unsafe {
+        let mut buffer: *mut u16 = std::ptr::null_mut();
+        let mut bytes: u32 = 0;
+        let ok = WTSQuerySessionInformationW(
+            std::ptr::null_mut(),
+            WTS_CURRENT_SESSION,
+            WTSSessionInfoEx,
+            &mut buffer,
+            &mut bytes,
+        );
+        if ok == 0 || buffer.is_null() {
+            return false;
+        }
+
+        let info = &*(buffer as *const WTSINFOEXW);
+        let locked = info.Level == 1 && (info.Data.WTSInfoExLevel1.SessionFlags & 1) == 0;
+        WTSFreeMemory(buffer as _);
+        locked
     }
 }
 
-#[cfg(not(target_os = "windows"))]
+/// macOS：读取 CoreGraphics 会话字典中的 CGSSessionScreenIsLocked 标志。
+#[cfg(target_os = "macos")]
+fn is_system_locked() -> bool {
+    use core_foundation::base::TCFType;
+    use core_foundation::string::CFString;
+
+    type CfRef = *const std::ffi::c_void;
+
+    #[link(name = "CoreGraphics", kind = "framework")]
+    extern "C" {
+        fn CGSessionCopyCurrentDictionary() -> CfRef;
+    }
+
+    extern "C" {
+        fn CFDictionaryGetValue(dict: CfRef, key: CfRef) -> CfRef;
+        fn CFBooleanGetValue(value: CfRef) -> u8;
+        fn CFRelease(value: CfRef);
+    }
+
+    unsafe {
+        let dict = CGSessionCopyCurrentDictionary();
+        if dict.is_null() {
+            return false;
+        }
+
+        let key = CFString::new("CGSSessionScreenIsLocked");
+        let key_ref = key.as_concrete_TypeRef() as CfRef;
+        let value = CFDictionaryGetValue(dict, key_ref);
+        let locked = !value.is_null() && CFBooleanGetValue(value) != 0;
+        CFRelease(dict);
+        locked
+    }
+}
+
+/// Linux：通过 loginctl 查询当前会话的 LockedHint，查询失败时按未锁屏处理。
+#[cfg(target_os = "linux")]
+fn is_system_locked() -> bool {
+    let output = std::process::Command::new("loginctl")
+        .args(["show-session", "auto", "--property=LockedHint", "--value"])
+        .output();
+
+    match output {
+        Ok(output) if output.status.success() => {
+            String::from_utf8_lossy(&output.stdout).trim() == "yes"
+        }
+        _ => false,
+    }
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
 fn is_system_locked() -> bool {
     false
 }

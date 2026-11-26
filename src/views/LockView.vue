@@ -2,6 +2,12 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import alertAudioUrl from '../../assets/audio/alert.wav'
+import lockEyeBg from '../../assets/images/lock/lock-eye.jpg'
+import lockGazeBg from '../../assets/images/lock/lock-gaze.jpg'
+import lockNeckBg from '../../assets/images/lock/lock-neck.jpg'
+import lockStretchBg from '../../assets/images/lock/lock-stretch.jpg'
+import lockTwistBg from '../../assets/images/lock/lock-twist.jpg'
+import lockWalkBg from '../../assets/images/lock/lock-walk.jpg'
 
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useConfirm } from '@/composables/useConfirm'
@@ -24,9 +30,33 @@ const finished = ref(false)
 
 const { confirm } = useConfirm()
 
+/** 锁屏背景场景：远眺 / 伸懒腰 / 肩颈拉伸 / 眼保健操 / 走动 / 侧弯腰，每 10 秒淡入切换一次 */
+const LOCK_BACKGROUNDS = [lockGazeBg, lockStretchBg, lockNeckBg, lockEyeBg, lockWalkBg, lockTwistBg]
+const LOCK_BG_STORAGE_KEY = 'breakly:lock-bg-index'
+const LOCK_DEADLINE_KEY = 'breakly:lock-deadline'
+const LOCK_TOTAL_KEY = 'breakly:lock-total'
+const LOCK_BG_ROTATE_MS = 10_000
+const backgroundIndex = ref(0)
+const leftBackground = computed(
+  () => LOCK_BACKGROUNDS[(backgroundIndex.value + 1) % LOCK_BACKGROUNDS.length],
+)
+const rightBackground = computed(() => LOCK_BACKGROUNDS[backgroundIndex.value])
+
+function nextBackgroundIndex(): number {
+  try {
+    const stored = Number.parseInt(window.localStorage.getItem(LOCK_BG_STORAGE_KEY) ?? '0', 10)
+    const index = Number.isFinite(stored) && stored >= 0 ? stored : 0
+    window.localStorage.setItem(LOCK_BG_STORAGE_KEY, String((index + 1) % LOCK_BACKGROUNDS.length))
+    return index % LOCK_BACKGROUNDS.length
+  } catch {
+    return 0
+  }
+}
+
 let tickTimer: number | undefined
 let toneTimer: number | undefined
 let deadlineTimer: number | undefined
+let backdropTimer: number | undefined
 let audio: HTMLAudioElement | null = null
 
 const circumference = 2 * Math.PI * 120
@@ -53,9 +83,60 @@ function stopTimers(): void {
   if (tickTimer) window.clearInterval(tickTimer)
   if (toneTimer) window.clearInterval(toneTimer)
   if (deadlineTimer) window.clearTimeout(deadlineTimer)
+  if (backdropTimer) window.clearInterval(backdropTimer)
   tickTimer = undefined
   toneTimer = undefined
   deadlineTimer = undefined
+  backdropTimer = undefined
+}
+
+/** 通过 sessionStorage 记录倒计时截止时刻，页面意外重载后可以接着走。 */
+function persistDeadline(secs: number): void {
+  try {
+    window.sessionStorage.setItem(LOCK_DEADLINE_KEY, String(Date.now() + secs * 1000))
+    window.sessionStorage.setItem(LOCK_TOTAL_KEY, String(secs))
+  } catch {
+    // 存储不可用时退化为仅内存计时。
+  }
+}
+
+function restoreCountdown(): boolean {
+  try {
+    const deadline = Number(window.sessionStorage.getItem(LOCK_DEADLINE_KEY))
+    const storedTotal = Number(window.sessionStorage.getItem(LOCK_TOTAL_KEY))
+    if (!Number.isFinite(deadline) || deadline <= Date.now()) return false
+
+    const left = Math.ceil((deadline - Date.now()) / 1000)
+    if (left <= 0) return false
+    if (Number.isFinite(storedTotal) && storedTotal > 0) total.value = storedTotal
+    remaining.value = Math.min(left, total.value)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function clearDeadline(): void {
+  try {
+    window.sessionStorage.removeItem(LOCK_DEADLINE_KEY)
+    window.sessionStorage.removeItem(LOCK_TOTAL_KEY)
+  } catch {
+    // 忽略存储异常。
+  }
+}
+
+/** 锁屏期间禁用右键菜单与刷新快捷键，避免页面重载导致倒计时被重置。 */
+function blockContextMenu(event: MouseEvent): void {
+  event.preventDefault()
+}
+
+function blockRefreshShortcut(event: KeyboardEvent): void {
+  const key = event.key.toLowerCase()
+  const withModifier = event.ctrlKey || event.metaKey
+  if (key === 'f5' || (withModifier && key === 'r')) {
+    event.preventDefault()
+    event.stopPropagation()
+  }
 }
 
 async function playTone(): Promise<void> {
@@ -72,6 +153,7 @@ async function complete(): Promise<void> {
   if (finished.value) return
   finished.value = true
   stopTimers()
+  clearDeadline()
   audio?.pause()
 
   try {
@@ -95,6 +177,7 @@ async function earlyEnd(): Promise<void> {
 
   finished.value = true
   stopTimers()
+  clearDeadline()
   audio?.pause()
   await closeLockWindow().catch(() => undefined)
 }
@@ -104,6 +187,7 @@ async function snooze(): Promise<void> {
 
   finished.value = true
   stopTimers()
+  clearDeadline()
   audio?.pause()
 
   try {
@@ -127,6 +211,7 @@ async function skip(): Promise<void> {
 
   finished.value = true
   stopTimers()
+  clearDeadline()
   audio?.pause()
 
   try {
@@ -137,6 +222,10 @@ async function skip(): Promise<void> {
 }
 
 onMounted(async () => {
+  backgroundIndex.value = nextBackgroundIndex()
+  window.addEventListener('contextmenu', blockContextMenu)
+  window.addEventListener('keydown', blockRefreshShortcut, true)
+
   if (isDesktopRuntime()) {
     try {
       lockConfig.value = await getLockConfig()
@@ -152,7 +241,10 @@ onMounted(async () => {
   }
 
   total.value = Math.max(1, lockConfig.value.durationSecs)
-  remaining.value = total.value
+  if (!restoreCountdown()) {
+    remaining.value = total.value
+    persistDeadline(total.value)
+  }
 
   if (soundEnabled.value) {
     audio = new Audio(alertAudioUrl)
@@ -173,10 +265,16 @@ onMounted(async () => {
 
   deadlineTimer = window.setTimeout(() => {
     void complete()
-  }, total.value * 1000)
+  }, remaining.value * 1000)
+
+  backdropTimer = window.setInterval(() => {
+    backgroundIndex.value = (backgroundIndex.value + 1) % LOCK_BACKGROUNDS.length
+  }, LOCK_BG_ROTATE_MS)
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('contextmenu', blockContextMenu)
+  window.removeEventListener('keydown', blockRefreshShortcut, true)
   stopTimers()
   audio?.pause()
   audio = null
@@ -185,6 +283,24 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="lock-screen">
+    <div class="lock-backdrop lock-backdrop--left" aria-hidden="true">
+      <Transition name="lock-fade">
+        <div
+          :key="leftBackground"
+          class="lock-backdrop-art"
+          :style="{ backgroundImage: `url(${leftBackground})` }"
+        />
+      </Transition>
+    </div>
+    <div class="lock-backdrop lock-backdrop--right" aria-hidden="true">
+      <Transition name="lock-fade">
+        <div
+          :key="rightBackground"
+          class="lock-backdrop-art"
+          :style="{ backgroundImage: `url(${rightBackground})` }"
+        />
+      </Transition>
+    </div>
     <div class="lock-glow lock-glow--one" />
     <div class="lock-glow lock-glow--two" />
 

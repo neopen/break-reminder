@@ -10,7 +10,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useAppStore()
-const { config, scheduler, remainingSeconds, loading } = storeToRefs(store)
+const { config, scheduler, remainingSeconds, loading, nextTimeLabel } = storeToRefs(store)
 
 const hovering = ref(false)
 const focusWithin = ref(false)
@@ -145,6 +145,8 @@ function openSettings(kind: ParameterKind): void {
         :disabled="loading"
         @click="toggleReminder"
       >
+        <span v-if="isRunning" class="orb-marquee" aria-hidden="true" />
+
         <svg class="orb__ring" viewBox="0 0 240 240" aria-hidden="true">
           <defs>
             <linearGradient id="orb-ring-gradient" x1="0" y1="0" x2="1" y2="1">
@@ -185,6 +187,10 @@ function openSettings(kind: ParameterKind): void {
           </span>
         </button>
       </div>
+
+      <p v-if="isRunning" class="next-reminder">
+        下次提醒 <strong>{{ nextTimeLabel }}</strong>
+      </p>
     </div>
 
     <div v-if="isRunning" class="quick-actions">
@@ -199,21 +205,40 @@ function openSettings(kind: ParameterKind): void {
 <style scoped>
 .orb-stage {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex: 1;
   min-height: 440px;
 }
 
 /* 悬停热区：只覆盖圆球与参数胶囊的范围，上下移出后立即收起 */
 .orb-cluster {
-  position: relative;
+  position: absolute;
+  top: 40%;
+  right: 0;
+  left: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
   height: 336px;
+  transform: translateY(-50%);
+}
+
+/* 圆球下方的下次提醒时间 */
+.next-reminder {
+  position: absolute;
+  top: calc(50% + 128px);
+  right: 0;
+  left: 0;
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: rgba(199, 205, 240, 0.62);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.next-reminder strong {
+  font-weight: 600;
+  color: #f4f6ff;
 }
 
 /* 圆形按钮背后的光晕 */
@@ -290,6 +315,43 @@ function openSettings(kind: ParameterKind): void {
   height: 100%;
   transform: rotate(-90deg);
   pointer-events: none;
+}
+
+/* 运行中：贴在外缘的柔和光环，缓慢呼吸 */
+.orb-marquee {
+  position: absolute;
+  inset: -16px;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    transparent 58%,
+    rgba(139, 124, 255, 0.42) 72%,
+    rgba(56, 189, 248, 0.22) 84%,
+    transparent 100%
+  );
+  filter: blur(3px);
+  animation: orb-breathe 4.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes orb-breathe {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.985);
+  }
+
+  50% {
+    opacity: 0.72;
+    transform: scale(1.03);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb-marquee {
+    animation: none;
+    opacity: 0.5;
+  }
 }
 
 .orb__ring-track {
@@ -475,13 +537,14 @@ function openSettings(kind: ParameterKind): void {
 /* ---------- 运行中的快捷操作 ---------- */
 .quick-actions {
   position: absolute;
+  top: calc(70% + 58px);
   right: 0;
-  bottom: 64px;
   left: 0;
   z-index: 2;
   display: flex;
   justify-content: center;
   gap: 8px;
+  transform: translateY(-50%);
 }
 
 .quick-actions button {
@@ -524,10 +587,18 @@ function openSettings(kind: ParameterKind): void {
   }
 
   .orb-cluster {
+    position: static;
     flex-direction: column;
     justify-content: flex-start;
     height: auto;
     gap: 22px;
+    transform: none;
+  }
+
+  .next-reminder {
+    position: static;
+    order: 1;
+    margin: -10px 0 0;
   }
 
   .orb-stage__halo {
@@ -549,6 +620,7 @@ function openSettings(kind: ParameterKind): void {
 
   .orbit {
     position: static;
+    order: 2;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
@@ -573,7 +645,9 @@ function openSettings(kind: ParameterKind): void {
   }
 
   .quick-actions {
+    top: auto;
     bottom: 24px;
+    transform: none;
   }
 }
 </style>
