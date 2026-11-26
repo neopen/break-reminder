@@ -60,6 +60,17 @@ body {
   animation: lock-drift-flipped 28s ease-in-out infinite alternate;
 }
 
+/* 场景切换：新图淡入、旧图同时淡出，10 秒一次 */
+.lock-fade-enter-active,
+.lock-fade-leave-active {
+  transition: opacity 1.2s ease;
+}
+
+.lock-fade-enter-from,
+.lock-fade-leave-to {
+  opacity: 0;
+}
+
 /* 仅用 transform 动画，由合成器处理，避免触发重绘 */
 @keyframes lock-drift {
   from {

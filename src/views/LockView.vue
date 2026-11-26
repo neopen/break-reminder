@@ -2,9 +2,12 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import alertAudioUrl from '../../assets/audio/alert.wav'
+import lockEyeBg from '../../assets/images/lock/lock-eye.jpg'
 import lockGazeBg from '../../assets/images/lock/lock-gaze.jpg'
 import lockNeckBg from '../../assets/images/lock/lock-neck.jpg'
 import lockStretchBg from '../../assets/images/lock/lock-stretch.jpg'
+import lockTwistBg from '../../assets/images/lock/lock-twist.jpg'
+import lockWalkBg from '../../assets/images/lock/lock-walk.jpg'
 
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useConfirm } from '@/composables/useConfirm'
@@ -27,9 +30,10 @@ const finished = ref(false)
 
 const { confirm } = useConfirm()
 
-/** 锁屏背景：远眺 / 伸懒腰 / 肩颈拉伸，左右各一张不同画面，按提醒次数轮换 */
-const LOCK_BACKGROUNDS = [lockGazeBg, lockStretchBg, lockNeckBg]
+/** 锁屏背景场景：远眺 / 伸懒腰 / 肩颈拉伸 / 眼保健操 / 走动 / 侧弯腰，每 10 秒淡入切换一次 */
+const LOCK_BACKGROUNDS = [lockGazeBg, lockStretchBg, lockNeckBg, lockEyeBg, lockWalkBg, lockTwistBg]
 const LOCK_BG_STORAGE_KEY = 'breakly:lock-bg-index'
+const LOCK_BG_ROTATE_MS = 10_000
 const backgroundIndex = ref(0)
 const leftBackground = computed(
   () => LOCK_BACKGROUNDS[(backgroundIndex.value + 1) % LOCK_BACKGROUNDS.length],
@@ -50,6 +54,7 @@ function nextBackgroundIndex(): number {
 let tickTimer: number | undefined
 let toneTimer: number | undefined
 let deadlineTimer: number | undefined
+let backdropTimer: number | undefined
 let audio: HTMLAudioElement | null = null
 
 const circumference = 2 * Math.PI * 120
@@ -76,9 +81,11 @@ function stopTimers(): void {
   if (tickTimer) window.clearInterval(tickTimer)
   if (toneTimer) window.clearInterval(toneTimer)
   if (deadlineTimer) window.clearTimeout(deadlineTimer)
+  if (backdropTimer) window.clearInterval(backdropTimer)
   tickTimer = undefined
   toneTimer = undefined
   deadlineTimer = undefined
+  backdropTimer = undefined
 }
 
 async function playTone(): Promise<void> {
@@ -199,6 +206,10 @@ onMounted(async () => {
   deadlineTimer = window.setTimeout(() => {
     void complete()
   }, total.value * 1000)
+
+  backdropTimer = window.setInterval(() => {
+    backgroundIndex.value = (backgroundIndex.value + 1) % LOCK_BACKGROUNDS.length
+  }, LOCK_BG_ROTATE_MS)
 })
 
 onBeforeUnmount(() => {
@@ -211,10 +222,22 @@ onBeforeUnmount(() => {
 <template>
   <div class="lock-screen">
     <div class="lock-backdrop lock-backdrop--left" aria-hidden="true">
-      <div class="lock-backdrop-art" :style="{ backgroundImage: `url(${leftBackground})` }" />
+      <Transition name="lock-fade">
+        <div
+          :key="leftBackground"
+          class="lock-backdrop-art"
+          :style="{ backgroundImage: `url(${leftBackground})` }"
+        />
+      </Transition>
     </div>
     <div class="lock-backdrop lock-backdrop--right" aria-hidden="true">
-      <div class="lock-backdrop-art" :style="{ backgroundImage: `url(${rightBackground})` }" />
+      <Transition name="lock-fade">
+        <div
+          :key="rightBackground"
+          class="lock-backdrop-art"
+          :style="{ backgroundImage: `url(${rightBackground})` }"
+        />
+      </Transition>
     </div>
     <div class="lock-glow lock-glow--one" />
     <div class="lock-glow lock-glow--two" />
