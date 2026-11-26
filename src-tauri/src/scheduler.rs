@@ -330,8 +330,13 @@ pub fn spawn_resume_watcher(app: AppHandle) {
                 if app.get_webview_window("lock").is_some() {
                     resolve_lock(&app, LockOutcome::Skipped);
                 }
-            } else {
+            } else if running {
                 restart_interval(&app, &config, now);
+            } else if config.auto_start_reminders {
+                // 解锁后提醒未运行（例如休眠期间停止或此前未启动）时，自动开始倒计时。
+                if let Err(error) = start(&app) {
+                    eprintln!("[scheduler] 解锁后自动启动提醒失败: {error}");
+                }
             }
         }
     });

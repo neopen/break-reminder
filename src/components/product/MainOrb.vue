@@ -145,6 +145,8 @@ function openSettings(kind: ParameterKind): void {
         :disabled="loading"
         @click="toggleReminder"
       >
+        <span v-if="isRunning" class="orb-marquee" aria-hidden="true" />
+
         <svg class="orb__ring" viewBox="0 0 240 240" aria-hidden="true">
           <defs>
             <linearGradient id="orb-ring-gradient" x1="0" y1="0" x2="1" y2="1">
@@ -313,6 +315,38 @@ function openSettings(kind: ParameterKind): void {
   height: 100%;
   transform: rotate(-90deg);
   pointer-events: none;
+}
+
+/* 运行中：沿圆球外缘旋转的跑马灯光弧 */
+.orb-marquee {
+  position: absolute;
+  inset: -13px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    transparent 195deg,
+    rgba(139, 124, 255, 0.55) 285deg,
+    rgba(56, 189, 248, 0.92) 342deg,
+    transparent 360deg
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+  filter: drop-shadow(0 0 6px rgba(139, 124, 255, 0.5));
+  animation: orb-marquee-spin 4s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes orb-marquee-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb-marquee {
+    animation: none;
+  }
 }
 
 .orb__ring-track {
