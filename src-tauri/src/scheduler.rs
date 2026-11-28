@@ -276,11 +276,15 @@ pub fn reset_today(app: &AppHandle) -> crate::stats::StatsSummary {
 }
 
 /// 监听系统休眠与锁屏：唤醒/解锁后重新开始计时；若开启自启动提醒则自动恢复运行。
+///
+/// 注意：即使提醒未运行也要持续跟踪锁屏状态。合盖前若在工作时段外，提醒会被停止；
+/// 开盖唤醒时系统往往还停留在锁屏界面，此时只有真正解锁的那一刻才能判断是否需要自动启动。
 pub fn spawn_resume_watcher(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         let mut last_tick = Local::now();
         let mut system_locked = is_system_locked();
         let mut lock_known = true;
+        let mut in_work_window = current_config(&app).is_within_work_window(last_tick);
 
         loop {
             tokio::time::sleep(RESUME_WATCH_INTERVAL).await;
@@ -288,33 +292,53 @@ pub fn spawn_resume_watcher(app: AppHandle) {
             let gap = (now - last_tick).num_milliseconds();
             last_tick = now;
 
+            // 休眠唤醒：先把锁屏状态同步好。若唤醒时仍在锁屏，交给下面的解锁分支处理。
             if gap > RESUME_GAP_MS {
-                handle_resume(&app);
                 system_locked = is_system_locked();
                 lock_known = true;
+                handle_resume(&app, system_locked);
+                in_work_window = current_config(&app).is_within_work_window(now);
                 continue;
             }
 
-            // 离开工作时段后立即停止提醒，避免显示跨天的大倒计时。
+            let config = current_config(&app);
             let running = app
                 .state::<AppState>()
                 .scheduler
                 .running
                 .load(Ordering::SeqCst);
-            if !running {
-                // 提醒未运行时不检测锁屏，减少无谓开销。
+            let within = config.is_within_work_window(now);
+
+            // 离开工作时段后立即停止提醒，避免显示跨天的大倒计时。
+            if !within {
+                if running {
+                    stop(&app);
+                }
                 lock_known = false;
+                in_work_window = false;
                 continue;
             }
 
-            let config = current_config(&app);
-            if !config.is_within_work_window(now) {
-                stop(&app);
+            // 提醒未运行且未开启自启动时，无需检测锁屏，减少无谓开销。
+            if !running && !config.auto_start_reminders {
                 lock_known = false;
+                in_work_window = true;
                 continue;
             }
 
             let locked_now = is_system_locked();
+
+            // 进入工作时段且提醒未运行、当前已解锁时，自动开始倒计时。
+            if !in_work_window {
+                in_work_window = true;
+                if !locked_now && !running && config.auto_start_reminders {
+                    if let Err(error) = start(&app) {
+                        eprintln!("[scheduler] 进入工作时段后自动启动提醒失败: {error}");
+                    }
+                }
+            }
+
+            // 始终跟踪锁屏状态，尤其是提醒未运行时，否则解锁后无法自动启动。
             if !lock_known {
                 lock_known = true;
                 system_locked = locked_now;
@@ -330,7 +354,15 @@ pub fn spawn_resume_watcher(app: AppHandle) {
                 if app.get_webview_window("lock").is_some() {
                     resolve_lock(&app, LockOutcome::Skipped);
                 }
-            } else if running {
+                continue;
+            }
+
+            let running = app
+                .state::<AppState>()
+                .scheduler
+                .running
+                .load(Ordering::SeqCst);
+            if running {
                 restart_interval(&app, &config, now);
             } else if config.auto_start_reminders {
                 // 解锁后提醒未运行（例如休眠期间停止或此前未启动）时，自动开始倒计时。
@@ -342,9 +374,9 @@ pub fn spawn_resume_watcher(app: AppHandle) {
     });
 }
 
-fn handle_resume(app: &AppHandle) {
+fn handle_resume(app: &AppHandle, locked: bool) {
     // 锁屏期间不重新计时，等解锁时由监视循环统一恢复。
-    if is_system_locked() {
+    if locked {
         return;
     }
 
