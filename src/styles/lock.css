@@ -27,7 +27,7 @@ body {
     linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
 }
 
-/* 背景插画层：左右各一张不同画面，白线稿用 screen 混合去掉黑底，缓慢漂移营造呼吸感 */
+/* 背景线稿层：左右各一张不同画面，用 screen 混合去掉黑底，缓慢漂移＋柔光扫过营造呼吸感 */
 .lock-backdrop {
   position: absolute;
   inset: 0;
@@ -36,13 +36,22 @@ body {
 }
 
 .lock-backdrop--left {
-  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 30%, transparent 55%);
-  mask-image: linear-gradient(to right, #000 0%, #000 30%, transparent 55%);
+  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 30%, transparent 58%);
+  mask-image: linear-gradient(to right, #000 0%, #000 30%, transparent 58%);
 }
 
 .lock-backdrop--right {
-  -webkit-mask-image: linear-gradient(to left, #000 0%, #000 30%, transparent 55%);
-  mask-image: linear-gradient(to left, #000 0%, #000 30%, transparent 55%);
+  -webkit-mask-image: linear-gradient(to left, #000 0%, #000 30%, transparent 58%);
+  mask-image: linear-gradient(to left, #000 0%, #000 30%, transparent 58%);
+}
+
+/* 场景容器：承担切换动效（镜头式位移+缩放+淡入淡出），内部线稿持续漂移 */
+.lock-scene {
+  position: absolute;
+  inset: 0;
+  opacity: 0.2;
+  mix-blend-mode: screen;
+  will-change: opacity, transform;
 }
 
 .lock-backdrop-art {
@@ -51,48 +60,96 @@ body {
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
-  opacity: 0.16;
-  mix-blend-mode: screen;
-  animation: lock-drift 24s ease-in-out infinite alternate;
+  animation: lock-drift 26s ease-in-out infinite alternate;
 }
 
 .lock-backdrop--left .lock-backdrop-art {
-  animation: lock-drift-flipped 28s ease-in-out infinite alternate;
+  animation: lock-drift-flipped 30s ease-in-out infinite alternate;
 }
 
-/* 场景切换：新图淡入、旧图同时淡出，10 秒一次 */
-.lock-fade-enter-active,
-.lock-fade-leave-active {
-  transition: opacity 1.2s ease;
+/* 缓慢斜向扫过的柔光，让静态线稿有轻微流动感 */
+.lock-backdrop-art::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background-image: linear-gradient(
+    115deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 65%
+  );
+  background-repeat: no-repeat;
+  background-size: 260% 100%;
+  animation: lock-sheen 13s ease-in-out infinite;
 }
 
-.lock-fade-enter-from,
-.lock-fade-leave-to {
+/* 切换动效：新场景从下方轻推入并回落，旧场景向上退场；
+   两层同时缓动，配合内部持续漂移，切换过程画面不停顿 */
+.lock-flow-enter-active,
+.lock-flow-leave-active {
+  transition:
+    opacity 2.8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 2.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lock-flow-enter-from {
   opacity: 0;
+  transform: translate3d(0, 3.5%, 0) scale(1.06);
+}
+
+.lock-flow-enter-to {
+  opacity: 0.2;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+.lock-flow-leave-to {
+  opacity: 0;
+  transform: translate3d(0, -3%, 0) scale(1.04);
+}
+
+/* 右侧稍晚一点开始切换，形成左右错开的流动感，避免整屏同时闪动 */
+.lock-backdrop--right .lock-flow-enter-active,
+.lock-backdrop--right .lock-flow-leave-active {
+  transition-delay: 0.7s;
 }
 
 /* 仅用 transform 动画，由合成器处理，避免触发重绘 */
 @keyframes lock-drift {
   from {
-    transform: translate3d(0, -10px, 0) scale(1.02);
+    transform: translate3d(0, -12px, 0) scale(1.03);
   }
   to {
-    transform: translate3d(0, 10px, 0) scale(1.06);
+    transform: translate3d(0, 12px, 0) scale(1.1);
   }
 }
 
 @keyframes lock-drift-flipped {
   from {
-    transform: scaleX(-1) translate3d(0, -8px, 0) scale(1.02);
+    transform: scaleX(-1) translate3d(0, -10px, 0) scale(1.03);
   }
   to {
-    transform: scaleX(-1) translate3d(0, 8px, 0) scale(1.06);
+    transform: scaleX(-1) translate3d(0, 10px, 0) scale(1.1);
+  }
+}
+
+@keyframes lock-sheen {
+  0% {
+    background-position: 150% 0;
+  }
+  55%,
+  100% {
+    background-position: -50% 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lock-backdrop-art {
+  .lock-backdrop-art,
+  .lock-backdrop-art::after {
     animation: none;
+  }
+  .lock-flow-enter-active,
+  .lock-flow-leave-active {
+    transition-duration: 0.01ms;
   }
 }
 
@@ -102,6 +159,7 @@ body {
   filter: blur(2px);
   opacity: 0.5;
   pointer-events: none;
+  animation: lock-glow-pulse 9s ease-in-out infinite;
 }
 
 .lock-glow--one {
@@ -118,6 +176,26 @@ body {
   width: 420px;
   height: 420px;
   background: radial-gradient(circle, rgba(34, 197, 94, 0.2), transparent 70%);
+  animation-delay: -4.5s;
+}
+
+/* 光晕缓慢呼吸，和线稿漂移错开节奏 */
+@keyframes lock-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.62;
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lock-glow {
+    animation: none;
+  }
 }
 
 .lock-card {
